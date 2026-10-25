@@ -32,7 +32,10 @@
     "destroy": "turbo run destroy -F @wiki-collection/infra --",
     "env:generate": "varlock codegen --path ./apps/web/ && varlock codegen --path ./packages/db/",
     "postinstall": "varlock codegen --path ./apps/web/ && varlock codegen --path ./packages/db/",
-    "check": "oxlint && oxfmt --write"
+    "check": "oxlint && oxfmt --write",
+    "db:seed": "bun run --cwd packages/db seed",
+    "dev:local": "bun run --cwd apps/web dev:local",
+    "test": "bun run --cwd packages/api test"
   },
   "dependencies": {
     "zod": "catalog:"

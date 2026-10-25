@@ -1,1 +1,101 @@
 @import "@wiki-collection/ui/globals.css";
+
+@theme inline {
+  --font-sans: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Inter Variable", sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% 10%, #fbcfe8 0, transparent 35%),
+    radial-gradient(circle at 85% 20%, #bae6fd 0, transparent 40%),
+    radial-gradient(circle at 50% 100%, #ddd6fe 0, transparent 50%), #f8fafc;
+  background-attachment: fixed;
+}
+
+/* カードのホログラム。虹色の帯を斜めに重ね、background-position を指の位置で動かす */
+.holo-foil {
+  background-image:
+    repeating-linear-gradient(
+      115deg,
+      #ff7eb3 0%,
+      #ffd86e 8%,
+      #7cffcb 16%,
+      #7ec8ff 24%,
+      #c77dff 32%,
+      #ff7eb3 40%
+    ),
+    radial-gradient(circle at 50% 50%, #ffffff88, transparent 60%);
+  background-size:
+    300% 300%,
+    100% 100%;
+  animation: holo-drift 6s ease-in-out infinite alternate;
+}
+
+@keyframes holo-drift {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(60deg);
+  }
+}
+
+/* パックの上下の縁をギザギザにする */
+.pack-crimp {
+  --crimp: 6px;
+  border-radius: 6px;
+  mask:
+    linear-gradient(#000 0 0) 0 var(--crimp) / 100% calc(100% - 2 * var(--crimp)) no-repeat,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top /
+      calc(2 * var(--crimp)) calc(var(--crimp) + 1px) repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom /
+      calc(2 * var(--crimp)) calc(var(--crimp) + 1px) repeat-x;
+}
+
+/* パック表面の光沢。斜めの光がゆっくり横切る */
+.pack-shine {
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    #ffffff66 45%,
+    #ffffffaa 50%,
+    #ffffff66 55%,
+    transparent 65%
+  );
+  background-size: 250% 100%;
+  animation: pack-shine 3.2s ease-in-out infinite;
+  mix-blend-mode: overlay;
+}
+
+@keyframes pack-shine {
+  0% {
+    background-position: 130% 0;
+  }
+  60%,
+  100% {
+    background-position: -130% 0;
+  }
+}
+
+@keyframes rainbow-bg {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.rainbow-bg {
+  background: linear-gradient(120deg, #fbcfe8, #fde68a, #bbf7d0, #bae6fd, #ddd6fe, #fbcfe8);
+  background-size: 200% 200%;
+  animation: rainbow-bg 4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .holo-foil,
+  .pack-shine,
+  .rainbow-bg {
+    animation: none;
+  }
+}

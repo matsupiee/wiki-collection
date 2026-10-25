@@ -1,5 +1,6 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
+import { Outlet, createFileRoute, redirect, useLocation } from "@tanstack/react-router";
 
+import { BottomNav } from "@/components/bottom-nav";
 import { getUser } from "@/functions/get-user";
 
 export const Route = createFileRoute("/_auth")({
@@ -7,21 +8,22 @@ export const Route = createFileRoute("/_auth")({
   beforeLoad: async () => {
     const session = await getUser();
     if (!session) {
-      throw redirect({
-        to: "/login",
-      });
+      throw redirect({ to: "/login" });
     }
     return { session };
-  },
-  loader: async ({ context }) => {
-    if (!context.session) {
-      throw redirect({
-        to: "/login",
-      });
-    }
   },
 });
 
 function AuthLayout() {
-  return <Outlet />;
+  const { pathname } = useLocation();
+  // 開封の演出中は全画面にするため、タブを隠す
+  const immersive = /^\/openings\/[^/]+$/.test(pathname);
+  return (
+    <div className="flex min-h-svh flex-col">
+      <div className="flex-1">
+        <Outlet />
+      </div>
+      {!immersive && <BottomNav />}
+    </div>
+  );
 }
