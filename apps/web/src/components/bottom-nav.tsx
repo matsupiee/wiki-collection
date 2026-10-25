@@ -1,17 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpen, Gift, Store, User, Coins } from "lucide-react";
+import { BookOpen, Gift, Store, User } from "lucide-react";
 
 const tabs = [
   { to: "/packs", label: "パック", icon: Gift },
   { to: "/collection", label: "コレクション", icon: BookOpen },
   { to: "/market", label: "マーケット", icon: Store },
-  { to: "/shop", label: "ショップ", icon: Coins },
   { to: "/me", label: "マイページ", icon: User },
 ] as const;
 
 export function BottomNav() {
   return (
-    <nav className="sticky bottom-0 z-30 grid grid-cols-5 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
+    <nav className="sticky bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
       {tabs.map(({ to, label, icon: Icon }) => (
         <Link
           key={to}
