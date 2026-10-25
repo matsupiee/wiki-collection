@@ -58,7 +58,13 @@ export async function createGenre(db: Database, name = "テストジャンル") 
 
 export async function createCard(
   db: Database,
-  input: { genreId: string; rarity: Rarity; title?: string; isActive?: boolean },
+  input: {
+    genreId: string;
+    rarity: Rarity;
+    title?: string;
+    isActive?: boolean;
+    wikiRevisionId?: number;
+  },
 ) {
   const [created] = await db
     .insert(card)
@@ -66,6 +72,7 @@ export async function createCard(
       wikiLang: "ja",
       wikiPageId: Math.floor(Math.random() * 1_000_000_000),
       title: input.title ?? `カード ${nextId()}`,
+      wikiRevisionId: input.wikiRevisionId ?? null,
       summary: "テスト用のカード",
       genreId: input.genreId,
       rarity: input.rarity,

@@ -59,6 +59,12 @@ function PrivacyPage() {
           </li>
           <li>決済サービス事業者（pt の購入代金の決済）</li>
         </ul>
+        <p>
+          カードの画像は Wikimedia Foundation が運営する Wikimedia Commons
+          のサーバーから直接読み込みます。そのため、画像を表示するときに、利用者の IP
+          アドレスやブラウザの情報が Wikimedia Foundation に送られます。送られた情報は Wikimedia
+          Foundation のプライバシーポリシーに従って扱われます。
+        </p>
       </section>
       <section>
         <h2>5. 保存期間</h2>

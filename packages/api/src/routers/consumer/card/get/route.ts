@@ -16,6 +16,8 @@ export const cardGetOutputSchema = z.object({
     rarity: z.enum(rarities),
     monthlyPageviews: z.number(),
     wikiUrl: z.string(),
+    // 取り込んだ時点の版。seed のサンプルカードは null
+    wikiRevisionUrl: z.string().nullable(),
     genreName: z.string(),
     genreColorHex: z.string(),
   }),

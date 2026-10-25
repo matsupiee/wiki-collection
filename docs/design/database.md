@@ -43,7 +43,7 @@ erDiagram
 
 テーブルは役割ごとに4つに分かれる。
 
-- マスタ（運営が作る）: `genre`、`card`、`pack`、`pack_slot_rate`、`pack_featured_card`、`coin_product`
+- マスタ（運営が作る）: `genre`、`card`、`rarity_threshold`、`pack`、`pack_slot_rate`、`pack_featured_card`、`coin_product`
 - 所持と開封: `user_card`、`card_discovery`、`pack_opening`、`free_pack_allowance`
 - 通貨: `coin_deposit`、`coin_withdraw`、`coin_deposit_withdraw`、`coin_purchase`
 - マーケット: `market_listing`、`auction_bid`
@@ -86,24 +86,42 @@ SQLite には enum 型がないため、Drizzle の `text("...", { enum: [...] }
 
 Wikipedia の記事1ページに対応するカード。所持品ではなく、カードの種類を表す。
 
-| 列                  | 型           | 説明                                                       |
-| ------------------- | ------------ | ---------------------------------------------------------- |
-| wikiLang            | text         | 言語版。`ja` など                                          |
-| wikiPageId          | integer      | Wikipedia の page_id。改名されても変わらない               |
-| title               | text         | 記事タイトル                                               |
-| summary             | text         | 冒頭の要約。CC BY-SA 4.0                                   |
-| imageUrl            | text null    | Wikimedia Commons のフリーライセンス画像だけを入れる       |
-| imageCredit         | text null    | 画像の作者とライセンス表記                                 |
-| genreId             | text → genre | 属するジャンル。1枚につき1つ                               |
-| rarity              | rarity       | 作成時に固定する                                           |
-| monthlyPageviews    | integer      | レアリティ判定に使った月平均閲覧数                         |
-| pageviewsMeasuredAt | timestamp    | 閲覧数を取った日時                                         |
-| isActive            | boolean      | false にすると新しく排出されなくなる。所持済みのものは残る |
+| 列                  | 型             | 説明                                                       |
+| ------------------- | -------------- | ---------------------------------------------------------- |
+| wikiLang            | text           | 言語版。`ja` など                                          |
+| wikiPageId          | integer        | Wikipedia の page_id。改名されても変わらない               |
+| title               | text           | 記事タイトル                                               |
+| wikiRevisionId      | integer null   | 取り込んだ時点の版 ID。seed のサンプルカードは null        |
+| wikiFetchedAt       | timestamp null | 記事を取り込んだ日時。seed のサンプルカードは seed の日時  |
+| summary             | text           | 冒頭の要約。CC BY-SA 4.0                                   |
+| imageUrl            | text null      | Wikimedia Commons のフリーライセンス画像だけを入れる       |
+| imageCredit         | text null      | 画像の作者とライセンス表記                                 |
+| genreId             | text → genre   | 属するジャンル。1枚につき1つ                               |
+| rarity              | rarity         | 作成時に固定する                                           |
+| monthlyPageviews    | integer        | レアリティ判定に使った月平均閲覧数                         |
+| pageviewsMeasuredAt | timestamp      | 閲覧数を取った日時                                         |
+| isActive            | boolean        | false にすると新しく排出されなくなる。所持済みのものは残る |
 
 - `(wikiLang, wikiPageId)` に unique 制約をつける。同じ記事のカードを二重に作らない。
 - `(genreId, rarity, isActive)` に index をつける。抽選でジャンルとレアリティから候補を引くため。
 - 還元ポイントはレアリティから決まるので列に持たない。`packages/api/src/shared/card/get-redeem-points.ts` に置く。
 - Wikipedia へのリンクは `https://{wikiLang}.wikipedia.org/wiki/{title}` で作る。改名されても Wikipedia 側のリダイレクトで記事にたどり着ける。
+- 帰属表示として、取り込んだ時点の版へのリンク `https://{wikiLang}.wikipedia.org/w/index.php?oldid={wikiRevisionId}` をカード詳細に出す。要約はこの版の冒頭から取っている。
+
+### rarity_threshold
+
+レアリティごとの月間閲覧数の下限。言語版ごとに、コモン以外の4行を持つ。
+
+| 列                  | 型      | 説明                                   |
+| ------------------- | ------- | -------------------------------------- |
+| wikiLang            | text    | 言語版                                 |
+| rarity              | rarity  | `uncommon` 以上。コモンは下限がない    |
+| minMonthlyPageviews | integer | このレアリティになる月平均閲覧数の下限 |
+
+- `(wikiLang, rarity)` に unique 制約をつける。
+- 最初の取り込みで、閲覧数の順位（上位 1%・5%・20%・50%）から決める。あとから足すカードも同じ下限で判定する。取り込むたびに順位で決め直すと、同じ閲覧数でも取り込んだ時期によってレアリティが変わってしまうため。
+- 下限を変えても、すでにあるカードのレアリティは変わらない。
+- 計算は `packages/db/src/rarity.ts` に置く。seed も同じ計算で下限を入れる。
 
 ### pack
 
@@ -424,11 +442,24 @@ D1 はアプリから任意のトランザクションを張れないため、�
 
 ## Wikipedia からのカード作成
 
-未実装。管理画面または定期バッチで行う予定。いまは seed（`packages/db/src/seed/`）のサンプルデータでカードを作る。
+`packages/wiki-import` で行う。いまはローカルから `bun run wiki:import` で実行し、ローカルの D1 に書く。本番の D1 への取り込みは未実装。
 
-1. 対象のカテゴリから記事を集める（MediaWiki Action API の `list=categorymembers`）。
-2. 記事ごとに要約と画像を取る（REST API の `/page/summary/{title}`）。画像は Commons にあり、フリーライセンスのものだけを使う。
-3. 直近12か月の閲覧数を取る（Wikimedia Pageviews API の `per-article`）。
-4. カード全体のなかでの順位からレアリティを決めて `card` に保存する。各レアリティに最低1枚は入るよう、枚数は1以上に切り上げる。
+1. ジャンルの `sourceCategory` から記事を集める（MediaWiki Action API の `list=categorymembers`）。サブカテゴリは `--depth` 段までたどる。すでにカードになっている記事は取り直さない。
+2. 記事のカテゴリ、曖昧さ回避かどうか、代表画像のファイル名を 50 件ずつまとめて取る（`prop=categories|pageimages|pageprops`）。ここで除外の条件に当たる記事を外す。
+3. 代表画像のライセンスを確かめる（`prop=imageinfo` の `extmetadata`）。Commons にある画像で、CC BY・CC BY-SA・CC0・パブリックドメインのものだけを使う。CC BY 系で作者がわからない画像は使わない。使えない画像のカードは、ジャンルの色とタイトルの1文字目で絵柄を描く。
+4. 記事ごとに要約と版 ID を取る（REST API の `/page/summary/{title}`）。要約は `extract` をそのまま使う。
+5. 直近12か月（今月を除く）の閲覧数を取る（Wikimedia Pageviews API の `per-article`、`agent=user`）。閲覧のない月も数え、合計を12で割る。
+6. `rarity_threshold` の下限でレアリティを決め、`card` に保存する。下限がまだなければ、いまあるカードとこの取り込みの記事の閲覧数の順位から決め、カードと同じ batch で保存する。
 
-API を呼ぶときは、Wikimedia の User-Agent ポリシーに従い、連絡先を含む User-Agent を付ける。
+除外の条件（`packages/wiki-import/src/get-exclusion-reason.ts`）は次のとおり。人の確認ははさまない。外し漏れたカードは `isActive` を false にして止める。
+
+- 曖昧さ回避のページ
+- タイトルに「一覧」を含む記事
+- 事件・事故・テロ・殺人・災害を名前に含むカテゴリに入っている記事
+- 要約が30文字に満たない記事
+
+API の呼び方は次のとおり。
+
+- User-Agent に、アプリ名と連絡先としてリポジトリの URL を入れる（`wiki-collection/0.1 (+https://github.com/matsupiee/wiki-collection)`）。Wikimedia の User-Agent ポリシーに従うため。
+- 同時に投げるリクエストは3本までにする。Action API には `maxlag=5` を付ける。
+- 429、5xx、maxlag のエラーは、`Retry-After` の秒数か、1秒から倍々に待って4回まで再試行する。

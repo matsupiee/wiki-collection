@@ -1,0 +1,22 @@
+{
+  "name": "@wiki-collection/wiki-import",
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "import": "bun src/cli.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@wiki-collection/db": "workspace:*",
+    "drizzle-orm": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.2",
+    "@wiki-collection/config": "workspace:*",
+    "typescript": "catalog:",
+    "wrangler": "4.148.0"
+  }
+}

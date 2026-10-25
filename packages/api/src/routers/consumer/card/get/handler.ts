@@ -65,6 +65,10 @@ export async function handler({
       monthlyPageviews: c.monthlyPageviews,
       // 改名されても Wikipedia 側のリダイレクトで記事にたどり着ける
       wikiUrl: `https://${c.wikiLang}.wikipedia.org/wiki/${encodeURIComponent(c.title)}`,
+      // CC BY-SA の帰属表示として、要約を取った時点の版を示す
+      wikiRevisionUrl: c.wikiRevisionId
+        ? `https://${c.wikiLang}.wikipedia.org/w/index.php?oldid=${c.wikiRevisionId}`
+        : null,
       genreName: found.genreName,
       genreColorHex: found.genreColorHex,
     },

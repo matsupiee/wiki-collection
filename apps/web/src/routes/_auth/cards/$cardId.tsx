@@ -74,6 +74,14 @@ function CardDetailPage() {
         </a>
         <p className="text-[10px] leading-relaxed text-slate-400">
           出典: Wikipedia「{card.title}」（CC BY-SA 4.0）
+          {card.wikiRevisionUrl && (
+            <>
+              ・
+              <a href={card.wikiRevisionUrl} target="_blank" rel="noreferrer" className="underline">
+                取り込んだ時点の版
+              </a>
+            </>
+          )}
           {card.imageCredit && <>・画像: {card.imageCredit}</>}
         </p>
       </section>

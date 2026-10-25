@@ -161,6 +161,19 @@
         "typescript": "catalog:",
       },
     },
+    "packages/wiki-import": {
+      "name": "@wiki-collection/wiki-import",
+      "dependencies": {
+        "@wiki-collection/db": "workspace:*",
+        "drizzle-orm": "catalog:",
+      },
+      "devDependencies": {
+        "@types/bun": "1.4.2",
+        "@wiki-collection/config": "workspace:*",
+        "typescript": "catalog:",
+        "wrangler": "4.148.0",
+      },
+    },
   },
   "catalog": {
     "@libsql/client": "0.18.0",
@@ -844,6 +857,8 @@
     "@wiki-collection/infra": ["@wiki-collection/infra@workspace:packages/infra"],
 
     "@wiki-collection/ui": ["@wiki-collection/ui@workspace:packages/ui"],
+
+    "@wiki-collection/wiki-import": ["@wiki-collection/wiki-import@workspace:packages/wiki-import"],
 
     "accepts": ["accepts@2.0.0", "", { "dependencies": { "mime-types": "^3.0.0", "negotiator": "^1.0.0" } }, "sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng=="],
 
