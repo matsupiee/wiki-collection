@@ -1,0 +1,25 @@
+{
+  "name": "@wiki-collection/db",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:deploy": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@libsql/client": "catalog:",
+    "drizzle-orm": "catalog:",
+    "libsql": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@wiki-collection/config": "workspace:*",
+    "drizzle-kit": "1.0.0-rc.5",
+    "typescript": "catalog:",
+    "varlock": "catalog:"
+  }
+}

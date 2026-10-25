@@ -1,0 +1,4 @@
+{
+  "extends": "@wiki-collection/config/tsconfig.base.json",
+  "include": ["alchemy.run.ts"]
+}

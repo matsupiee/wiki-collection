@@ -1,0 +1,22 @@
+{
+  "name": "@wiki-collection/api",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@trpc/client": "catalog:",
+    "@trpc/server": "catalog:",
+    "@wiki-collection/auth": "workspace:*",
+    "@wiki-collection/db": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@wiki-collection/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,3 @@
+{
+  "extends": "@wiki-collection/config/tsconfig.base.json"
+}
