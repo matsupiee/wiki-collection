@@ -31,7 +31,7 @@
 | imageUrl            | 代表画像の URL。使える画像がなければ null                     |
 | imageCredit         | 画像の作者とライセンス。画像がなければ null                   |
 | rarity              | 取り込んだ時点で決めたレアリティ                              |
-| monthlyPageviews    | 直近12か月の月平均閲覧数                                      |
+| monthlyPageviews    | 月平均閲覧数（既定は直近1か月の閲覧数）                       |
 | pageviewsMeasuredAt | 閲覧数を取った日時（ISO 8601）                                |
 | isActive            | パックから出すかどうか。止めるときは false にして読み込み直す |
 

@@ -57,8 +57,9 @@ describe("createWikimediaClient", () => {
 });
 
 describe("recentMonths", () => {
-  test("年をまたいでも、12か月前の月から先月までにする", () => {
-    const months = recentMonths(new Date("2026-01-15T00:00:00Z"));
+  test("年をまたいでも、指定した月数だけさかのぼって先月までにする", () => {
+    expect(recentMonths(new Date("2026-01-15T00:00:00Z"), 1)).toEqual(["2025-12"]);
+    const months = recentMonths(new Date("2026-01-15T00:00:00Z"), 12);
     expect(months).toHaveLength(12);
     expect([months[0], months[11]]).toEqual(["2025-01", "2025-12"]);
   });

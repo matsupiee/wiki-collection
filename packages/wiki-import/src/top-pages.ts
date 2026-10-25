@@ -8,12 +8,10 @@ export const TOP_PAGES_FILE = path.resolve(import.meta.dirname, "../.cache/top-p
 
 export type TopPage = { pageId: number; monthlyPageviews: number };
 
-const MONTHS = 12;
-
-// 直近12か月（今月を除く）の月を YYYY-MM で返す（UTC）
-export function recentMonths(now: Date): string[] {
-  return Array.from({ length: MONTHS }, (_, i) => {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - MONTHS + i, 1));
+// 直近 count か月（今月を除く）の月を、古い順に YYYY-MM で返す（UTC）
+export function recentMonths(now: Date, count: number): string[] {
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - count + i, 1));
     return d.toISOString().slice(0, 7);
   });
 }
@@ -47,12 +45,15 @@ export async function sumPageviews(
   return matched;
 }
 
-// 12か月の合計を 12 で割って月平均にし、多い順に limit 件を返す。閲覧のない月も 0 として数える
-export function rankTopPages(totals: Map<number, number>, limit: number): TopPage[] {
+// 読んだ月数で合計を割って月平均にし、多い順に limit 件を返す。閲覧のない月も 0 として数える
+export function rankTopPages(
+  totals: Map<number, number>,
+  input: { months: number; limit: number },
+): TopPage[] {
   return [...totals]
-    .map(([pageId, total]) => ({ pageId, monthlyPageviews: Math.round(total / MONTHS) }))
+    .map(([pageId, total]) => ({ pageId, monthlyPageviews: Math.round(total / input.months) }))
     .sort((a, b) => b.monthlyPageviews - a.monthlyPageviews || a.pageId - b.pageId)
-    .slice(0, limit);
+    .slice(0, input.limit);
 }
 
 // bz2 の dump を bzip2 コマンドで展開しながら1行ずつ読む。source は URL かローカルのファイル
