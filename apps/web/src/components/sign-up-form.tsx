@@ -32,9 +32,9 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
         {
           onSuccess: () => {
             navigate({
-              to: "/dashboard",
+              to: "/packs",
             });
-            toast.success("Sign up successful");
+            toast.success("登録しました。無料パックを開けよう");
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
@@ -44,9 +44,9 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
     },
     validators: {
       onSubmit: z.object({
-        name: z.string().min(2, "Name must be at least 2 characters"),
-        email: z.email("Invalid email address"),
-        password: z.string().min(8, "Password must be at least 8 characters"),
+        name: z.string().min(2, "ニックネームは2文字以上にしてください"),
+        email: z.email("メールアドレスの形式が正しくありません"),
+        password: z.string().min(8, "パスワードは8文字以上にしてください"),
       }),
     },
   });
@@ -56,7 +56,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
   }
 
   return (
-    <div className="mx-auto w-full mt-10 max-w-md p-6">
+    <div className="mx-auto mt-10 w-full max-w-md rounded-3xl bg-white/80 p-6 shadow-xl">
       <h1 className="mb-6 text-center text-3xl font-bold">Create Account</h1>
 
       <form
@@ -71,7 +71,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
           <form.Field name="name">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Name</Label>
+                <Label htmlFor={field.name}>ニックネーム</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -93,7 +93,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
           <form.Field name="email">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Email</Label>
+                <Label htmlFor={field.name}>メールアドレス</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -116,7 +116,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
           <form.Field name="password">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Password</Label>
+                <Label htmlFor={field.name}>パスワード</Label>
                 <Input
                   id={field.name}
                   name={field.name}
@@ -139,20 +139,20 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
           selector={(state) => ({ canSubmit: state.canSubmit, isSubmitting: state.isSubmitting })}
         >
           {({ canSubmit, isSubmitting }) => (
-            <Button type="submit" className="w-full" disabled={!canSubmit || isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Sign Up"}
+            <Button
+              type="submit"
+              className="h-11 w-full rounded-full bg-sky-500 font-extrabold text-white hover:bg-sky-600"
+              disabled={!canSubmit || isSubmitting}
+            >
+              {isSubmitting ? "送信中…" : "登録する"}
             </Button>
           )}
         </form.Subscribe>
       </form>
 
       <div className="mt-4 text-center">
-        <Button
-          variant="link"
-          onClick={onSwitchToSignIn}
-          className="text-indigo-600 hover:text-indigo-800"
-        >
-          Already have an account? Sign In
+        <Button variant="link" onClick={onSwitchToSignIn} className="text-sky-600">
+          アカウントをお持ちの方はログイン
         </Button>
       </div>
     </div>

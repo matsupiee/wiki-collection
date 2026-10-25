@@ -1,52 +1,47 @@
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, redirect } from "@tanstack/react-router";
+import { Button } from "@wiki-collection/ui/components/button";
 
-import { useTRPC } from "@/utils/trpc";
+import { PackArt } from "@/components/pack-art";
+import { getUser } from "@/functions/get-user";
 
 export const Route = createFileRoute("/")({
-  component: HomeComponent,
+  beforeLoad: async () => {
+    if (await getUser()) throw redirect({ to: "/packs" });
+  },
+  component: LandingPage,
 });
 
-const TITLE_TEXT = `
- ██████╗ ███████╗████████╗████████╗███████╗██████╗
- ██╔══██╗██╔════╝╚══██╔══╝╚══██╔══╝██╔════╝██╔══██╗
- ██████╔╝█████╗     ██║      ██║   █████╗  ██████╔╝
- ██╔══██╗██╔══╝     ██║      ██║   ██╔══╝  ██╔══██╗
- ██████╔╝███████╗   ██║      ██║   ███████╗██║  ██║
- ╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚══════╝╚═╝  ╚═╝
-
- ████████╗    ███████╗████████╗ █████╗  ██████╗██╗  ██╗
- ╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝
-    ██║       ███████╗   ██║   ███████║██║     █████╔╝
-    ██║       ╚════██║   ██║   ██╔══██║██║     ██╔═██╗
-    ██║       ███████║   ██║   ██║  ██║╚██████╗██║  ██╗
-    ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
- `;
-
-function HomeComponent() {
-  const trpc = useTRPC();
-  const healthCheck = useQuery(trpc.healthCheck.queryOptions());
-
+function LandingPage() {
   return (
-    <div className="container mx-auto max-w-3xl px-4 py-2">
-      <pre className="overflow-x-auto font-mono text-sm">{TITLE_TEXT}</pre>
-      <div className="grid gap-6">
-        <section className="rounded-lg border p-4">
-          <h2 className="mb-2 font-medium">API Status</h2>
-          <div className="flex items-center gap-2">
-            <div
-              className={`h-2 w-2 rounded-full ${healthCheck.data ? "bg-green-500" : "bg-red-500"}`}
-            />
-            <span className="text-muted-foreground text-sm">
-              {healthCheck.isLoading
-                ? "Checking..."
-                : healthCheck.data
-                  ? "Connected"
-                  : "Disconnected"}
-            </span>
-          </div>
-        </section>
+    <main className="flex min-h-svh flex-col items-center justify-center gap-8 px-6 py-12 text-center">
+      <div className="relative flex h-64 items-end justify-center">
+        <PackArt name="歴史" colorHex="#b45309" className="-mr-10 w-28 -rotate-12 opacity-90" />
+        <PackArt name="基本パック" colorHex="#7c3aed" className="z-10 w-40" label="無料" />
+        <PackArt name="宇宙" colorHex="#4f46e5" className="-ml-10 w-28 rotate-12 opacity-90" />
       </div>
-    </div>
+      <div className="space-y-3">
+        <h1 className="bg-gradient-to-r from-violet-600 to-sky-500 bg-clip-text text-4xl font-black text-transparent">
+          Wiki Collection
+        </h1>
+        <p className="text-sm leading-relaxed text-slate-600">
+          Wikipedia の記事がカードになった。
+          <br />
+          よく読まれている記事ほどレア。パックを開けて集めよう。
+        </p>
+        <p className="text-xs font-bold text-violet-600">
+          登録すると無料パックを 20 パック開けられる
+        </p>
+      </div>
+      <Link to="/login" className="w-full">
+        <Button className="h-12 w-full rounded-full bg-sky-500 text-base font-extrabold text-white shadow-lg hover:bg-sky-600">
+          はじめる
+        </Button>
+      </Link>
+      <footer className="flex gap-4 text-xs text-slate-400">
+        <Link to="/legal/terms">利用規約</Link>
+        <Link to="/legal/privacy">プライバシーポリシー</Link>
+        <Link to="/legal/tokushoho">特定商取引法に基づく表記</Link>
+      </footer>
+    </main>
   );
 }

@@ -8,18 +8,22 @@
   "scripts": {
     "check-types": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:deploy": "drizzle-kit migrate"
+    "db:migrate:deploy": "drizzle-kit migrate",
+    "seed": "bun src/seed/index.ts"
   },
   "dependencies": {
     "@libsql/client": "catalog:",
+    "@paralleldrive/cuid2": "2.2.2",
     "drizzle-orm": "catalog:",
     "libsql": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@wiki-collection/config": "workspace:*",
+    "better-auth": "catalog:",
     "drizzle-kit": "1.0.0-rc.5",
     "typescript": "catalog:",
-    "varlock": "catalog:"
+    "varlock": "catalog:",
+    "wrangler": "4.148.0"
   }
 }

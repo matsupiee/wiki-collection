@@ -7,7 +7,8 @@
     "serve": "vite preview",
     "check-types": "vite build && tsc --noEmit",
     "dev:bare": "vite dev",
-    "env:generate": "varlock codegen"
+    "env:generate": "varlock codegen",
+    "dev:local": "vite dev --config vite.local.config.ts"
   },
   "dependencies": {
     "@libsql/client": "catalog:",
@@ -27,6 +28,7 @@
     "better-auth": "catalog:",
     "libsql": "catalog:",
     "lucide-react": "^1.56.0",
+    "motion": "12.23.12",
     "next-themes": "catalog:",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -36,6 +38,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "1.63.0",
     "@tanstack/react-query-devtools": "^5.104.2",
     "@tanstack/react-router-devtools": "^1.167.2",
     "@testing-library/dom": "^10.4.2",
@@ -48,6 +51,7 @@
     "jsdom": "^30.1.2",
     "typescript": "catalog:",
     "vite": "^8.3.4",
-    "web-vitals": "^6.2.3"
+    "web-vitals": "^6.2.3",
+    "wrangler": "4.148.0"
   }
 }

@@ -1,0 +1,23 @@
+// ローカル開発とテスト専用の設定。デプロイは packages/infra/alchemy.run.ts（Alchemy）で行い、このファイルは使わない。
+// Alchemy の dev は Cloudflare の認証が必要なため、認証なしで動かしたいときに @cloudflare/vite-plugin と組み合わせて使う。
+// DOCS: https://developers.cloudflare.com/workers/vite-plugin/
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "wiki-collection-local",
+  "main": "@tanstack/react-start/server-entry",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wiki-collection-local",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+    },
+  ],
+  "vars": {
+    "BETTER_AUTH_URL": "http://localhost:3001",
+    // ローカル専用の値。本番の秘密鍵は Alchemy の BETTER_AUTH_SECRET から渡す
+    "BETTER_AUTH_SECRET": "local-only-secret-not-for-production-0123456789",
+    "PAYMENT_MODE": "mock",
+  },
+}

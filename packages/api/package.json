@@ -6,17 +6,21 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
     "@trpc/client": "catalog:",
     "@trpc/server": "catalog:",
     "@wiki-collection/auth": "workspace:*",
     "@wiki-collection/db": "workspace:*",
+    "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/bun": "1.4.2",
     "@wiki-collection/config": "workspace:*",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "wrangler": "4.148.0"
   }
 }
