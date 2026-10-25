@@ -22,7 +22,7 @@ bun run dev:local  # http://localhost:3001 で起動する
 
 `packages/db/src/seed/index.ts` が作る。実行するたびに全データを消して作り直す。
 
-- カード 60 枚（6 ジャンル）。レアリティは月間閲覧数の順位で決める。要約は本アプリ用に書いた短い説明で、Wikipedia の本文ではない。
+- カード 60 枚（6 ジャンル）。レアリティは月間閲覧数の順位で決め、その下限を `rarity_threshold` に入れる。要約は本アプリ用に書いた短い説明で、Wikipedia の本文ではない。
 - パック 4 種類（無料の基本パック、150pt の宇宙・歴史・科学パック）と、pt の商品 3 種類。
 - ユーザー 4 人。パスワードはすべて `password1234`。
 
@@ -33,10 +33,21 @@ bun run dev:local  # http://localhost:3001 で起動する
 | jiro@example.com   | hanako のオークションに入札中。終了済みのオークションで落札待ち                         |
 | shiro@example.com  | 登録時の 20 パックも今日の 10 パックも使い切った                                        |
 
+## Wikipedia からカードを取り込む
+
+```bash
+bun run wiki:import --genre space --max 30
+```
+
+- ローカルの D1 に、Wikipedia の記事からカードを足す。Wikipedia の API に接続できる必要がある。
+- `--genre` はジャンルの slug。複数指定でき、省略するとすべてのジャンルを取り込む。`--depth` はサブカテゴリをたどる深さ（既定 1）、`--max` はジャンルごとに調べる記事の数の上限（既定 100）。
+- `bun run db:seed` をやり直すと、取り込んだカードも消える。
+- 仕組みは [database.md](../design/database.md) の「Wikipedia からのカード作成」を参照。
+
 ## テストする
 
 ```bash
-bun run test   # packages/api の統合テスト
+bun run test   # packages/api と packages/wiki-import のテスト
 ```
 
 - テストは Miniflare のメモリ上の D1 にマイグレーションを当てて動かす（`packages/api/src/test/create-test-db.ts`）。本番と同じ D1 の挙動（batch のトランザクション、制約違反、バインド変数の上限）で確かめるため。

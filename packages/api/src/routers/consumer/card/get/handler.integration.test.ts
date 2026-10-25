@@ -18,7 +18,11 @@ describe("card/get", () => {
     const ctx = await createUserContext(db);
     const seller = await createUserContext(db);
     const g = await createGenre(db);
-    const c = await createCard(db, { genreId: g.id, rarity: "double_rare" });
+    const c = await createCard(db, {
+      genreId: g.id,
+      rarity: "double_rare",
+      wikiRevisionId: 123456,
+    });
     const mine = await giveCard(db, ctx.session.user.id, c.id);
     await db
       .insert(cardDiscovery)
@@ -36,6 +40,7 @@ describe("card/get", () => {
     expect(result.card.wikiUrl).toBe(
       `https://ja.wikipedia.org/wiki/${encodeURIComponent(c.title)}`,
     );
+    expect(result.card.wikiRevisionUrl).toBe("https://ja.wikipedia.org/w/index.php?oldid=123456");
     expect(result.ownedUserCardIds).toEqual([mine.id]);
     expect(result.redeemPoints).toBe(60);
     expect(result.lowestMarketPrice).toBe(80);

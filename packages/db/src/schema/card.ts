@@ -22,6 +22,9 @@ export const card = sqliteTable(
     wikiLang: text("wiki_lang").notNull(),
     wikiPageId: integer("wiki_page_id").notNull(),
     title: text("title").notNull(),
+    // 帰属表示のため、取り込んだ時点の版と日時を持つ。seed のサンプルカードには実在の版がないので null
+    wikiRevisionId: integer("wiki_revision_id"),
+    wikiFetchedAt: integer("wiki_fetched_at", { mode: "timestamp_ms" }),
     summary: text("summary").notNull(),
     imageUrl: text("image_url"),
     imageCredit: text("image_credit"),

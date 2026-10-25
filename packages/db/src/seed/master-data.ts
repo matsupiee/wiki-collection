@@ -108,23 +108,6 @@ export const cards: [GenreSlug, string, number, string][] = [
   ["geography", "大阪市", 51000, "西日本の経済の中心都市。食い倒れの街とも呼ばれる。"],
 ];
 
-// 月間閲覧数の順位でレアリティを決める。上位 1% がレジェンド、5% までがダブルレア、20% までがレア、50% までがアンコモン。
-// カードが少ないときでも各レアリティに最低1枚は入るよう、枚数は1以上に切り上げる
-export function rarityByRank(rankFromTop: number, total: number): Rarity {
-  const limits: [Rarity, number][] = [
-    ["legendary", 0.01],
-    ["double_rare", 0.05],
-    ["rare", 0.2],
-    ["uncommon", 0.5],
-  ];
-  let count = 0;
-  for (const [rarity, ratio] of limits) {
-    count = Math.max(count + 1, Math.round(total * ratio));
-    if (rankFromTop < count) return rarity;
-  }
-  return "common";
-}
-
 const commonOnly = { common: 10000, uncommon: 0, rare: 0, double_rare: 0, legendary: 0 };
 export const slotRates: Record<"basic" | "genre", Record<Rarity, number>[]> = {
   basic: [

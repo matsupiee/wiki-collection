@@ -26,13 +26,15 @@ import {
   packFeaturedCard,
   packOpening,
   packSlotRate,
+  rarityThreshold,
   session,
   user,
   userCard,
   verification,
 } from "../schema";
 import { openLocalDb } from "./local-db";
-import { cards, coinProducts, genres, packs, rarityByRank, slotRates } from "./master-data";
+import { rarityByRank, thresholdsFromPageviews } from "../rarity";
+import { cards, coinProducts, genres, packs, slotRates } from "./master-data";
 
 const PASSWORD = "password1234";
 const HOUR = 60 * 60 * 1000;
@@ -54,6 +56,7 @@ async function reset(db: Database) {
     packSlotRate,
     pack,
     card,
+    rarityThreshold,
     genre,
     coinProduct,
     session,
@@ -83,7 +86,17 @@ async function seedMaster(db: Database) {
     rarity: rarityByRank(rank, ranked.length),
     monthlyPageviews,
     pageviewsMeasuredAt: new Date(),
+    wikiFetchedAt: new Date(),
   }));
+  // Wikipedia から取り込むときは、ここで入れた下限でレアリティを決める
+  const thresholds = thresholdsFromPageviews(ranked.map((c) => c[2]));
+  await db.insert(rarityThreshold).values(
+    Object.entries(thresholds).map(([rarity, minMonthlyPageviews]) => ({
+      wikiLang: "ja",
+      rarity: rarity as keyof typeof thresholds,
+      minMonthlyPageviews,
+    })),
+  );
   // D1 は1文あたりのバインド変数が 100 個までなので分けて入れる
   const cardRows = [];
   for (let i = 0; i < cardValues.length; i += 8) {

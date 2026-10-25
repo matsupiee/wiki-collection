@@ -1,6 +1,7 @@
 export * from "./auth";
 export * from "./genre";
 export * from "./card";
+export * from "./rarity-threshold";
 export * from "./pack";
 export * from "./pack-slot-rate";
 export * from "./pack-featured-card";
