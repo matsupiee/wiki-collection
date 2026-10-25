@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { isFreeLicense } from "./fetch-image-licenses";
-import { pageviewsRange } from "./fetch-monthly-pageviews";
+import { recentMonths } from "./top-pages";
 import { getExclusionReason } from "./get-exclusion-reason";
 import { createWikimediaClient, USER_AGENT } from "./wikimedia-client";
 
@@ -56,12 +56,11 @@ describe("createWikimediaClient", () => {
   });
 });
 
-describe("pageviewsRange", () => {
-  test("12か月前の月初から先月末までにする", () => {
-    expect(pageviewsRange(new Date("2026-01-15T00:00:00Z"))).toEqual({
-      start: "20250101",
-      end: "20251231",
-    });
+describe("recentMonths", () => {
+  test("年をまたいでも、12か月前の月から先月までにする", () => {
+    const months = recentMonths(new Date("2026-01-15T00:00:00Z"));
+    expect(months).toHaveLength(12);
+    expect([months[0], months[11]]).toEqual(["2025-01", "2025-12"]);
   });
 });
 

@@ -1,15 +1,17 @@
-// テスト用に、Wikimedia の API と同じ形の応答を返す fetch を作る。要約の文章はテスト用に書いたもので、Wikipedia の本文ではない
+// テスト用に、Wikimedia の API（Wikidata の SPARQL を含む）と同じ形の応答を返す fetch を作る。要約の文章はテスト用に書いたもので、Wikipedia の本文ではない
 
 export type FakeArticle = {
   pageId: number;
+  // 名前空間。省略すると記事（0）
+  ns?: number;
   title: string;
   categories?: string[];
   disambiguation?: boolean;
   imageFile?: string;
   extract: string;
   revision: number;
-  // 月ごとの閲覧数。返す月の数だけ並べる
-  monthlyViews: number[];
+  // 記事に紐づく Wikidata の ID と、その分類（P31）。label を省くと日本語ラベルのない分類になる
+  wikidata?: { id: string; instanceOf: { id: string; label?: string; preferred?: boolean }[] };
 };
 
 export type FakeImage = {
@@ -20,8 +22,6 @@ export type FakeImage = {
 };
 
 export type FakeWiki = {
-  // カテゴリ名（"Category:" なし） → 中の記事の pageId とサブカテゴリ名
-  categories: Record<string, { pages: number[]; subcats?: string[] }>;
   articles: FakeArticle[];
   images?: FakeImage[];
 };
@@ -40,29 +40,7 @@ export function createFakeWikimedia(wiki: FakeWiki) {
 
     if (url.pathname === "/w/api.php") {
       const p = url.searchParams;
-      const offset = Number(p.get("cmcontinue") ?? p.get("clcontinue") ?? 0);
-      if (p.get("list") === "categorymembers") {
-        const category = wiki.categories[p.get("cmtitle")!.replace(/^Category:/, "")];
-        const members = [
-          ...(category?.subcats ?? []).map((name) => ({
-            pageid: 0,
-            ns: 14,
-            title: `Category:${name}`,
-            type: "subcat",
-          })),
-          ...(category?.pages ?? []).map((id) => ({
-            pageid: id,
-            ns: 0,
-            title: wiki.articles.find((a) => a.pageId === id)!.title,
-            type: "page",
-          })),
-        ];
-        const next = offset + PAGE_SIZE;
-        return json({
-          query: { categorymembers: members.slice(offset, next) },
-          ...(next < members.length && { continue: { cmcontinue: String(next), continue: "-||" } }),
-        });
-      }
+      const offset = Number(p.get("clcontinue") ?? 0);
       if (p.get("prop") === "categories|pageimages|pageprops") {
         // カテゴリは PAGE_SIZE 件ずつ返し、continue のたびに同じページへ足していく
         const ids = p.get("pageids")!.split("|").map(Number);
@@ -74,15 +52,19 @@ export function createFakeWikimedia(wiki: FakeWiki) {
             pages: ids.map((id, i) => {
               const a = articles[i];
               if (!a) return { pageid: id, ns: 0, title: `不明 ${id}`, missing: true };
+              const pageprops = {
+                ...(a.disambiguation && { disambiguation: "" }),
+                ...(a.wikidata && { wikibase_item: a.wikidata.id }),
+              };
               return {
                 pageid: a.pageId,
-                ns: 0,
+                ns: a.ns ?? 0,
                 title: a.title,
                 categories: (a.categories ?? [])
                   .slice(offset, next)
                   .map((c) => ({ ns: 14, title: `Category:${c}` })),
                 ...(offset === 0 && a.imageFile && { pageimage: a.imageFile.replaceAll(" ", "_") }),
-                ...(offset === 0 && a.disambiguation && { pageprops: { disambiguation: "" } }),
+                ...(offset === 0 && Object.keys(pageprops).length > 0 && { pageprops }),
               };
             }),
           },
@@ -136,14 +118,27 @@ export function createFakeWikimedia(wiki: FakeWiki) {
       });
     }
 
-    const pageviews = url.pathname.match(
-      /\/per-article\/[^/]+\/all-access\/user\/([^/]+)\/monthly\//,
-    );
-    if (pageviews) {
-      const title = decodeURIComponent(pageviews[1]!).replaceAll("_", " ");
-      const a = wiki.articles.find((x) => x.title === title);
-      if (!a || a.monthlyViews.length === 0) return notFound();
-      return json({ items: a.monthlyViews.map((views) => ({ views })) });
+    if (url.hostname === "query.wikidata.org") {
+      const query = url.searchParams.get("query")!;
+      const ids = [...query.matchAll(/wd:(Q\d+)/g)].map((m) => m[1]!);
+      const entity = (id: string) => `http://www.wikidata.org/entity/${id}`;
+      return json({
+        results: {
+          bindings: wiki.articles.flatMap((a) =>
+            a.wikidata && ids.includes(a.wikidata.id)
+              ? a.wikidata.instanceOf.map((c) => ({
+                  item: { value: entity(a.wikidata!.id) },
+                  class: { value: entity(c.id) },
+                  // ラベルのない分類は、ラベルの代わりに ID が返る
+                  classLabel: { value: c.label ?? c.id },
+                  rank: {
+                    value: `http://wikiba.se/ontology#${c.preferred ? "PreferredRank" : "NormalRank"}`,
+                  },
+                }))
+              : [],
+          ),
+        },
+      });
     }
 
     throw new Error(`テストで用意していない URL です: ${url}`);

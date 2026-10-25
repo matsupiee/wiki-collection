@@ -51,7 +51,7 @@ export async function createUserContext(
 export async function createGenre(db: Database, name = "テストジャンル") {
   const [created] = await db
     .insert(genre)
-    .values({ slug: `genre-${nextId()}`, name, sourceCategory: name, colorHex: "#6366f1" })
+    .values({ slug: `genre-${nextId()}`, name, colorHex: "#6366f1" })
     .returning();
   return created!;
 }

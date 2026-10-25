@@ -8,6 +8,7 @@
     "check-types": "tsc --noEmit",
     "import": "bun src/cli.ts",
     "load": "bun src/load-cli.ts",
+    "top": "bun src/top-cli.ts",
     "test": "bun test"
   },
   "dependencies": {

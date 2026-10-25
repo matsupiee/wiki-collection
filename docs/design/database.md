@@ -72,15 +72,17 @@ SQLite には enum 型がないため、Drizzle の `text("...", { enum: [...] }
 
 ### genre
 
-カードとジャンルパックの分類。
+カードとジャンルパックの分類。Wikipedia の記事に紐づく Wikidata の「分類」（instance of、P31）をそのまま使う。こちらでジャンルを決めたり、まとめたりはしない。
 
-| 列             | 型          | 説明                              |
-| -------------- | ----------- | --------------------------------- |
-| slug           | text unique | URL 用。`history`、`space` など   |
-| name           | text        | 表示名。「歴史」など              |
-| sourceCategory | text        | 取り込み元の Wikipedia カテゴリ名 |
-| colorHex       | text        | カード枠や開封演出の背景色        |
-| sortOrder      | integer     | 一覧の並び順                      |
+| 列        | 型          | 説明                                                              |
+| --------- | ----------- | ----------------------------------------------------------------- |
+| slug      | text unique | Wikidata の ID（`Q5` など）。seed のサンプルは `sample-` で始まる |
+| name      | text        | 表示名。分類の日本語ラベル（「人間」など）                        |
+| colorHex  | text        | カード枠や開封演出の背景色。Wikidata の ID から機械的に決める     |
+| sortOrder | integer     | 一覧の並び順。カードの多いジャンルから並べる                      |
+
+- 分類の数だけジャンルができるので、数百以上になる。図鑑では最初にカードの多い 9 個だけを出し、残りはボタンで開く。
+- 名前は、初めて出てきたときの日本語ラベルで固定する。Wikidata でラベルが変わっても追わない。
 
 ### card
 
@@ -130,7 +132,7 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 | 列                | 型                | 説明                                                  |
 | ----------------- | ----------------- | ----------------------------------------------------- |
 | slug              | text unique       | URL 用                                                |
-| name              | text              | 「基本パック」「宇宙パック」など                      |
+| name              | text              | 「基本パック」「天体パック」など                      |
 | description       | text              |                                                       |
 | type              | pack_type         | `free_basic` は無料枠で開ける。`premium` は pt が必要 |
 | genreId           | text null → genre | null なら全ジャンルから出る                           |
@@ -442,49 +444,72 @@ D1 はアプリから任意のトランザクションを張れないため、�
 
 ## Wikipedia からのカード作成
 
-`packages/wiki-import` で行う。取り込みと D1 への書き込みは2つのコマンドに分かれる。
+`packages/wiki-import` で行う。日本語版の直近12か月の閲覧数の上位 10 万件を、上から順にカードにする。コマンドは3つに分かれる。
 
-- `bun run wiki:import`: Wikipedia から記事を取り、git で管理するカードのファイル（下の「カードのファイル」）に書き足す。D1 には書かない。
-- `bun run wiki:load`: カードのファイルをローカルの D1 に入れる。本番の D1 に入れるコマンドは未実装。
+- `bun run wiki:top`: 閲覧数の dump から上位の一覧を作り、`packages/wiki-import/.cache/top-pages-ja.tsv` に書く。一覧は git に入れない。
+- `bun run wiki:import --limit <n>`: 一覧の上から、カードにも除外にもなっていない記事を n 件調べ、git で管理するファイル（下の「カードのファイル」）に書き足す。D1 には書かない。
+- `bun run wiki:load`: ファイルをローカルの D1 に入れる。本番の D1 に入れるコマンドは未実装。
 
 取り込んだ結果は git の差分として確かめてからコミットする。除外し漏れた記事を、D1 に入る前に PR で見つけられるようにするため。
 
-`wiki:import` の流れは次のとおり。ジャンルの一覧は `packages/db/src/seed/master-data.ts` の `genres` を使う。
+### 上位の一覧（wiki:top）
 
-1. ジャンルの `sourceCategory` から記事を集める（MediaWiki Action API の `list=categorymembers`）。サブカテゴリは `--depth` 段までたどる。カードのファイルにすでにある記事は取り直さない。
-2. 記事のカテゴリ、曖昧さ回避かどうか、代表画像のファイル名を 50 件ずつまとめて取る（`prop=categories|pageimages|pageprops`）。ここで除外の条件に当たる記事を外す。
+1. 直近12か月（今月を除く）の月次 dump を読む（`https://dumps.wikimedia.org/other/pageview_complete/monthly/{年}/{年-月}/pageviews-{年月}-user.bz2`）。人による閲覧だけが入った dump を使う。1か月で数 GB あるので、ダウンロードしながら `bzip2` で展開して1行ずつ読む。`--file` でダウンロード済みのファイルも使える。
+2. `ja.wikipedia` の行だけを取り、page_id ごとに閲覧数を足す。アクセス方法（デスクトップ・モバイル）ごとに行が分かれているため。page_id のない行は数えない。
+3. 12 か月の合計を 12 で割って月平均にし、多い順に `--limit` 件（既定 10 万件）を一覧にする。閲覧のない月も 0 として数える。できたばかりの記事が、1か月の数字だけで高く出ないようにするため。
+
+dump には記事以外のページ（利用者ページなど）も入っている。これは取り込みで外す。
+
+### 取り込み（wiki:import）
+
+500 件ずつ次の順に調べ、そのたびにファイルへ書く。途中で止めても、書いた分は次の取り込みで取り直さない。
+
+1. ページの名前空間、カテゴリ、曖昧さ回避かどうか、代表画像のファイル名、Wikidata の ID を 50 件ずつまとめて取る（`prop=categories|pageimages|pageprops`）。ここで記事以外のページと、除外の条件に当たる記事を外す。
+2. Wikidata の分類（P31）と、その日本語ラベルを取る（Wikidata Query Service の SPARQL）。`wbgetentities` は項目のすべての文を返して重いので、P31 だけを取る。
+   - 分類が複数あれば、推奨ランクのものを、同じランクなら ID の数字が小さいものを選ぶ。取り直しても同じジャンルになるようにするため。非推奨ランクの分類は使わない。
+   - 分類がない記事と、日本語ラベルのない分類しかない記事は除外する。分類のラベルが「ウィキメディア」で始まる記事（メインページなど）は、記事ではないとして除外する。
 3. 代表画像のライセンスを確かめる（`prop=imageinfo` の `extmetadata`）。Commons にある画像で、CC BY・CC BY-SA・CC0・パブリックドメインのものだけを使う。CC BY 系で作者がわからない画像は使わない。使えない画像のカードは、ジャンルの色とタイトルの1文字目で絵柄を描く。
 4. 記事ごとに要約と版 ID を取る（REST API の `/page/summary/{title}`）。要約は `extract` をそのまま使う。
-5. 直近12か月（今月を除く）の閲覧数を取る（Wikimedia Pageviews API の `per-article`、`agent=user`）。閲覧のない月も数え、合計を12で割る。
-6. `rarity-thresholds.json` の下限でレアリティを決め、ジャンルの JSONL に書き足す。下限がまだなければ、ファイルにあるカードとこの取り込みの記事の閲覧数の順位から決め、`rarity-thresholds.json` に書く。下限とカードは同じコミットに入れる。
+5. `rarity-thresholds.json` の下限でレアリティを決め、カードを書き足す。初めて出てきた分類は `genres.jsonl` に足す。除外した記事は理由とともに `excluded.jsonl` に足す。
+
+レアリティの下限がまだなければ、最初に上位の一覧全体の閲覧数の順位から決めて `rarity-thresholds.json` に書く。除外する記事も順位に含む。調べる前に決めておけば、何回に分けて取り込んでも同じ下限になるため。
 
 ### カードのファイル
 
 `packages/wiki-import/data/ja/` に置き、git で管理する。キーの一覧とライセンスは同じディレクトリの `README.md` にまとめてある。
 
-- `cards/{ジャンルの slug}.jsonl`: 1行1カード。`card` の列のうち、`id`、`genreId`、`wikiLang`、作成・更新日時を除いたものを持つ。ジャンルはファイル名、言語版はディレクトリ名で表す。
+- `cards/{page_id を 10 万で割った数}.jsonl`（`000.jsonl` など）: 1行1カード。`card` の列のうち、`id`、`genreId`、`wikiLang`、作成・更新日時を除いたものと、ジャンルの slug（`genre`）を持つ。
+  - 10 万枚を1つのファイルにすると 100MB を超え、GitHub に置けないため、page_id で分ける。
   - `wikiPageId` 順に並べて書き直す。追記したカードだけが差分に出るようにするため。
   - 要約（CC BY-SA 4.0）を含むので、ディレクトリの `README.md` にデータのライセンスと出典の示し方を書いてある。
+- `genres.jsonl`: ジャンル。slug（Wikidata の ID）、名前、色。
+- `excluded.jsonl`: カードにしなかった記事と理由。次の取り込みで取り直さないため。
 - `rarity-thresholds.json`: `rarity_threshold` と同じ、コモン以外の4つの下限。
 
 `wiki:load` は次のように D1 に入れる。何度実行しても同じ状態になる。
 
+- `genre` は slug で突き合わせ、名前、色、並び順をファイルに揃える。並び順はカードの多い順。
 - `rarity_threshold` は、ファイルの値で上書きする。
-- `card` は `(wikiLang, wikiPageId)` で突き合わせ、ない記事は入れ、ある記事は `isActive` だけを揃える。要約やレアリティは作った時点で固定するため、ファイルを書き換えても D1 には反映しない。
-- ジャンルは slug で `genre` から引く。D1 にないジャンルのファイルがあると、何も入れずにエラーにする。
-- 下限とカードは1つの batch で書く。
+- `card` は `(wikiLang, wikiPageId)` で突き合わせ、ない記事は入れ、ある記事は `isActive` だけを揃える。要約、ジャンル、レアリティは作った時点で固定するため、ファイルを書き換えても D1 には反映しない。
+- `genres.jsonl` にないジャンルのカードがあると、何も入れずにエラーにする。
+- 10 万枚を1つの batch で書くと大きすぎるので、500 文ずつの batch に分ける。途中で失敗したら、もう一度実行すれば揃う。
 
 カードの排出を止めるときは、JSONL の `isActive` を false にしてコミットし、`wiki:load` を実行する。
 
-除外の条件（`packages/wiki-import/src/get-exclusion-reason.ts`）は次のとおり。人の確認ははさまない。外し漏れたカードは、JSONL の `isActive` を false にして止める。
+### 除外の条件
 
+`packages/wiki-import/src/get-exclusion-reason.ts` と `import-cards.ts` で判定する。人の確認ははさまない。外し漏れたカードは、JSONL の `isActive` を false にして止める。
+
+- 記事以外のページ（名前空間が 0 でないページと、分類が「ウィキメディア」で始まるページ）
 - 曖昧さ回避のページ
 - タイトルに「一覧」を含む記事
 - 事件・事故・テロ・殺人・災害を名前に含むカテゴリに入っている記事
 - 要約が30文字に満たない記事
+- Wikidata の分類がない記事
 
-API の呼び方は次のとおり。
+### API の呼び方
 
 - User-Agent に、アプリ名と連絡先としてリポジトリの URL を入れる（`wiki-collection/0.1 (+https://github.com/matsupiee/wiki-collection)`）。Wikimedia の User-Agent ポリシーに従うため。
 - 同時に投げるリクエストは3本までにする。Action API には `maxlag=5` を付ける。
 - 429、5xx、maxlag のエラーは、`Retry-After` の秒数か、1秒から倍々に待って4回まで再試行する。
+- 10 万件を調べると、要約だけで 10 万回のリクエストになる。3本ずつなので数時間かかる。

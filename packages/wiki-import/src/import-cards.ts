@@ -4,42 +4,48 @@ import {
   thresholdsFromPageviews,
 } from "@wiki-collection/db/rarity";
 
-import { type CardRecord, readCardStore, writeGenreCards, writeThresholds } from "./card-store";
-import { fetchCategoryPages } from "./fetch-category-pages";
+import {
+  type CardRecord,
+  type ExcludedRecord,
+  type GenreRecord,
+  readCardStore,
+  writeCards,
+  writeExcluded,
+  writeGenres,
+  writeThresholds,
+} from "./card-store";
 import { fetchImageLicenses } from "./fetch-image-licenses";
-import { fetchMonthlyPageviews } from "./fetch-monthly-pageviews";
+import { fetchInstanceOf } from "./fetch-instance-of";
 import { fetchPageDetails } from "./fetch-page-details";
 import { fetchSummary } from "./fetch-summary";
+import { genreColor } from "./genre-color";
 import { getExclusionReason } from "./get-exclusion-reason";
+import type { TopPage } from "./top-pages";
 import type { WikimediaClient } from "./wikimedia-client";
 
 // いまは日本語版だけを扱う
 const LANG = "ja";
-
-export type ImportGenre = { slug: string; name: string; sourceCategory: string };
-
-type Candidate = Omit<CardRecord, "rarity">;
+// この件数ごとにファイルへ書く。途中で止めても、書いた分は次の取り込みで取り直さない
+const CHUNK_SIZE = 500;
 
 export type ImportResult = {
-  inserted: { title: string; genreSlug: string; rarity: string; monthlyPageviews: number }[];
+  inserted: { title: string; genre: string; rarity: string; monthlyPageviews: number }[];
   excluded: { title: string; reason: string }[];
   // この取り込みでレアリティの下限を決めたときだけ入る
   createdThresholds: RarityThresholds | null;
 };
 
-// ジャンルのカテゴリから記事を集め、除外の条件に当たらないものをカードとして dataDir の JSONL に書き足す。
+// 閲覧数の上位の記事を多い順に調べ、除外の条件に当たらないものをカードとして dataDir の JSONL に書き足す。
+// ジャンルは記事の Wikidata の分類にする。カードにも除外にもなっていない記事を、上から limit 件まで調べる。
 // すでにカードになっている記事は取り直さない。レアリティを作った時点で固定するため
 export async function importCards(input: {
   client: WikimediaClient;
   // カードの JSONL とレアリティの下限を置くディレクトリ（card-store.ts）
   dataDir: string;
-  genres: readonly ImportGenre[];
-  // 省略するとすべてのジャンルを取り込む
-  genreSlugs?: string[];
-  // サブカテゴリをたどる深さ
-  depth: number;
-  // ジャンルごとに調べる記事の数の上限（除外する記事も含む）
-  maxPagesPerGenre: number;
+  // wiki:top で作った上位の記事の一覧。閲覧数の多い順
+  topPages: TopPage[];
+  // この取り込みで調べる記事の数の上限（除外する記事も含む）
+  limit: number;
   now?: Date;
   log?: (message: string) => void;
 }): Promise<ImportResult> {
@@ -47,121 +53,154 @@ export async function importCards(input: {
   const now = input.now ?? new Date();
   const log = input.log ?? (() => {});
 
-  const genres = input.genreSlugs
-    ? input.genres.filter((g) => input.genreSlugs!.includes(g.slug))
-    : input.genres;
-  const missing = (input.genreSlugs ?? []).filter((slug) => !genres.some((g) => g.slug === slug));
-  if (missing.length > 0) throw new Error(`ジャンルが見つかりません: ${missing.join(", ")}`);
-
   const store = await readCardStore(dataDir);
-  const existingCards = [...store.cards.values()].flat();
-  const seen = new Set(existingCards.map((c) => c.wikiPageId));
+  const seen = new Set([...store.cards, ...store.excluded].map((c) => c.wikiPageId));
+  const genres = new Map(store.genres.map((g) => [g.slug, g]));
 
-  const candidates: { genreSlug: string; value: Candidate }[] = [];
-  const excluded: ImportResult["excluded"] = [];
-  for (const g of genres) {
-    log(`${g.name}: カテゴリ「${g.sourceCategory}」から記事を集めています`);
-    const pages = (
-      await fetchCategoryPages(client, {
-        lang: LANG,
-        category: g.sourceCategory,
-        depth: input.depth,
-        maxPages: input.maxPagesPerGenre,
-      })
-    ).filter((p) => !seen.has(p.pageId));
-    for (const p of pages) seen.add(p.pageId);
+  // 下限は、上位の一覧全体の閲覧数の順位から最初に一度だけ決める。あとから足すカードも同じ下限で判定する
+  const createdThresholds = store.thresholds
+    ? null
+    : thresholdsFromPageviews(input.topPages.map((p) => p.monthlyPageviews));
+  const thresholds = store.thresholds ?? createdThresholds!;
+  if (createdThresholds) await writeThresholds(dataDir, createdThresholds);
 
-    // 要約や閲覧数を取る前に、カテゴリとタイトルで外せる記事を外して、リクエストを減らす
-    const details = await fetchPageDetails(client, {
-      lang: LANG,
-      pageIds: pages.map((p) => p.pageId),
+  const targets = input.topPages.filter((p) => !seen.has(p.pageId)).slice(0, input.limit);
+  const result: ImportResult = { inserted: [], excluded: [], createdThresholds };
+  for (let i = 0; i < targets.length; i += CHUNK_SIZE) {
+    const chunk = targets.slice(i, i + CHUNK_SIZE);
+    const { cards, excluded, newGenres } = await importChunk(client, {
+      pages: chunk,
+      genres,
+      thresholds,
+      now,
     });
-    const kept = [...details.values()].filter((d) => {
-      const reason = getExclusionReason(d);
-      if (reason) excluded.push({ title: d.title, reason });
-      return !reason;
-    });
+    store.cards.push(...cards);
+    store.excluded.push(...excluded);
+    for (const g of newGenres) genres.set(g.slug, g);
+    await writeCards(dataDir, store.cards, cards);
+    if (newGenres.length > 0) await writeGenres(dataDir, [...genres.values()]);
+    if (excluded.length > 0) await writeExcluded(dataDir, store.excluded);
 
-    const images = await fetchImageLicenses(client, {
-      lang: LANG,
-      files: [...new Set(kept.flatMap((d) => (d.imageFile ? [d.imageFile] : [])))],
-    });
-
-    const fetched = await Promise.all(
-      kept.map(async (d) => {
-        const [summary, monthlyPageviews] = await Promise.all([
-          fetchSummary(client, { lang: LANG, title: d.title }),
-          fetchMonthlyPageviews(client, { lang: LANG, title: d.title, now }),
-        ]);
-        return { detail: d, summary, monthlyPageviews };
-      }),
-    );
-    for (const { detail, summary, monthlyPageviews } of fetched) {
-      if (!summary) {
-        excluded.push({ title: detail.title, reason: "要約が取れない" });
-        continue;
-      }
-      const reason =
-        summary.type === "disambiguation"
-          ? "曖昧さ回避"
-          : getExclusionReason({ ...detail, extract: summary.extract });
-      if (reason) {
-        excluded.push({ title: detail.title, reason });
-        continue;
-      }
-      const image = detail.imageFile ? images.get(detail.imageFile) : undefined;
-      candidates.push({
-        genreSlug: g.slug,
-        value: {
-          wikiPageId: detail.pageId,
-          wikiRevisionId: summary.revisionId,
-          wikiFetchedAt: now,
-          title: detail.title,
-          summary: summary.extract,
-          imageUrl: image?.url ?? null,
-          imageCredit: image?.credit ?? null,
-          monthlyPageviews,
-          pageviewsMeasuredAt: now,
-          isActive: true,
-        },
-      });
-    }
-    log(`${g.name}: ${pages.length} 件を調べました`);
-  }
-
-  // レアリティの下限がまだなければ、いまあるカードとこの取り込みの記事の閲覧数の順位から決める
-  const createdThresholds =
-    store.thresholds || candidates.length === 0
-      ? null
-      : thresholdsFromPageviews([
-          ...existingCards.map((c) => c.monthlyPageviews),
-          ...candidates.map((c) => c.value.monthlyPageviews),
-        ]);
-  const thresholds = store.thresholds ?? createdThresholds;
-  if (!thresholds) return { inserted: [], excluded, createdThresholds };
-
-  const inserted: ImportResult["inserted"] = [];
-  for (const g of genres) {
-    const added = candidates
-      .filter((c) => c.genreSlug === g.slug)
-      .map(({ value }) => ({
-        ...value,
-        rarity: rarityByThresholds(value.monthlyPageviews, thresholds),
-      }));
-    if (added.length === 0) continue;
-    await writeGenreCards(dataDir, g.slug, [...(store.cards.get(g.slug) ?? []), ...added]);
-    inserted.push(
-      ...added.map((c) => ({
+    result.inserted.push(
+      ...cards.map((c) => ({
         title: c.title,
-        genreSlug: g.slug,
+        genre: genres.get(c.genre)!.name,
         rarity: c.rarity,
         monthlyPageviews: c.monthlyPageviews,
       })),
     );
+    result.excluded.push(...excluded.map((e) => ({ title: e.title, reason: e.reason })));
+    log(
+      `${i + chunk.length} / ${targets.length} 件を調べました（カード ${result.inserted.length} 枚）`,
+    );
   }
+  return result;
+}
 
-  // 下限とカードは同じコミットに入れる。片方だけ残ったら、git で戻してから取り込み直す
-  if (createdThresholds) await writeThresholds(dataDir, createdThresholds);
+async function importChunk(
+  client: WikimediaClient,
+  input: {
+    pages: TopPage[];
+    genres: Map<string, GenreRecord>;
+    thresholds: RarityThresholds;
+    now: Date;
+  },
+) {
+  const { now } = input;
+  const cards: CardRecord[] = [];
+  const excluded: ExcludedRecord[] = [];
+  const newGenres = new Map<string, GenreRecord>();
+  const exclude = (wikiPageId: number, title: string, reason: string) =>
+    excluded.push({ wikiPageId, title, reason });
 
-  return { inserted, excluded, createdThresholds };
+  const details = await fetchPageDetails(client, {
+    lang: LANG,
+    pageIds: input.pages.map((p) => p.pageId),
+  });
+  // 要約や分類を取る前に、名前空間、カテゴリ、タイトルで外せる記事を外して、リクエストを減らす
+  const kept = input.pages.flatMap((p) => {
+    const d = details.get(p.pageId);
+    if (!d) {
+      exclude(p.pageId, "", "ページがない");
+      return [];
+    }
+    const reason = d.ns !== 0 ? "記事ではない" : getExclusionReason(d);
+    if (reason) {
+      exclude(p.pageId, d.title, reason);
+      return [];
+    }
+    return [{ page: p, detail: d }];
+  });
+
+  const [classes, images] = await Promise.all([
+    fetchInstanceOf(client, {
+      lang: LANG,
+      ids: kept.flatMap(({ detail }) => (detail.wikibaseItem ? [detail.wikibaseItem] : [])),
+    }),
+    fetchImageLicenses(client, {
+      lang: LANG,
+      files: [
+        ...new Set(kept.flatMap(({ detail }) => (detail.imageFile ? [detail.imageFile] : []))),
+      ],
+    }),
+  ]);
+
+  const classified = kept.flatMap((k) => {
+    const instanceOf = k.detail.wikibaseItem ? classes.get(k.detail.wikibaseItem) : undefined;
+    if (!instanceOf) {
+      exclude(k.page.pageId, k.detail.title, "Wikidata の分類がない");
+      return [];
+    }
+    // メインページや一覧記事など、Wikipedia の運営のためのページ
+    if (instanceOf.label.startsWith("ウィキメディア")) {
+      exclude(k.page.pageId, k.detail.title, "記事ではない");
+      return [];
+    }
+    return [{ ...k, instanceOf }];
+  });
+
+  const fetched = await Promise.all(
+    classified.map(async (c) => ({
+      ...c,
+      summary: await fetchSummary(client, { lang: LANG, title: c.detail.title }),
+    })),
+  );
+  for (const { page, detail, instanceOf, summary } of fetched) {
+    if (!summary) {
+      exclude(page.pageId, detail.title, "要約が取れない");
+      continue;
+    }
+    const reason =
+      summary.type === "disambiguation"
+        ? "曖昧さ回避"
+        : getExclusionReason({ ...detail, extract: summary.extract });
+    if (reason) {
+      exclude(page.pageId, detail.title, reason);
+      continue;
+    }
+    // ジャンルの名前は、初めて出てきたときの日本語ラベルで固定する
+    if (!input.genres.has(instanceOf.id) && !newGenres.has(instanceOf.id)) {
+      newGenres.set(instanceOf.id, {
+        slug: instanceOf.id,
+        name: instanceOf.label,
+        colorHex: genreColor(instanceOf.id),
+      });
+    }
+    const image = detail.imageFile ? images.get(detail.imageFile) : undefined;
+    cards.push({
+      wikiPageId: page.pageId,
+      title: detail.title,
+      genre: instanceOf.id,
+      wikiRevisionId: summary.revisionId,
+      wikiFetchedAt: now,
+      summary: summary.extract,
+      imageUrl: image?.url ?? null,
+      imageCredit: image?.credit ?? null,
+      rarity: rarityByThresholds(page.monthlyPageviews, input.thresholds),
+      monthlyPageviews: page.monthlyPageviews,
+      pageviewsMeasuredAt: now,
+      isActive: true,
+    });
+  }
+  return { cards, excluded, newGenres: [...newGenres.values()] };
 }
