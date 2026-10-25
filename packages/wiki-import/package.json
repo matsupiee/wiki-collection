@@ -7,11 +7,13 @@
   "scripts": {
     "check-types": "tsc --noEmit",
     "import": "bun src/cli.ts",
+    "load": "bun src/load-cli.ts",
     "test": "bun test"
   },
   "dependencies": {
     "@wiki-collection/db": "workspace:*",
-    "drizzle-orm": "catalog:"
+    "drizzle-orm": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "1.4.2",

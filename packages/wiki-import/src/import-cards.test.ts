@@ -1,17 +1,20 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import type { Database } from "@wiki-collection/db";
-import { card, genre, rarityThreshold } from "@wiki-collection/db/schema/index";
-import { asc, eq } from "drizzle-orm";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
+import { readCardStore } from "./card-store";
 import { importCards } from "./import-cards";
-import { createTestDb } from "./test/create-test-db";
 import { createFakeWikimedia, type FakeArticle, type FakeWiki } from "./test/fake-wikimedia";
 import { createWikimediaClient, USER_AGENT } from "./wikimedia-client";
 
-let db: Database;
-let dispose: () => Promise<void>;
-beforeAll(async () => ({ db, dispose } = await createTestDb()));
-afterAll(() => dispose());
+let dataDir: string;
+beforeAll(async () => {
+  dataDir = await mkdtemp(path.join(tmpdir(), "wiki-import-"));
+});
+afterAll(() => rm(dataDir, { recursive: true, force: true }));
+
+const genres = [{ slug: "space", name: "宇宙", sourceCategory: "テスト天文学" }];
 
 const now = new Date("2026-10-25T00:00:00Z");
 const text = (title: string) =>
@@ -62,23 +65,15 @@ function spaceWiki(): FakeWiki {
   };
 }
 
-async function createSpaceGenre() {
-  const [g] = await db
-    .insert(genre)
-    .values({ slug: "space", name: "宇宙", sourceCategory: "テスト天文学", colorHex: "#6366f1" })
-    .returning();
-  return g!;
-}
-
 describe("importCards", () => {
   test("カテゴリの記事を取り込み、除外の条件に当たる記事を外し、最初の取り込みでレアリティの下限を決める", async () => {
-    const g = await createSpaceGenre();
     const wiki = spaceWiki();
     const fake = createFakeWikimedia(wiki);
 
     const result = await importCards({
-      db,
       client: createWikimediaClient({ fetch: fake.fetch }),
+      dataDir,
+      genres,
       depth: 1,
       maxPagesPerGenre: 100,
       now,
@@ -100,12 +95,12 @@ describe("importCards", () => {
       uncommon: 600,
     });
 
-    const cards = await db
-      .select()
-      .from(card)
-      .where(eq(card.genreId, g.id))
-      .orderBy(asc(card.wikiPageId));
-    expect(cards.map((c) => [c.title, c.rarity, c.monthlyPageviews])).toEqual([
+    // ジャンルの JSONL に page_id 順で書く
+    const lines = (await readFile(path.join(dataDir, "cards/space.jsonl"), "utf8"))
+      .trimEnd()
+      .split("\n")
+      .map((l) => JSON.parse(l));
+    expect(lines.map((c) => [c.title, c.rarity, c.monthlyPageviews])).toEqual([
       ["太陽", "legendary", 1200],
       ["月", "double_rare", 1000],
       ["火星", "rare", 800],
@@ -114,19 +109,25 @@ describe("importCards", () => {
       ["木星", "common", 200],
       ["新しい星", "common", 250],
     ]);
-    const sun = cards[0]!;
-    expect(sun.summary).toBe(text("太陽"));
-    expect(sun.wikiLang).toBe("ja");
-    expect(sun.wikiRevisionId).toBe(1000);
-    expect(sun.wikiFetchedAt).toEqual(now);
-    expect(sun.pageviewsMeasuredAt).toEqual(now);
-    expect(sun.imageUrl).toBe("https://upload.wikimedia.org/thumb/640px-Sun photo.jpg");
-    expect(sun.imageCredit).toBe("NASA・CC BY-SA 4.0（Wikimedia Commons）");
-    expect(cards[1]!.imageUrl).toBeNull();
-    expect(cards[2]!.imageUrl).toBeNull();
+    expect(lines[0]).toEqual({
+      wikiPageId: 1,
+      title: "太陽",
+      wikiRevisionId: 1000,
+      wikiFetchedAt: now.toISOString(),
+      summary: text("太陽"),
+      imageUrl: "https://upload.wikimedia.org/thumb/640px-Sun photo.jpg",
+      imageCredit: "NASA・CC BY-SA 4.0（Wikimedia Commons）",
+      rarity: "legendary",
+      monthlyPageviews: 1200,
+      pageviewsMeasuredAt: now.toISOString(),
+      isActive: true,
+    });
+    expect(lines[1].imageUrl).toBeNull();
+    expect(lines[2].imageUrl).toBeNull();
 
-    const thresholds = await db.select().from(rarityThreshold);
-    expect(thresholds).toHaveLength(4);
+    expect(
+      JSON.parse(await readFile(path.join(dataDir, "rarity-thresholds.json"), "utf8")),
+    ).toEqual({ legendary: 1200, double_rare: 1000, rare: 800, uncommon: 600 });
 
     // すべてのリクエストに、リポジトリの URL を入れた User-Agent を付ける
     expect(fake.requests.every((r) => r.userAgent === USER_AGENT)).toBe(true);
@@ -144,8 +145,9 @@ describe("importCards", () => {
     const fake = createFakeWikimedia(wiki);
 
     const result = await importCards({
-      db,
       client: createWikimediaClient({ fetch: fake.fetch }),
+      dataDir,
+      genres,
       genreSlugs: ["space"],
       depth: 1,
       maxPagesPerGenre: 100,
@@ -159,15 +161,32 @@ describe("importCards", () => {
     expect(fake.requests.some((r) => r.url.includes("/page/summary/%E5%A4%AA%E9%99%BD"))).toBe(
       false,
     );
-    expect(await db.select().from(rarityThreshold)).toHaveLength(4);
+    const store = await readCardStore(dataDir);
+    expect(store.cards.get("space")!.map((c) => c.title)).toEqual([
+      "太陽",
+      "月",
+      "火星",
+      "土星",
+      "金星",
+      "木星",
+      "新しい星",
+      "彗星",
+    ]);
+    expect(store.thresholds).toEqual({
+      legendary: 1200,
+      double_rare: 1000,
+      rare: 800,
+      uncommon: 600,
+    });
   });
 
   test("存在しないジャンルを指定するとエラーになる", async () => {
     const fake = createFakeWikimedia(spaceWiki());
     await expect(
       importCards({
-        db,
         client: createWikimediaClient({ fetch: fake.fetch }),
+        dataDir,
+        genres,
         genreSlugs: ["unknown"],
         depth: 1,
         maxPagesPerGenre: 100,

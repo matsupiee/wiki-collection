@@ -36,7 +36,8 @@
     "db:seed": "bun run --cwd packages/db seed",
     "dev:local": "bun run --cwd apps/web dev:local",
     "test": "bun run --cwd packages/api test && bun run --cwd packages/wiki-import test",
-    "wiki:import": "bun run --cwd packages/wiki-import import"
+    "wiki:import": "bun run --cwd packages/wiki-import import",
+    "wiki:load": "bun run --cwd packages/wiki-import load"
   },
   "dependencies": {
     "zod": "catalog:"

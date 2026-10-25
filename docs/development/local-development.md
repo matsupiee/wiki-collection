@@ -36,12 +36,14 @@ bun run dev:local  # http://localhost:3001 で起動する
 ## Wikipedia からカードを取り込む
 
 ```bash
-bun run wiki:import --genre space --max 30
+bun run wiki:import --genre space --max 30  # Wikipedia から取って JSONL に書き足す
+bun run wiki:load                           # JSONL をローカルの D1 に入れる
 ```
 
-- ローカルの D1 に、Wikipedia の記事からカードを足す。Wikipedia の API に接続できる必要がある。
+- `wiki:import` は、Wikipedia の記事から作ったカードを `packages/wiki-import/data/ja/cards/{slug}.jsonl` に書き足す。D1 には書かない。Wikipedia の API に接続できる必要がある。
 - `--genre` はジャンルの slug。複数指定でき、省略するとすべてのジャンルを取り込む。`--depth` はサブカテゴリをたどる深さ（既定 1）、`--max` はジャンルごとに調べる記事の数の上限（既定 100）。
-- `bun run db:seed` をやり直すと、取り込んだカードも消える。
+- 取り込んだら `git diff` で除外し漏れがないかを確かめ、コミットする。
+- `wiki:load` は、ジャンルを D1 から引くので、`bun run db:seed` のあとに実行する。何度実行しても同じ状態になる。`db:seed` をやり直したら、もう一度実行する。
 - 仕組みは [database.md](../design/database.md) の「Wikipedia からのカード作成」を参照。
 
 ## テストする

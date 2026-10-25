@@ -1,12 +1,10 @@
-import type { Database } from "@wiki-collection/db";
 import {
   rarityByThresholds,
   type RarityThresholds,
   thresholdsFromPageviews,
 } from "@wiki-collection/db/rarity";
-import { card, genre, rarityThreshold } from "@wiki-collection/db/schema/index";
-import { eq, inArray } from "drizzle-orm";
 
+import { type CardRecord, readCardStore, writeGenreCards, writeThresholds } from "./card-store";
 import { fetchCategoryPages } from "./fetch-category-pages";
 import { fetchImageLicenses } from "./fetch-image-licenses";
 import { fetchMonthlyPageviews } from "./fetch-monthly-pageviews";
@@ -17,10 +15,10 @@ import type { WikimediaClient } from "./wikimedia-client";
 
 // いまは日本語版だけを扱う
 const LANG = "ja";
-// D1 は1文あたりのバインド変数が 100 個までなので、card は数件ずつ入れる
-const INSERT_CHUNK = 6;
 
-type Candidate = Omit<typeof card.$inferInsert, "rarity">;
+export type ImportGenre = { slug: string; name: string; sourceCategory: string };
+
+type Candidate = Omit<CardRecord, "rarity">;
 
 export type ImportResult = {
   inserted: { title: string; genreSlug: string; rarity: string; monthlyPageviews: number }[];
@@ -29,11 +27,13 @@ export type ImportResult = {
   createdThresholds: RarityThresholds | null;
 };
 
-// ジャンルのカテゴリから記事を集め、除外の条件に当たらないものをカードとして保存する。
+// ジャンルのカテゴリから記事を集め、除外の条件に当たらないものをカードとして dataDir の JSONL に書き足す。
 // すでにカードになっている記事は取り直さない。レアリティを作った時点で固定するため
 export async function importCards(input: {
-  db: Database;
   client: WikimediaClient;
+  // カードの JSONL とレアリティの下限を置くディレクトリ（card-store.ts）
+  dataDir: string;
+  genres: readonly ImportGenre[];
   // 省略するとすべてのジャンルを取り込む
   genreSlugs?: string[];
   // サブカテゴリをたどる深さ
@@ -43,21 +43,18 @@ export async function importCards(input: {
   now?: Date;
   log?: (message: string) => void;
 }): Promise<ImportResult> {
-  const { db, client } = input;
+  const { client, dataDir } = input;
   const now = input.now ?? new Date();
   const log = input.log ?? (() => {});
 
-  const genres = await db
-    .select()
-    .from(genre)
-    .where(input.genreSlugs ? inArray(genre.slug, input.genreSlugs) : undefined);
+  const genres = input.genreSlugs
+    ? input.genres.filter((g) => input.genreSlugs!.includes(g.slug))
+    : input.genres;
   const missing = (input.genreSlugs ?? []).filter((slug) => !genres.some((g) => g.slug === slug));
   if (missing.length > 0) throw new Error(`ジャンルが見つかりません: ${missing.join(", ")}`);
 
-  const existingCards = await db
-    .select({ wikiPageId: card.wikiPageId, monthlyPageviews: card.monthlyPageviews })
-    .from(card)
-    .where(eq(card.wikiLang, LANG));
+  const store = await readCardStore(dataDir);
+  const existingCards = [...store.cards.values()].flat();
   const seen = new Set(existingCards.map((c) => c.wikiPageId));
 
   const candidates: { genreSlug: string; value: Candidate }[] = [];
@@ -116,7 +113,6 @@ export async function importCards(input: {
       candidates.push({
         genreSlug: g.slug,
         value: {
-          wikiLang: LANG,
           wikiPageId: detail.pageId,
           wikiRevisionId: summary.revisionId,
           wikiFetchedAt: now,
@@ -124,9 +120,9 @@ export async function importCards(input: {
           summary: summary.extract,
           imageUrl: image?.url ?? null,
           imageCredit: image?.credit ?? null,
-          genreId: g.id,
           monthlyPageviews,
           pageviewsMeasuredAt: now,
+          isActive: true,
         },
       });
     }
@@ -134,61 +130,38 @@ export async function importCards(input: {
   }
 
   // レアリティの下限がまだなければ、いまあるカードとこの取り込みの記事の閲覧数の順位から決める
-  const thresholdRows = await db
-    .select()
-    .from(rarityThreshold)
-    .where(eq(rarityThreshold.wikiLang, LANG));
-  let thresholds: RarityThresholds;
-  let createdThresholds: RarityThresholds | null = null;
-  if (thresholdRows.length > 0) {
-    thresholds = Object.fromEntries(
-      thresholdRows.map((r) => [r.rarity, r.minMonthlyPageviews]),
-    ) as RarityThresholds;
-  } else {
-    if (candidates.length === 0) return { inserted: [], excluded, createdThresholds };
-    thresholds = thresholdsFromPageviews([
-      ...existingCards.map((c) => c.monthlyPageviews),
-      ...candidates.map((c) => c.value.monthlyPageviews),
-    ]);
-    createdThresholds = thresholds;
-  }
+  const createdThresholds =
+    store.thresholds || candidates.length === 0
+      ? null
+      : thresholdsFromPageviews([
+          ...existingCards.map((c) => c.monthlyPageviews),
+          ...candidates.map((c) => c.value.monthlyPageviews),
+        ]);
+  const thresholds = store.thresholds ?? createdThresholds;
+  if (!thresholds) return { inserted: [], excluded, createdThresholds };
 
-  const values = candidates.map(({ value }) => ({
-    ...value,
-    rarity: rarityByThresholds(value.monthlyPageviews, thresholds),
-  }));
-  // 下限とカードを同時に書く。途中で失敗して、下限だけ・カードだけが残らないようにするため
-  const statements = [];
-  if (createdThresholds) {
-    statements.push(
-      db.insert(rarityThreshold).values(
-        Object.entries(createdThresholds).map(([rarity, minMonthlyPageviews]) => ({
-          wikiLang: LANG,
-          rarity: rarity as keyof RarityThresholds,
-          minMonthlyPageviews,
-        })),
-      ),
+  const inserted: ImportResult["inserted"] = [];
+  for (const g of genres) {
+    const added = candidates
+      .filter((c) => c.genreSlug === g.slug)
+      .map(({ value }) => ({
+        ...value,
+        rarity: rarityByThresholds(value.monthlyPageviews, thresholds),
+      }));
+    if (added.length === 0) continue;
+    await writeGenreCards(dataDir, g.slug, [...(store.cards.get(g.slug) ?? []), ...added]);
+    inserted.push(
+      ...added.map((c) => ({
+        title: c.title,
+        genreSlug: g.slug,
+        rarity: c.rarity,
+        monthlyPageviews: c.monthlyPageviews,
+      })),
     );
   }
-  for (let i = 0; i < values.length; i += INSERT_CHUNK) {
-    statements.push(
-      db
-        .insert(card)
-        .values(values.slice(i, i + INSERT_CHUNK))
-        .onConflictDoNothing(),
-    );
-  }
-  const [first, ...rest] = statements;
-  if (first) await db.batch([first, ...rest]);
 
-  return {
-    inserted: values.map((v, i) => ({
-      title: v.title,
-      genreSlug: candidates[i]!.genreSlug,
-      rarity: v.rarity,
-      monthlyPageviews: v.monthlyPageviews,
-    })),
-    excluded,
-    createdThresholds,
-  };
+  // 下限とカードは同じコミットに入れる。片方だけ残ったら、git で戻してから取り込み直す
+  if (createdThresholds) await writeThresholds(dataDir, createdThresholds);
+
+  return { inserted, excluded, createdThresholds };
 }

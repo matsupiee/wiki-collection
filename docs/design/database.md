@@ -442,16 +442,41 @@ D1 はアプリから任意のトランザクションを張れないため、�
 
 ## Wikipedia からのカード作成
 
-`packages/wiki-import` で行う。いまはローカルから `bun run wiki:import` で実行し、ローカルの D1 に書く。本番の D1 への取り込みは未実装。
+`packages/wiki-import` で行う。取り込みと D1 への書き込みは2つのコマンドに分かれる。
 
-1. ジャンルの `sourceCategory` から記事を集める（MediaWiki Action API の `list=categorymembers`）。サブカテゴリは `--depth` 段までたどる。すでにカードになっている記事は取り直さない。
+- `bun run wiki:import`: Wikipedia から記事を取り、git で管理するカードのファイル（下の「カードのファイル」）に書き足す。D1 には書かない。
+- `bun run wiki:load`: カードのファイルをローカルの D1 に入れる。本番の D1 に入れるコマンドは未実装。
+
+取り込んだ結果は git の差分として確かめてからコミットする。除外し漏れた記事を、D1 に入る前に PR で見つけられるようにするため。
+
+`wiki:import` の流れは次のとおり。ジャンルの一覧は `packages/db/src/seed/master-data.ts` の `genres` を使う。
+
+1. ジャンルの `sourceCategory` から記事を集める（MediaWiki Action API の `list=categorymembers`）。サブカテゴリは `--depth` 段までたどる。カードのファイルにすでにある記事は取り直さない。
 2. 記事のカテゴリ、曖昧さ回避かどうか、代表画像のファイル名を 50 件ずつまとめて取る（`prop=categories|pageimages|pageprops`）。ここで除外の条件に当たる記事を外す。
 3. 代表画像のライセンスを確かめる（`prop=imageinfo` の `extmetadata`）。Commons にある画像で、CC BY・CC BY-SA・CC0・パブリックドメインのものだけを使う。CC BY 系で作者がわからない画像は使わない。使えない画像のカードは、ジャンルの色とタイトルの1文字目で絵柄を描く。
 4. 記事ごとに要約と版 ID を取る（REST API の `/page/summary/{title}`）。要約は `extract` をそのまま使う。
 5. 直近12か月（今月を除く）の閲覧数を取る（Wikimedia Pageviews API の `per-article`、`agent=user`）。閲覧のない月も数え、合計を12で割る。
-6. `rarity_threshold` の下限でレアリティを決め、`card` に保存する。下限がまだなければ、いまあるカードとこの取り込みの記事の閲覧数の順位から決め、カードと同じ batch で保存する。
+6. `rarity-thresholds.json` の下限でレアリティを決め、ジャンルの JSONL に書き足す。下限がまだなければ、ファイルにあるカードとこの取り込みの記事の閲覧数の順位から決め、`rarity-thresholds.json` に書く。下限とカードは同じコミットに入れる。
 
-除外の条件（`packages/wiki-import/src/get-exclusion-reason.ts`）は次のとおり。人の確認ははさまない。外し漏れたカードは `isActive` を false にして止める。
+### カードのファイル
+
+`packages/wiki-import/data/ja/` に置き、git で管理する。キーの一覧とライセンスは同じディレクトリの `README.md` にまとめてある。
+
+- `cards/{ジャンルの slug}.jsonl`: 1行1カード。`card` の列のうち、`id`、`genreId`、`wikiLang`、作成・更新日時を除いたものを持つ。ジャンルはファイル名、言語版はディレクトリ名で表す。
+  - `wikiPageId` 順に並べて書き直す。追記したカードだけが差分に出るようにするため。
+  - 要約（CC BY-SA 4.0）を含むので、ディレクトリの `README.md` にデータのライセンスと出典の示し方を書いてある。
+- `rarity-thresholds.json`: `rarity_threshold` と同じ、コモン以外の4つの下限。
+
+`wiki:load` は次のように D1 に入れる。何度実行しても同じ状態になる。
+
+- `rarity_threshold` は、ファイルの値で上書きする。
+- `card` は `(wikiLang, wikiPageId)` で突き合わせ、ない記事は入れ、ある記事は `isActive` だけを揃える。要約やレアリティは作った時点で固定するため、ファイルを書き換えても D1 には反映しない。
+- ジャンルは slug で `genre` から引く。D1 にないジャンルのファイルがあると、何も入れずにエラーにする。
+- 下限とカードは1つの batch で書く。
+
+カードの排出を止めるときは、JSONL の `isActive` を false にしてコミットし、`wiki:load` を実行する。
+
+除外の条件（`packages/wiki-import/src/get-exclusion-reason.ts`）は次のとおり。人の確認ははさまない。外し漏れたカードは、JSONL の `isActive` を false にして止める。
 
 - 曖昧さ回避のページ
 - タイトルに「一覧」を含む記事
