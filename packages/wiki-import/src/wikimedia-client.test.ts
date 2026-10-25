@@ -81,6 +81,11 @@ describe("getExclusionReason", () => {
   test("事件・事故のカテゴリに入っている記事を外す", () => {
     expect(getExclusionReason({ ...base, categories: ["日本の鉄道事故"] })).toBe("事件・事故");
   });
+  test("存命人物の記事は外さない", () => {
+    expect(
+      getExclusionReason({ ...base, categories: ["存命人物", "日本の宇宙飛行士"] }),
+    ).toBeNull();
+  });
   test("要約を取る前は、要約の長さで判定しない", () => {
     expect(getExclusionReason(base)).toBeNull();
   });

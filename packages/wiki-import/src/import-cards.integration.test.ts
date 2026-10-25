@@ -45,9 +45,9 @@ function spaceWiki(): FakeWiki {
       article(6, "木星", 200),
       article(7, "宇宙", 5000, { disambiguation: true }),
       article(8, "惑星の一覧", 5000),
-      // 存命人物のカテゴリは continue の2回目で返る
-      article(9, "宇宙飛行士の山田", 5000, {
-        categories: ["宇宙飛行士", "日本の人物", "存命人物"],
+      // 事故のカテゴリは continue の2回目で返る
+      article(9, "ロケットの爆発", 5000, {
+        categories: ["宇宙開発", "ロケット", "宇宙開発の事故"],
       }),
       article(10, "短い記事", 5000, { extract: "短い。" }),
       // できたばかりの記事。閲覧のない月も12か月に数える
@@ -88,7 +88,7 @@ describe("importCards", () => {
       [
         { title: "宇宙", reason: "曖昧さ回避" },
         { title: "惑星の一覧", reason: "一覧記事" },
-        { title: "宇宙飛行士の山田", reason: "存命人物" },
+        { title: "ロケットの爆発", reason: "事件・事故" },
         { title: "短い記事", reason: "要約が短い" },
       ].sort((a, b) => a.title.localeCompare(b.title)),
     );
