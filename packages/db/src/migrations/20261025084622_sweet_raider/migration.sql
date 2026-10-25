@@ -1,0 +1,1 @@
+ALTER TABLE `genre` DROP COLUMN `source_category`;

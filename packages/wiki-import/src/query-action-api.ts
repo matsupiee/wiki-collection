@@ -2,7 +2,6 @@ import type { WikimediaClient } from "./wikimedia-client";
 
 export type ActionQueryResult = {
   pages?: ActionPage[];
-  categorymembers?: { pageid: number; ns: number; title: string; type: "page" | "subcat" }[];
   normalized?: { from: string; to: string }[];
 };
 
@@ -13,7 +12,7 @@ export type ActionPage = {
   missing?: boolean;
   categories?: { ns: number; title: string }[];
   pageimage?: string;
-  pageprops?: { disambiguation?: string };
+  pageprops?: { disambiguation?: string; wikibase_item?: string };
   imagerepository?: string;
   imageinfo?: {
     url: string;

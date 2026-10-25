@@ -22,8 +22,8 @@ bun run dev:local  # http://localhost:3001 で起動する
 
 `packages/db/src/seed/index.ts` が作る。実行するたびに全データを消して作り直す。
 
-- カード 60 枚（6 ジャンル）。レアリティは月間閲覧数の順位で決め、その下限を `rarity_threshold` に入れる。要約は本アプリ用に書いた短い説明で、Wikipedia の本文ではない。
-- パック 4 種類（無料の基本パック、150pt の宇宙・歴史・科学パック）と、pt の商品 3 種類。
+- カード 60 枚。ジャンルは Wikidata の分類に似せた 26 個のサンプル（slug は `sample-` で始まる）。レアリティは月間閲覧数の順位で決め、その下限を `rarity_threshold` に入れる。要約は本アプリ用に書いた短い説明で、Wikipedia の本文ではない。
+- パック 4 種類（無料の基本パック、150pt の天体・人間・スポーツパック）と、pt の商品 3 種類。
 - ユーザー 4 人。パスワードはすべて `password1234`。
 
 | メールアドレス     | 状態                                                                                    |
@@ -36,12 +36,15 @@ bun run dev:local  # http://localhost:3001 で起動する
 ## Wikipedia からカードを取り込む
 
 ```bash
-bun run wiki:import --genre space --max 30
+bun run wiki:top                # 閲覧数の dump から上位 10 万件の一覧を作る（数 GB × 12 か月を読む）
+bun run wiki:import --limit 30  # 一覧の上から 30 件を調べて JSONL に書き足す
+bun run wiki:load               # JSONL をローカルの D1 に入れる
 ```
 
-- ローカルの D1 に、Wikipedia の記事からカードを足す。Wikipedia の API に接続できる必要がある。
-- `--genre` はジャンルの slug。複数指定でき、省略するとすべてのジャンルを取り込む。`--depth` はサブカテゴリをたどる深さ（既定 1）、`--max` はジャンルごとに調べる記事の数の上限（既定 100）。
-- `bun run db:seed` をやり直すと、取り込んだカードも消える。
+- `wiki:top` は、Wikimedia の閲覧数の dump をダウンロードしながら `bzip2` で展開して読む。`bzip2` コマンドが必要。ダウンロード済みの dump は `--file <path>` を 12 回指定して使える。結果は `packages/wiki-import/.cache/top-pages-ja.tsv` に書き、git には入れない。
+- `wiki:import` は、Wikipedia の API と Wikidata の SPARQL を使い、`packages/wiki-import/data/ja/` に書き足す。D1 には書かない。`--limit` は1回で調べる記事の数（既定 1000）。途中で止めても、書いた分は次の実行で取り直さない。
+- 取り込んだら `git diff` で除外し漏れがないかを確かめ、コミットする。
+- `wiki:load` は何度実行しても同じ状態になる。`db:seed` をやり直したら、もう一度実行する。
 - 仕組みは [database.md](../design/database.md) の「Wikipedia からのカード作成」を参照。
 
 ## テストする

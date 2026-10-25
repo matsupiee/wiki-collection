@@ -131,13 +131,22 @@ function OwnedTab() {
   );
 }
 
+const GENRES_SHOWN = 9;
+
 function DexTab() {
   const trpc = useTRPC();
   const [genreId, setGenreId] = useState<string | undefined>();
+  const [showAllGenres, setShowAllGenres] = useState(false);
   const dex = useQuery(trpc.card.listDex.queryOptions({ genreId }));
   if (!dex.data) return <Loader />;
   const total = dex.data.genres.reduce((sum, g) => sum + g.total, 0);
   const discovered = dex.data.genres.reduce((sum, g) => sum + g.discovered, 0);
+  const genreById = new Map(dex.data.genres.map((g) => [g.id, g]));
+  // ジャンルは Wikidata の分類なので数が多い。カードの多い順に並んでいるので、たたんでいるときは上位と選んだジャンルだけを出す
+  const genres = dex.data.genres.filter((g) => g.total > 0);
+  const visibleGenres = showAllGenres
+    ? genres
+    : genres.filter((g, i) => i < GENRES_SHOWN || g.id === genreId);
 
   return (
     <div className="px-4 pb-6">
@@ -145,7 +154,7 @@ function DexTab() {
         コンプリート {discovered} / {total}
       </p>
       <div className="mb-4 grid grid-cols-3 gap-2">
-        {dex.data.genres.map((g) => (
+        {visibleGenres.map((g) => (
           <button
             key={g.id}
             type="button"
@@ -173,9 +182,19 @@ function DexTab() {
           </button>
         ))}
       </div>
+      {genres.length > GENRES_SHOWN && (
+        <button
+          type="button"
+          onClick={() => setShowAllGenres(!showAllGenres)}
+          className="mb-4 w-full rounded-2xl bg-white/80 py-2 text-xs font-bold text-slate-600 shadow-sm"
+          data-testid="dex-toggle-genres"
+        >
+          {showAllGenres ? "ジャンルをたたむ" : `すべてのジャンルを見る（${genres.length}）`}
+        </button>
+      )}
       <div className="grid grid-cols-4 gap-2">
         {dex.data.cards.map((c) => {
-          const g = dex.data.genres.find((x) => x.id === c.genreId)!;
+          const g = genreById.get(c.genreId)!;
           return c.discovered ? (
             <Link key={c.id} to="/cards/$cardId" params={{ cardId: c.id }}>
               <WikiCard

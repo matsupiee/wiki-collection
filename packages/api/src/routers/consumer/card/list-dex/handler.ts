@@ -33,17 +33,23 @@ export async function handler({
       .orderBy(asc(card.title)),
   ]);
 
+  // ジャンルは Wikidata の分類なので数百以上になる。ジャンルごとに全カードを走査しないよう、1回で数える
+  const counts = new Map<string, { total: number; discovered: number }>();
+  for (const r of rows) {
+    const count = counts.get(r.genreId) ?? { total: 0, discovered: 0 };
+    count.total++;
+    if (r.discoveredId !== null) count.discovered++;
+    counts.set(r.genreId, count);
+  }
+
   return {
-    genres: genres.map((g) => {
-      const inGenre = rows.filter((r) => r.genreId === g.id);
-      return {
-        id: g.id,
-        name: g.name,
-        colorHex: g.colorHex,
-        total: inGenre.length,
-        discovered: inGenre.filter((r) => r.discoveredId !== null).length,
-      };
-    }),
+    genres: genres.map((g) => ({
+      id: g.id,
+      name: g.name,
+      colorHex: g.colorHex,
+      total: counts.get(g.id)?.total ?? 0,
+      discovered: counts.get(g.id)?.discovered ?? 0,
+    })),
     cards: rows
       .filter((r) => !input.genreId || r.genreId === input.genreId)
       .sort((a, b) => compareRarity(a.rarity, b.rarity))

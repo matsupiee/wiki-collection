@@ -69,10 +69,21 @@ async function reset(db: Database) {
 }
 
 async function seedMaster(db: Database) {
-  const genreRows = await db
-    .insert(genre)
-    .values(genres.map((g, i) => ({ ...g, sortOrder: i })))
-    .returning();
+  // D1 は1文あたりのバインド変数が 100 個までなので分けて入れる
+  // wiki:load と同じく、カードの多いジャンルから並べる
+  const countBySlug = (slug: string) => cards.filter((c) => c[0] === slug).length;
+  const genreValues = [...genres]
+    .sort((a, b) => countBySlug(b.slug) - countBySlug(a.slug))
+    .map((g, i) => ({ ...g, sortOrder: i }));
+  const genreRows = [];
+  for (let i = 0; i < genreValues.length; i += 10) {
+    genreRows.push(
+      ...(await db
+        .insert(genre)
+        .values(genreValues.slice(i, i + 10))
+        .returning()),
+    );
+  }
   const genreIdBySlug = new Map(genreRows.map((g) => [g.slug, g.id]));
 
   const ranked = [...cards].sort((a, b) => b[2] - a[2]);
@@ -285,12 +296,12 @@ async function main() {
     await reset(db);
     const { cardByTitle, packBySlug, productRows } = await seedMaster(db);
     const basic = packBySlug.get("basic")!;
-    const space = packBySlug.get("space")!;
+    const astro = packBySlug.get("astronomical-object")!;
     const now = Date.now();
 
     await createUser(db, "たろう", "taro@example.com");
 
-    // hanako: 基本パックを3回、宇宙パックを1回開けている。最後の基本パックは演出を見ていない
+    // hanako: 基本パックを3回、天体パックを1回開けている。最後の基本パックは演出を見ていない
     const hanako = await createUser(db, "はなこ", "hanako@example.com");
     await purchase(db, hanako, productRows[1]!);
     await db.insert(freePackAllowance).values({ userId: hanako, initialRemaining: 17 });
@@ -320,8 +331,8 @@ async function main() {
       await openPack(
         db,
         hanako,
-        space.id,
-        ["冥王星", "はやぶさ2", "土星", "月", "ブラックホール"],
+        astro.id,
+        ["冥王星", "天の川銀河", "太陽", "月", "ブラックホール"],
         cardByTitle,
         {
           revealed: true,
