@@ -1,5 +1,5 @@
 // ローカル開発とテスト専用の設定。デプロイは packages/infra/alchemy.run.ts（Alchemy）で行い、このファイルは使わない。
-// Alchemy の dev は Cloudflare の認証が必要なため、認証なしで動かしたいときに @cloudflare/vite-plugin と組み合わせて使う。
+// 開発サーバーは dev:local に統一し、seed と wiki:load も同じローカル D1 を使う。
 // DOCS: https://developers.cloudflare.com/workers/vite-plugin/
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",

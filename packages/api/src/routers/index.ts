@@ -1,6 +1,5 @@
 import { publicProcedure, router } from "../index";
 import { cardGetRoute } from "./consumer/card/get/route";
-import { cardListDexRoute } from "./consumer/card/list-dex/route";
 import { cardListOwnedRoute } from "./consumer/card/list-owned/route";
 import { cardRedeemRoute } from "./consumer/card/redeem/route";
 import { cardRedeemDuplicatesRoute } from "./consumer/card/redeem-duplicates/route";
@@ -28,7 +27,6 @@ export const appRouter = router({
   }),
   card: router({
     get: cardGetRoute,
-    listDex: cardListDexRoute,
     listOwned: cardListOwnedRoute,
     redeem: cardRedeemRoute,
     redeemDuplicates: cardRedeemDuplicatesRoute,

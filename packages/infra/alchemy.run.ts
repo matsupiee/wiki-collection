@@ -18,9 +18,6 @@ export const web = Cloudflare.Website.Vite("web", {
     BETTER_AUTH_SECRET: Config.Redacted("BETTER_AUTH_SECRET"),
     BETTER_AUTH_URL: Cloudflare.Worker.URL,
   },
-  dev: {
-    port: 3001,
-  },
 });
 
 export type WebEnv = Cloudflare.InferEnv<typeof web>;

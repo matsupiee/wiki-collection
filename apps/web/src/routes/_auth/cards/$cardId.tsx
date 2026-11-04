@@ -51,7 +51,7 @@ function CardDetailPage() {
     <div className="pb-8">
       <PageHeader back="/collection" />
       <div className="flex justify-center px-6 pt-2">
-        <WikiCard card={card} size="lg" interactive />
+        <WikiCard card={card} size="lg" />
       </div>
       <section className="mx-4 mt-6 space-y-2 rounded-3xl bg-white/85 p-5 shadow-sm">
         <div className="flex items-center justify-between">

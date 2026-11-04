@@ -49,7 +49,7 @@ export async function handler({
       ),
   ]);
 
-  // 図鑑で見つけていないカードの中身は見せない
+  // 手に入れたことのないカードの中身は見せない
   if (!discovery)
     throw new TRPCError({ code: "NOT_FOUND", message: "まだ手に入れていないカードです" });
 

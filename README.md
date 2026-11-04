@@ -27,7 +27,7 @@ bun install
 
 This project uses Cloudflare D1 (SQLite) with Drizzle ORM.
 
-Runtime database access uses the Cloudflare `DB` binding from `packages/infra/alchemy.run.ts`. If a local `DATABASE_URL` is present, it is only for database tooling.
+Local development uses the Cloudflare `DB` binding from `apps/web/wrangler.local.jsonc`. The development server, `db:seed`, and `wiki:load` share the database under `.wrangler/state/v3/d1/`. Production bindings are configured in `packages/infra/alchemy.run.ts`. If a local `DATABASE_URL` is present, it is only for database tooling.
 
 Alchemy provisions the D1 database and applies migrations during `deploy`.
 
@@ -37,11 +37,21 @@ Alchemy provisions the D1 database and applies migrations during `deploy`.
 bun run db:generate
 ```
 
-Then, run the development server:
+For a fresh local database, create the sample data once:
 
 ```bash
-bun run dev
+bun run db:seed
 ```
+
+This resets all local data. Skip it if you already have data to keep.
+
+Start the development server without Cloudflare authentication:
+
+```bash
+bun run dev:local
+```
+
+See [local development](docs/development/local-development.md) for sample accounts and Wikipedia imports.
 
 Open [http://localhost:3001](http://localhost:3001) in your browser to see the fullstack application.
 
@@ -89,7 +99,6 @@ Run standalone Node/Bun tools that use Varlock from the owning app directory so 
 
 - Target: web on Cloudflare
 - Configure provider accounts: `cd packages/infra && bunx alchemy profile edit`
-- Dev: bun run dev
 - Deploy: bun run deploy
 - Destroy: bun run destroy
 
@@ -120,9 +129,8 @@ wiki-collection/
 
 ## Available Scripts
 
-- `bun run dev`: Start all applications in development mode
+- `bun run dev:local`: Start the application with the shared local D1 database
 - `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
 - `bun run check-types`: Check TypeScript types across all apps
 - `bun run db:generate`: Generate database client/types
 - `bun run check`: Run Oxlint and Oxfmt

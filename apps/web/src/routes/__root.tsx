@@ -41,8 +41,10 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body className="text-slate-800 antialiased">
-        <div className="mx-auto min-h-svh max-w-md">
-          <Outlet />
+        <div className="min-h-svh [container-type:inline-size]">
+          <div className="mx-auto min-h-svh max-w-md">
+            <Outlet />
+          </div>
         </div>
         <Toaster richColors position="top-center" />
         <Scripts />

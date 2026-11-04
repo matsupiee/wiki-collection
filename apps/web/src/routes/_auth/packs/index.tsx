@@ -34,12 +34,8 @@ function PackSelectPage() {
     <div className="flex min-h-[calc(100svh-4rem)] flex-col">
       <PageHeader />
       <div className="flex flex-1 flex-col items-center px-4 pt-4">
-        <div className="rounded-full bg-white/90 px-6 py-2 text-sm font-bold text-slate-600 shadow-md ring-2 ring-white">
-          好きなパックを選んでください
-        </div>
-
         <div
-          className="relative mt-6 h-[22rem] w-full touch-pan-y"
+          className="relative mt-2 h-[22rem] w-full touch-pan-y overflow-x-clip"
           onPointerDown={(e) => (dragStart.current = e.clientX)}
           onPointerUp={(e) => {
             if (dragStart.current === null) return;
@@ -87,7 +83,7 @@ function PackSelectPage() {
                 {offset === 0 && (
                   <div
                     aria-hidden
-                    className="mx-auto mt-1 h-16 w-44 scale-y-[-1] opacity-25 blur-[1px] [mask-image:linear-gradient(to_bottom,transparent,black)]"
+                    className="pointer-events-none absolute top-full left-1/2 mt-1 h-16 w-44 -translate-x-1/2 overflow-hidden scale-y-[-1] opacity-25 blur-[1px] [mask-image:linear-gradient(to_bottom,transparent,black)]"
                   >
                     <PackArt name={p.name} colorHex={p.colorHex} className="w-44" />
                   </div>

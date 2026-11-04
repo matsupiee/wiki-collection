@@ -5,20 +5,8 @@ Cloudflare のアカウントなしで、アプリとテストをローカルで
 ## 前提
 
 - `bun install` を済ませておく。
-- デプロイと `bun run dev`（Alchemy の dev）は Cloudflare の認証が必要。認証なしで動かすときは、下の `dev:local` を使う。
-- `bun run dev` には Alchemy が対応する Node.js（22.22.3 以降の 22 系、24.11.1 以降の 24 系、25.1 以降）が必要。
-
-## Alchemy で起動する
-
-```bash
-bun dev
-```
-
-- `http://localhost:3001` を開き、トップ画面とログイン画面が表示されることを確かめる。
-- Alchemy 2.0.0-beta.84 は Bun から実行すると、配布物にない `bin/register-dev-mode.js` を Node.js の子プロセスで読み込もうとして起動に失敗する。このバージョンでは infra の `dev` スクリプトから Node.js で CLI を起動し、配布済みの `register-oxc.js` を使う。
-- `npm_execpath` をこのコマンド内で空にするのは、Alchemy の CLI が Bun に再起動するのを防ぐため。依存関係のインストールとルートの起動コマンドには引き続き Bun を使う。
-- Alchemy を更新するときは、この回避策が必要かを再確認する。`bun dev` の起動ログだけでなく、ブラウザで表示と API の応答も確かめる。
-- 下の seed は `dev:local` 用の D1 に書き込む。Alchemy の開発用 D1 とは別なので、サンプルデータでユーザーストーリーを確認するときは `dev:local` を使う。
+- 開発サーバーは `bun run dev:local` で起動する。Cloudflare の認証は不要。
+- Alchemy はデプロイに使う。デプロイには Cloudflare の認証が必要。
 
 ## 起動する
 
@@ -28,7 +16,9 @@ bun run dev:local  # http://localhost:3001 で起動する
 ```
 
 - `dev:local` は `apps/web/vite.local.config.ts` と `apps/web/wrangler.local.jsonc` を使う。`@cloudflare/vite-plugin` が Worker と D1 をローカルで再現する。
-- ローカルの D1 は `.wrangler/state/` に保存される（git には入らない）。seed も同じ場所に書く。
+- ローカルの D1 は `.wrangler/state/v3/d1/` に保存される（git には入らない）。`db:seed` と `wiki:load` も同じ DB に書く。
+- 既存データで起動するときは `bun run dev:local` だけを実行する。`db:seed` は全データを消してサンプルを作り直すため、起動のたびに実行しない。
+- 以前の Alchemy 開発用 DB（`packages/infra/.alchemy/local/d1/`）は使わない。そこに作ったアカウントやデータは自動移行されない。旧 DB のファイルは削除しない。
 - `wrangler.local.jsonc` の `PAYMENT_MODE=mock` により、ショップで支払いなしに pt を購入できる。本番（Alchemy の設定）には入れていない。
 
 ## seed で作るデータ

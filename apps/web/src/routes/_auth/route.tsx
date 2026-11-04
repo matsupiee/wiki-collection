@@ -19,7 +19,9 @@ function AuthLayout() {
   // 開封の演出中は全画面にするため、タブを隠す
   const immersive = /^\/openings\/[^/]+$/.test(pathname);
   return (
-    <div className="flex min-h-svh flex-col">
+    <div
+      className={`flex min-h-svh flex-col ${immersive ? "" : "pb-[calc(3.5rem+env(safe-area-inset-bottom))]"}`}
+    >
       <div className="flex-1">
         <Outlet />
       </div>

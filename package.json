@@ -23,10 +23,8 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "turbo run dev",
     "build": "turbo run build",
     "check-types": "turbo run check-types",
-    "dev:web": "turbo run dev:bare -F web --",
     "db:generate": "turbo run db:generate -F @wiki-collection/db --",
     "deploy": "turbo run deploy -F @wiki-collection/infra --",
     "destroy": "turbo run destroy -F @wiki-collection/infra --",

@@ -235,7 +235,7 @@ function OpeningPage() {
               <div
                 key={c.userCardId}
                 className={cn(
-                  "absolute inset-0 rounded-2xl bg-white shadow-lg",
+                  "absolute top-0 left-0 aspect-square w-full rounded-[6%] bg-white shadow-lg",
                   i === 0 &&
                     next?.card.rarity === "legendary" &&
                     "animate-pulse shadow-[0_0_30px_10px_rgba(251,191,36,0.9)]",
@@ -293,7 +293,7 @@ function OpeningPage() {
                     NEW
                   </motion.span>
                 )}
-                <WikiCard card={current.card} size="lg" interactive />
+                <WikiCard card={current.card} size="lg" />
               </motion.div>
             </AnimatePresence>
           </div>

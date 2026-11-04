@@ -5,7 +5,7 @@ import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core
 import { user } from "./auth";
 import { card } from "./card";
 
-// 一度でも手に入れたカード。手放しても消さない。図鑑と NEW 判定に使う
+// 一度でも手に入れたカード。手放しても消さない。NEW 判定とカード詳細の閲覧可否の判定に使う
 export const cardDiscovery = sqliteTable(
   "card_discovery",
   {
