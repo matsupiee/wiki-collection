@@ -94,7 +94,7 @@ export async function handler({
     await runBatch(ctx.db, queries);
   } catch (error) {
     if (openingId) await ctx.db.delete(packOpening).where(eq(packOpening.id, openingId));
-    if (payment !== "coin") await restoreFreePack(ctx.db, userId, payment, now);
+    if (payment !== "coin") await restoreFreePack(ctx.db, userId, now);
     throw error;
   }
 

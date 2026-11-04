@@ -14,7 +14,7 @@ afterAll(() => dispose());
 afterEach(() => setSystemTime());
 
 describe("pack/list", () => {
-  test("販売中のパックと、まだ1つも開けていないユーザーの無料枠（20 + 10）を返す", async () => {
+  test("販売中のパックと、まだ1つも開けていないユーザーの無料枠（10）を返す", async () => {
     const ctx = await createUserContext(db);
     const g = await createGenre(db, "宇宙");
     const basic = await createPack(db);
@@ -33,9 +33,8 @@ describe("pack/list", () => {
     expect(ids).not.toContain(ended.id);
     expect(result.packs.find((p) => p.id === premium.id)?.genreName).toBe("宇宙");
     expect(result.freePack).toMatchObject({
-      initialRemaining: 20,
       dailyRemaining: 10,
-      remaining: 30,
+      remaining: 10,
     });
   });
 

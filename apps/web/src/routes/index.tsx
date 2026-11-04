@@ -28,9 +28,7 @@ function LandingPage() {
           <br />
           よく読まれている記事ほどレア。パックを開けて集めよう。
         </p>
-        <p className="text-xs font-bold text-violet-600">
-          登録すると無料パックを 20 パック開けられる
-        </p>
+        <p className="text-xs font-bold text-violet-600">毎日無料で 10 パック開けられる</p>
       </div>
       <Link to="/login" className="w-full">
         <Button className="h-12 w-full rounded-full bg-sky-500 text-base font-extrabold text-white shadow-lg hover:bg-sky-600">

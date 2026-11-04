@@ -19,10 +19,12 @@ export function WikiCard({
   card,
   size = "md",
   className,
+  ownedCount,
 }: {
   card: WikiCardData;
   size?: "xs" | "sm" | "md" | "lg";
   className?: string;
+  ownedCount?: number;
 }) {
   const [failedImage, setFailedImage] = useState<string | null>(null);
   const showText = size !== "xs";
@@ -58,6 +60,11 @@ export function WikiCard({
             aria-hidden={showText || undefined}
           >
             {Array.from(card.title)[0]}
+          </span>
+        )}
+        {ownedCount !== undefined && ownedCount > 0 && (
+          <span className="absolute right-1.5 bottom-1.5 rounded-full bg-slate-900/75 px-2 py-0.5 text-xs font-bold text-white tabular-nums">
+            ×{ownedCount}
           </span>
         )}
       </div>

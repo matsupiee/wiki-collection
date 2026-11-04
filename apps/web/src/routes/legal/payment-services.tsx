@@ -48,7 +48,7 @@ function PaymentServicesPage() {
           </tr>
           <tr>
             <th>未使用残高の確認</th>
-            <td>ショップ画面と「pt の履歴」画面で確認できます。</td>
+            <td>ポイント購入画面と「pt の履歴」画面で確認できます。</td>
           </tr>
           <tr>
             <th>利用者資金の保全</th>

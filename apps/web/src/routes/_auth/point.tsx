@@ -9,11 +9,12 @@ import { PageHeader } from "@/components/page-header";
 import { formatPrice, formatPt } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
 
-export const Route = createFileRoute("/_auth/shop")({
-  component: ShopPage,
+export const Route = createFileRoute("/_auth/point")({
+  head: () => ({ meta: [{ title: "ポイント購入" }] }),
+  component: PointPage,
 });
 
-function ShopPage() {
+function PointPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const products = useQuery(trpc.shop.listProducts.queryOptions());
@@ -38,7 +39,7 @@ function ShopPage() {
 
   return (
     <div className="pb-8">
-      <PageHeader title="ショップ" />
+      <PageHeader title="ポイント購入" />
       <section className="mx-4 rounded-3xl bg-gradient-to-br from-amber-100 to-white p-5 shadow-sm">
         <p className="text-xs font-bold text-slate-500">pt 残高</p>
         <p className="text-3xl font-black" data-testid="shop-balance">

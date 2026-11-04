@@ -38,7 +38,7 @@ function CardDetailPage() {
   if (detail.isError) {
     return (
       <div>
-        <PageHeader back="/collection" />
+        <PageHeader back="/collection" hideBrand />
         <p className="p-8 text-center text-sm text-slate-500">{detail.error.message}</p>
       </div>
     );
@@ -49,7 +49,7 @@ function CardDetailPage() {
 
   return (
     <div className="pb-8">
-      <PageHeader back="/collection" />
+      <PageHeader back="/collection" hideBrand />
       <div className="flex justify-center px-6 pt-2">
         <WikiCard card={card} size="lg" />
       </div>

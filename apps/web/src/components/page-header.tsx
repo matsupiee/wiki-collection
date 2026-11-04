@@ -3,7 +3,15 @@ import { ChevronLeft } from "lucide-react";
 
 import { BalanceBadge } from "./balance-badge";
 
-export function PageHeader({ title, back }: { title?: string; back?: string }) {
+export function PageHeader({
+  title,
+  back,
+  hideBrand = false,
+}: {
+  title?: string;
+  back?: string;
+  hideBrand?: boolean;
+}) {
   return (
     <header className="full-bleed sticky top-0 z-30 mb-4 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-md items-center justify-between gap-2 px-4">
@@ -15,11 +23,11 @@ export function PageHeader({ title, back }: { title?: string; back?: string }) {
           )}
           {title ? (
             <h1 className="truncate text-lg font-extrabold text-slate-800">{title}</h1>
-          ) : (
+          ) : !hideBrand ? (
             <span className="bg-gradient-to-r from-violet-600 to-sky-500 bg-clip-text text-lg font-black text-transparent">
               Wiki Collection
             </span>
-          )}
+          ) : null}
         </div>
         <BalanceBadge />
       </div>

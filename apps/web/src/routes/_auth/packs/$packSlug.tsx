@@ -80,7 +80,7 @@ function PackDetailPage() {
               あと {formatClock(new Date(freePack.dailyResetsAt).getTime() - now)}
             </Button>
           ) : (
-            <Link to="/shop">
+            <Link to="/point">
               <Button className="h-12 w-56 rounded-full bg-amber-400 text-base font-extrabold text-white hover:bg-amber-500">
                 pt を購入する
               </Button>

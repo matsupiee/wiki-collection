@@ -11,7 +11,7 @@ export function BalanceBadge() {
   const balance = useQuery(trpc.coin.getBalance.queryOptions());
   return (
     <Link
-      to="/shop"
+      to="/point"
       className="flex items-center gap-1.5 rounded-full bg-white/90 py-1 pr-3 pl-1 text-sm font-extrabold text-slate-700 shadow-sm ring-1 ring-slate-200"
       aria-label="pt 残高"
     >

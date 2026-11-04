@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, setSystemTime, test }
 import type { Database } from "@wiki-collection/db";
 import {
   cardDiscovery,
+  freePackAllowance,
   coinWithdraw,
   packOpening,
   userCard,
@@ -98,7 +99,7 @@ describe("pack/open", () => {
     expect(new Set(cards.map((c) => c.cardId))).toEqual(new Set([spaceCard.id]));
   });
 
-  test("無料パックは登録時の 20 と毎日の 10 を開けられ、毎日の枠は持ち越せない", async () => {
+  test("無料パックは登録日から毎日 10 を開けられ、毎日の枠は持ち越せない", async () => {
     setSystemTime(new Date("2026-10-25T03:00:00Z")); // 日本時間 12:00
     const ctx = await createUserContext(db);
     const userId = ctx.session.user.id;
@@ -106,10 +107,10 @@ describe("pack/open", () => {
     await createCard(db, { genreId: g.id, rarity: "common" });
     const p = await createPack(db, { genreId: g.id });
 
-    for (let i = 0; i < 30; i++) await handler({ input: { packId: p.id }, ctx });
+    for (let i = 0; i < 10; i++) await handler({ input: { packId: p.id }, ctx });
     const opened = await db.select().from(packOpening).where(eq(packOpening.userId, userId));
     expect(opened.filter((o) => o.payment === "free_daily")).toHaveLength(10);
-    expect(opened.filter((o) => o.payment === "free_initial")).toHaveLength(20);
+    expect(opened.filter((o) => o.payment === "free_initial")).toHaveLength(0);
     await expect(handler({ input: { packId: p.id }, ctx })).rejects.toMatchObject({
       code: "PRECONDITION_FAILED",
     });
@@ -123,17 +124,30 @@ describe("pack/open", () => {
     });
   });
 
-  test("毎日の枠を先に使い、初回の枠は翌日以降に残る", async () => {
-    setSystemTime(new Date("2026-10-25T03:00:00Z"));
+  test("旧登録特典が残っていても使えず、日本時間0時に毎日の枠だけ戻る", async () => {
+    setSystemTime(new Date("2026-10-25T14:59:59Z"));
     const ctx = await createUserContext(db);
+    const userId = ctx.session.user.id;
     const g = await createGenre(db);
     await createCard(db, { genreId: g.id, rarity: "common" });
     const p = await createPack(db, { genreId: g.id });
-    for (let i = 0; i < 12; i++) await handler({ input: { packId: p.id }, ctx });
-    expect(await getFreePackStatus(db, ctx.session.user.id, new Date())).toMatchObject({
-      initialRemaining: 18,
-      dailyRemaining: 0,
+    await db
+      .insert(freePackAllowance)
+      .values({ userId, initialRemaining: 20, dailyUsedDate: "2026-10-25", dailyUsedCount: 9 });
+    expect(await getFreePackStatus(db, userId, new Date())).toMatchObject({ remaining: 1 });
+    const results = await Promise.allSettled([
+      handler({ input: { packId: p.id }, ctx }),
+      handler({ input: { packId: p.id }, ctx }),
+    ]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(await getFreePackStatus(db, userId, new Date())).toMatchObject({ remaining: 0 });
+    await expect(handler({ input: { packId: p.id }, ctx })).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
     });
+    setSystemTime(new Date("2026-10-25T15:00:00Z"));
+    expect(await getFreePackStatus(db, userId, new Date())).toMatchObject({ remaining: 10 });
+    await handler({ input: { packId: p.id }, ctx });
+    expect(await getFreePackStatus(db, userId, new Date())).toMatchObject({ remaining: 9 });
   });
 
   test("有料パックは価格分の pt を消費し、無償 pt から先に使う", async () => {

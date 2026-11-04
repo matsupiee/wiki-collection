@@ -4,7 +4,6 @@ import { eq } from "drizzle-orm";
 
 import { toJstDate } from "./to-jst-date";
 
-export const INITIAL_FREE_PACKS = 20;
 export const DAILY_FREE_PACKS = 10;
 
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -16,7 +15,6 @@ function nextJstMidnight(now: Date): Date {
 }
 
 export type FreePackStatus = {
-  initialRemaining: number;
   dailyRemaining: number;
   dailyLimit: number;
   remaining: number;
@@ -24,7 +22,7 @@ export type FreePackStatus = {
   dailyResetsAt: Date;
 };
 
-// 無料パックの残り枠。登録時の 20 パックと、日本時間の日ごとに 10 パック（貯まらない）の合計
+// 無料パックの残り枠。日本時間の日ごとに 10 パック（貯まらない）
 export async function getFreePackStatus(
   db: Database,
   userId: string,
@@ -34,14 +32,12 @@ export async function getFreePackStatus(
     .select()
     .from(freePackAllowance)
     .where(eq(freePackAllowance.userId, userId));
-  const initialRemaining = row?.initialRemaining ?? INITIAL_FREE_PACKS;
   const usedToday = row && row.dailyUsedDate === toJstDate(now) ? row.dailyUsedCount : 0;
   const dailyRemaining = Math.max(DAILY_FREE_PACKS - usedToday, 0);
   return {
-    initialRemaining,
     dailyRemaining,
     dailyLimit: DAILY_FREE_PACKS,
-    remaining: initialRemaining + dailyRemaining,
+    remaining: dailyRemaining,
     dailyResetsAt: nextJstMidnight(now),
   };
 }

@@ -123,7 +123,7 @@ function ListingPage() {
               購入する
             </Button>
           ) : (
-            <Link to="/shop">
+            <Link to="/point">
               <Button className="h-11 w-full rounded-full bg-amber-400 font-extrabold text-white">
                 pt を購入する
               </Button>
@@ -155,7 +155,7 @@ function ListingPage() {
                   入札
                 </Button>
               ) : (
-                <Link to="/shop">
+                <Link to="/point">
                   <Button className="h-11 rounded-full bg-amber-400 font-extrabold text-white">
                     pt を購入
                   </Button>

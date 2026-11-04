@@ -78,13 +78,10 @@ function OwnedCards() {
               params={{ cardId: c.id }}
               className="flex min-w-0 flex-col items-start"
             >
-              <WikiCard card={c} size="sm" className="w-full" />
-              <span className="mt-1 text-xs font-bold text-slate-600">
-                {c.ownedCount > 0 && `×${c.ownedCount}`}
-                {c.listedCount > 0 && (
-                  <span className="ml-1 text-amber-600">出品中{c.listedCount}</span>
-                )}
-              </span>
+              <WikiCard card={c} size="sm" className="w-full" ownedCount={c.ownedCount} />
+              {c.listedCount > 0 && (
+                <span className="mt-1 text-xs font-bold text-amber-600">出品中{c.listedCount}</span>
+              )}
             </Link>
           ))}
         </div>

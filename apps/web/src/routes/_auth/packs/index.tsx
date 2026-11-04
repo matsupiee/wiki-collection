@@ -122,8 +122,7 @@ function PackSelectPage() {
               無料パック 残り{" "}
               <span className="text-2xl font-black text-violet-600">{freePack.remaining}</span>
               <span className="mt-1 block text-xs font-normal text-slate-500">
-                今日の分 {freePack.dailyRemaining}/{freePack.dailyLimit}・登録特典{" "}
-                {freePack.initialRemaining}
+                今日の分 {freePack.dailyRemaining}/{freePack.dailyLimit}
               </span>
             </p>
           ) : (

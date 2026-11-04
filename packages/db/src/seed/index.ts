@@ -1,7 +1,7 @@
 // ローカル D1 を作り直し、ユーザーストーリー確認用のデータを入れる。
 // 使い方: bun run db:seed（ルート） または packages/db で bun run seed
 // 作るユーザー（パスワードはすべて password1234）
-// - taro@example.com: 登録したばかり。無料パックが 30 開けられる
+// - taro@example.com: 登録したばかり。無料パックが 10 開けられる
 // - hanako@example.com: カードを集めている。出品中のカード、未確認の開封、pt がある
 // - jiro@example.com: hanako のオークションに入札している
 // - shiro@example.com: 今日の無料パックを使い切った
@@ -248,7 +248,7 @@ async function openPack(
   cardByTitle: Map<string, typeof card.$inferSelect>,
   options: {
     revealed: boolean;
-    payment: "free_initial" | "free_daily" | "coin";
+    payment: "free_daily" | "coin";
     coinsSpent?: number;
   },
 ) {
@@ -304,7 +304,12 @@ async function main() {
     // hanako: 基本パックを3回、天体パックを1回開けている。最後の基本パックは演出を見ていない
     const hanako = await createUser(db, "はなこ", "hanako@example.com");
     await purchase(db, hanako, productRows[1]!);
-    await db.insert(freePackAllowance).values({ userId: hanako, initialRemaining: 17 });
+    await db.insert(freePackAllowance).values({
+      userId: hanako,
+      initialRemaining: 0,
+      dailyUsedDate: new Date(now + 9 * HOUR).toISOString().slice(0, 10),
+      dailyUsedCount: 3,
+    });
     const opened = [
       await openPack(
         db,
@@ -314,7 +319,7 @@ async function main() {
         cardByTitle,
         {
           revealed: true,
-          payment: "free_initial",
+          payment: "free_daily",
         },
       ),
       await openPack(
@@ -325,7 +330,7 @@ async function main() {
         cardByTitle,
         {
           revealed: true,
-          payment: "free_initial",
+          payment: "free_daily",
         },
       ),
       await openPack(
@@ -348,7 +353,7 @@ async function main() {
         cardByTitle,
         {
           revealed: false,
-          payment: "free_initial",
+          payment: "free_daily",
         },
       ),
     ];
@@ -449,7 +454,7 @@ async function main() {
       auctionBidId: endedBid!.id,
     });
 
-    // shiro: 登録時の 20 パックも今日の 10 パックも使い切った
+    // shiro: 今日の 10 パックを使い切った
     const shiro = await createUser(db, "しろう", "shiro@example.com");
     const todayJst = new Date(now + 9 * HOUR).toISOString().slice(0, 10);
     await db
