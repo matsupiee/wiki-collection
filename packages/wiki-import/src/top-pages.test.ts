@@ -24,16 +24,19 @@ async function* lines(...items: string[]) {
 }
 
 describe("top-pages", () => {
-  test("直近12か月（今月を除く）の dump の URL を作る", () => {
-    const months = recentMonths(new Date("2026-10-25T00:00:00Z"));
-    expect(months[0]).toBe("2025-10");
-    expect(months[11]).toBe("2026-09");
+  test("直近の指定した月数（今月を除く）の dump の URL を作る", () => {
+    expect(recentMonths(new Date("2026-10-25T00:00:00Z"), 1)).toEqual(["2026-09"]);
+    expect(recentMonths(new Date("2026-10-25T00:00:00Z"), 3)).toEqual([
+      "2026-07",
+      "2026-08",
+      "2026-09",
+    ]);
     expect(monthlyDumpUrl("2026-09")).toBe(
       "https://dumps.wikimedia.org/other/pageview_complete/monthly/2026/2026-09/pageviews-202609-user.bz2",
     );
   });
 
-  test("日本語版の行だけを page_id ごとに足し、12 で割った月平均の多い順に並べる", async () => {
+  test("日本語版の行だけを page_id ごとに足し、読んだ月数で割った月平均の多い順に並べる", async () => {
     const totals = new Map<number, number>();
     const matched = await sumPageviews(
       lines(
@@ -54,9 +57,10 @@ describe("top-pages", () => {
     });
 
     expect(matched).toBe(4);
-    expect(rankTopPages(totals, 2)).toEqual([
-      { pageId: 2, monthlyPageviews: 300 },
-      { pageId: 1, monthlyPageviews: 200 },
+    // 2 か月分を読んだので 2 で割る。閲覧のない月も 0 として数える
+    expect(rankTopPages(totals, { months: 2, limit: 2 })).toEqual([
+      { pageId: 2, monthlyPageviews: 1800 },
+      { pageId: 1, monthlyPageviews: 1200 },
     ]);
   });
 

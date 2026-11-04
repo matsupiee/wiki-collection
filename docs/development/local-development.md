@@ -36,12 +36,12 @@ bun run dev:local  # http://localhost:3001 で起動する
 ## Wikipedia からカードを取り込む
 
 ```bash
-bun run wiki:top                # 閲覧数の dump から上位 10 万件の一覧を作る（数 GB × 12 か月を読む）
+bun run wiki:top                # 閲覧数の dump（直近1か月、数 GB）から上位 10 万件の一覧を作る
 bun run wiki:import --limit 30  # 一覧の上から 30 件を調べて JSONL に書き足す
 bun run wiki:load               # JSONL をローカルの D1 に入れる
 ```
 
-- `wiki:top` は、Wikimedia の閲覧数の dump をダウンロードしながら `bzip2` で展開して読む。`bzip2` コマンドが必要。ダウンロード済みの dump は `--file <path>` を 12 回指定して使える。結果は `packages/wiki-import/.cache/top-pages-ja.tsv` に書き、git には入れない。
+- `wiki:top` は、Wikimedia の閲覧数の dump をダウンロードしながら `bzip2` で展開して読む。`bzip2` コマンドが必要。`--months <n>` で直近何か月分の月平均にするかを指定できる（既定 1）。ダウンロード済みの dump は `--file <path>` で使え、指定したファイルの数を月数とする。結果は `packages/wiki-import/.cache/top-pages-ja.tsv` に書き、git には入れない。
 - `wiki:import` は、Wikipedia の API と Wikidata の SPARQL を使い、`packages/wiki-import/data/ja/` に書き足す。D1 には書かない。`--limit` は1回で調べる記事の数（既定 1000）。途中で止めても、書いた分は次の実行で取り直さない。
 - 取り込んだら `git diff` で除外し漏れがないかを確かめ、コミットする。
 - `wiki:load` は何度実行しても同じ状態になる。`db:seed` をやり直したら、もう一度実行する。
