@@ -62,9 +62,20 @@ function OpeningResultPage() {
                     NEW
                   </span>
                 )}
-                <Link to="/cards/$cardId" params={{ cardId: c.card.id }}>
-                  <WikiCard card={c.card} size="sm" />
-                </Link>
+                <WikiCard
+                  card={c.card}
+                  size="sm"
+                  renderLink={(children) => (
+                    <Link
+                      to="/cards/$cardId"
+                      params={{ cardId: c.card.id }}
+                      aria-label={`${c.card.title}の詳細を見る`}
+                      className="block min-w-0"
+                    >
+                      {children}
+                    </Link>
+                  )}
+                />
               </motion.div>
             ))}
           </div>

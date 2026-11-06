@@ -93,9 +93,39 @@ test("新しい対戦ではジャンルの属性を能力値とともに保存�
   await db.update(genre).set({ slug: "sample-spacecraft" }).where(eq(genre.id, a.c.genreId));
   const team = await a.api.battle.saveTeam({ slot: 1, name: "科学技術", members: a.members });
   const day = await runDailyBattles(db, new Date("2026-12-01T15:00:00Z"));
+  expect(day.ranking.find((t) => t.id === team.id)!.ruleVersion).toBe(2);
+  expect(
+    (await a.api.battle.ranking({ date: day.date }))!.ranking.find((t) => t.id === team.id)!
+      .ruleVersion,
+  ).toBe(2);
   expect(day.ranking.find((t) => t.id === team.id)!.members.map((m) => m.element)).toEqual([
-    "technology",
-    "technology",
-    "technology",
+    "culture",
+    "culture",
+    "culture",
   ]);
+});
+
+test("5属性時代の版なしスナップショットを返し、既存日を新ルールで上書きしない", async () => {
+  const a = await setup();
+  const old = {
+    id: "five-elements",
+    userId: a.ctx.session.user.id,
+    player: "旧プレイヤー",
+    name: "旧チーム",
+    rank: 1,
+    points: 1,
+    wins: 0,
+    losses: 0,
+    draws: 1,
+    members: (["society", "nature", "technology"] as const).map((element) => ({
+      id: element,
+      title: element,
+      attack: 100,
+      defense: 30,
+      element,
+    })),
+  };
+  await db.insert(battleDay).values({ date: "2026-10-02", ranking: [old] });
+  expect((await a.api.battle.ranking({ date: "2026-10-02" }))!.ranking).toEqual([old]);
+  expect((await runDailyBattles(db, new Date("2026-10-02T00:00:00Z"))).ranking).toEqual([old]);
 });

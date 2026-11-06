@@ -64,7 +64,7 @@ test("記事IDに依存せずWikidata分類から属性を決め、全画面と�
   const cases = [
     ["Q5", "person"],
     ["Q726", "nature"],
-    ["Q899523", "technology"],
+    ["Q899523", "culture"],
     ["Q6256", "society"],
     ["Q11424", "culture"],
     ["unclassified", "general"],
@@ -91,6 +91,6 @@ test("記事IDに依存せずWikidata分類から属性を決め、全画面と�
   expect(elementOf("Q523")).toBe("nature");
   expect(elementOf("Q634")).toBe("nature");
   expect(elementOf("sample-planet")).toBe("nature");
-  expect(elementOf("sample-spacecraft")).toBe("technology");
+  expect(elementOf("sample-spacecraft")).toBe("culture");
   expect(elementOf("sample-human")).toBe("person");
 });

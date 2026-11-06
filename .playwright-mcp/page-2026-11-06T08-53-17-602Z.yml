@@ -1,0 +1,8 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e7]:
+    - generic [ref=e8]:
+      - heading "コレクション" [level=1] [ref=e10]
+      - link "pt 残高" [ref=e11] [cursor=pointer]:
+        - /url: /point
+        - generic [ref=e15]: …
+  - region "Notifications alt+T"

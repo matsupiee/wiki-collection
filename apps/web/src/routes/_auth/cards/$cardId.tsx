@@ -5,7 +5,8 @@ import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { CardStats, statNumber } from "@/components/card-stats";
+import { ElementBadge } from "@/components/element-badge";
+import { CardStats, StatIcon, statNumber } from "@/components/card-stats";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import Loader from "@/components/loader";
 import { PageHeader } from "@/components/page-header";
@@ -59,42 +60,33 @@ function CardDetailPage() {
         <WikiCard card={card} size="lg" />
       </div>
       <section className="mx-4 mt-6 space-y-2 rounded-3xl bg-white/85 p-5 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-black">{card.title}</h1>
-          <span className="flex items-center gap-1 text-xs font-bold text-slate-500">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-1">
+            <ElementBadge element={card.element} />
+            <h1 className="min-w-0 break-words text-xl font-black">{card.title}</h1>
+            <a
+              href={card.wikiUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Wikipediaで読む（新しいタブで開く）"
+              title="Wikipediaで読む"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sky-600 hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600"
+            >
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </div>
+          <span className="flex shrink-0 items-center gap-1 text-xs font-bold text-slate-500">
             <RarityMarks rarity={card.rarity} /> {rarityLabels[card.rarity]}
           </span>
         </div>
-        <p className="text-xs text-slate-500">
-          {card.genreName}・月間 {formatPageviews(card.monthlyPageviews)} 閲覧
-        </p>
+        <p className="text-xs text-slate-500">月間 {formatPageviews(card.monthlyPageviews)} 閲覧</p>
         <CardStats
+          prominent
           attack={card.monthlyPageviews}
           defense={card.articleLength}
           element={card.element}
         />
-        <p className="text-xs text-slate-400">基本能力値 · 防御力は記事ソースのバイト数</p>
         <p className="text-sm leading-relaxed text-slate-700">{card.summary}</p>
-        <a
-          href={card.wikiUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 text-sm font-bold text-sky-600"
-        >
-          Wikipedia で読む <ExternalLink className="h-3.5 w-3.5" />
-        </a>
-        <p className="text-[10px] leading-relaxed text-slate-400">
-          出典: Wikipedia「{card.title}」（CC BY-SA 4.0）
-          {card.wikiRevisionUrl && (
-            <>
-              ・
-              <a href={card.wikiRevisionUrl} target="_blank" rel="noreferrer" className="underline">
-                取り込んだ時点の版
-              </a>
-            </>
-          )}
-          {card.imageCredit && <>・画像: {card.imageCredit}</>}
-        </p>
       </section>
 
       <section className="mx-4 mt-4 rounded-3xl bg-white/85 p-5 shadow-sm">
@@ -104,8 +96,8 @@ function CardDetailPage() {
         <ul className="mt-3 space-y-2 text-xs text-slate-600">
           {detail.data.ownedCopies.map((c) => (
             <li key={c.id}>
-              #{c.id.slice(-5)} 攻撃 +{statNumber(c.attackBonus)} / 防御 +
-              {statNumber(c.defenseBonus)}
+              #{c.id.slice(-5)} <StatIcon stat="attack" /> +{statNumber(c.attackBonus)}{" "}
+              <StatIcon stat="defense" /> +{statNumber(c.defenseBonus)}
               {c.inTeam && " · 編成中"}
             </li>
           ))}
@@ -121,9 +113,13 @@ function CardDetailPage() {
             >
               <option value="">カードを選ぶ</option>
               {detail.data.ownedCopies.map((c) => (
-                <option key={c.id} value={c.id} disabled={c.inTeam}>
-                  #{c.id.slice(-5)} 攻撃 +{statNumber(c.attackBonus)} / 防御 +
-                  {statNumber(c.defenseBonus)}
+                <option
+                  key={c.id}
+                  value={c.id}
+                  disabled={c.inTeam}
+                  aria-label={`#${c.id.slice(-5)} 攻撃 +${statNumber(c.attackBonus)} 防御 +${statNumber(c.defenseBonus)}${c.inTeam ? "（編成中）" : ""}`}
+                >
+                  #{c.id.slice(-5)} ⚔ +{statNumber(c.attackBonus)} / 🛡 +{statNumber(c.defenseBonus)}
                   {c.inTeam ? "（編成中）" : ""}
                 </option>
               ))}

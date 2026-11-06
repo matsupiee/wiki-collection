@@ -1,15 +1,8 @@
 // ゲーム用の大分類。元のWikidataジャンル自体は変更しない。
-export const elements = [
-  "person",
-  "nature",
-  "technology",
-  "society",
-  "culture",
-  "general",
-] as const;
+export const elements = ["person", "nature", "society", "culture", "general"] as const;
 export type Element = (typeof elements)[number];
 // 保存済み対戦の能力値と勝敗は変えず、旧ルールとして表示する。
-export const historicalElements = [...elements, "fire", "water", "grass"] as const;
+export const historicalElements = [...elements, "technology", "fire", "water", "grass"] as const;
 export type HistoricalElement = (typeof historicalElements)[number];
 export const elementLabels: Record<HistoricalElement, string> = {
   person: "人物",
@@ -22,7 +15,9 @@ export const elementLabels: Record<HistoricalElement, string> = {
   water: "旧属性・水",
   grass: "旧属性・草",
 };
-export const weakness: Record<HistoricalElement, HistoricalElement | null> = {
+export type BattleRuleVersion = 1 | 2;
+export const currentBattleRuleVersion = 2 as const;
+export const legacyWeakness: Record<HistoricalElement, HistoricalElement | null> = {
   person: "nature",
   nature: "technology",
   technology: "society",
@@ -33,11 +28,21 @@ export const weakness: Record<HistoricalElement, HistoricalElement | null> = {
   water: "grass",
   grass: "fire",
 };
-export const affinityRules = [
+export const legacyAffinityRules = [
   { from: "person", to: "culture", reason: "人物が文化を生み出す" },
   { from: "culture", to: "society", reason: "文化が社会を動かす" },
   { from: "society", to: "technology", reason: "社会が科学技術を支える" },
   { from: "technology", to: "nature", reason: "科学技術が自然に働きかける" },
+  { from: "nature", to: "person", reason: "自然が人物の暮らしに影響する" },
+] as const;
+export const weakness: Record<HistoricalElement, HistoricalElement | null> = {
+  ...legacyWeakness,
+  nature: "society",
+};
+export const affinityRules = [
+  { from: "person", to: "culture", reason: "人物が文化を生み出す" },
+  { from: "culture", to: "society", reason: "文化が社会を動かす" },
+  { from: "society", to: "nature", reason: "社会が自然に働きかける" },
   { from: "nature", to: "person", reason: "自然が人物の暮らしに影響する" },
 ] as const;
 const genreGroups: Record<Exclude<Element, "general">, readonly string[]> = {
@@ -66,22 +71,6 @@ const genreGroups: Record<Exclude<Element, "general">, readonly string[]> = {
     "sample-sea",
     "sample-river",
   ],
-  technology: [
-    "Q35127",
-    "Q92438",
-    "Q899523",
-    "Q1049494",
-    "Q3220391",
-    "Q4382945",
-    "Q10876391",
-    "Q11074464",
-    "Q29654788",
-    "sample-spacecraft",
-    "sample-theory",
-    "sample-academic-discipline",
-    "sample-medication",
-    "sample-table",
-  ],
   society: [
     "Q3918",
     "Q6256",
@@ -109,6 +98,20 @@ const genreGroups: Record<Exclude<Element, "general">, readonly string[]> = {
     "sample-city",
   ],
   culture: [
+    "Q35127",
+    "Q92438",
+    "Q899523",
+    "Q1049494",
+    "Q3220391",
+    "Q4382945",
+    "Q10876391",
+    "Q11074464",
+    "Q29654788",
+    "sample-spacecraft",
+    "sample-theory",
+    "sample-academic-discipline",
+    "sample-medication",
+    "sample-table",
     "Q7889",
     "Q8394",
     "Q11424",
@@ -191,6 +194,8 @@ export type Fighter = {
   element: HistoricalElement;
 };
 export type TeamSnapshot = {
+  // 版を保存していない旧スナップショットは5属性ルール（1）として表示する。
+  ruleVersion?: BattleRuleVersion;
   id: string;
   userId: string;
   player: string;
@@ -206,16 +211,39 @@ export type RankEntry = TeamSnapshot & {
 };
 export type DailyRanking = RankEntry[];
 // 同じ位置のカード同士が同時に攻撃。防御を引いたダメージを比較し、3本の勝敗で決める。
-export function duel(a: Fighter, b: Fighter): number {
-  const damage = (x: Fighter, y: Fighter) =>
-    Math.max(0, x.attack * (x.element === weakness[y.element] ? 2 : 1) - y.defense);
-  return Math.sign(damage(a, b) - damage(b, a));
+export function duelDetails(
+  a: Fighter,
+  b: Fighter,
+  ruleVersion: BattleRuleVersion = currentBattleRuleVersion,
+) {
+  const attack = (x: Fighter, y: Fighter) => {
+    const multiplier =
+      x.element === (ruleVersion === 1 ? legacyWeakness : weakness)[y.element] ? 2 : 1;
+    return { multiplier, damage: Math.max(0, x.attack * multiplier - y.defense) };
+  };
+  const left = attack(a, b),
+    right = attack(b, a);
+  return { left, right, result: Math.sign(left.damage - right.damage) };
 }
-export function fight(a: Fighter[], b: Fighter[]): number {
-  return Math.sign(a.reduce((score, member, i) => score + duel(member, b[i]!), 0));
+export function duel(
+  a: Fighter,
+  b: Fighter,
+  ruleVersion: BattleRuleVersion = currentBattleRuleVersion,
+): number {
+  return duelDetails(a, b, ruleVersion).result;
+}
+export function fight(
+  a: Fighter[],
+  b: Fighter[],
+  ruleVersion: BattleRuleVersion = currentBattleRuleVersion,
+): number {
+  return Math.sign(a.reduce((score, member, i) => score + duel(member, b[i]!, ruleVersion), 0));
 }
 export function fusionGains(attack: number, defense: number, coefficient: number) {
   if (coefficient < 0.2 || coefficient > 1 || !Number.isFinite(coefficient))
     throw new Error("Invalid coefficient");
   return { attackGain: attack * 0.01 * coefficient, defenseGain: defense * 0.01 * coefficient };
 }
+
+// D1のバインド変数上限内で一括処理する。
+export const MAX_FUSION_MATERIALS = 50;

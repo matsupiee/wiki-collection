@@ -27,42 +27,60 @@ export async function handler({ ctx, input }: { ctx: ProtectedContext; input: ba
       and(
         eq(userCard.userId, ctx.session.user.id),
         eq(userCard.status, "owned"),
-        inArray(userCard.id, [input.baseId, input.materialId]),
+        inArray(userCard.id, [input.baseId, ...input.materialIds]),
       ),
     );
   const base = rows.find((r) => r.copy.id === input.baseId);
-  const material = rows.find((r) => r.copy.id === input.materialId);
-  if (
-    !base ||
-    !material ||
-    base.card.articleLength === null ||
-    material.card.articleLength === null
-  )
+  if (!base || base.card.articleLength === null || rows.length !== input.materialIds.length + 1)
     throw fail();
-  const coefficient = 0.2 + (crypto.getRandomValues(new Uint32Array(1))[0]! / 0xffffffff) * 0.8;
-  const gain = fusionGains(
-    material.card.monthlyPageviews + material.copy.attackBonus,
-    material.card.articleLength + material.copy.defenseBonus,
-    coefficient,
+  const materials = input.materialIds.map((id) => rows.find((r) => r.copy.id === id)!);
+  if (materials.some((m) => m.card.articleLength === null)) throw fail();
+  const gains = materials.map((material) => {
+    const coefficient = 0.2 + (crypto.getRandomValues(new Uint32Array(1))[0]! / 0xffffffff) * 0.8;
+    return {
+      material,
+      coefficient,
+      ...fusionGains(
+        material.card.monthlyPageviews + material.copy.attackBonus,
+        material.card.articleLength! + material.copy.defenseBonus,
+        coefficient,
+      ),
+    };
+  });
+  const total = gains.reduce(
+    (sum, g) => ({
+      attackGain: sum.attackGain + g.attackGain,
+      defenseGain: sum.defenseGain + g.defenseGain,
+    }),
+    { attackGain: 0, defenseGain: 0 },
   );
-  // 検証と記録、素材消費、加算は同じ D1 batch。競合時は NOT NULL / UNIQUE 制約で全体を取り消す。
-  const validMaterial = sql`exists (select 1 from ${userCard} where ${userCard.id} = ${input.materialId} and ${userCard.userId} = ${ctx.session.user.id} and ${userCard.status} = 'owned' and ${userCard.attackBonus} = ${material.copy.attackBonus} and ${userCard.defenseBonus} = ${material.copy.defenseBonus} and ${notInTeam()})`;
   const validBase = sql`exists (select 1 from ${userCard} where ${userCard.id} = ${input.baseId} and ${userCard.userId} = ${ctx.session.user.id} and ${userCard.status} = 'owned')`;
+  // 各素材を個別の文で検証し、D1の変数上限を超えないようにする。
+  // 全履歴の検証・素材消費・加算は1つのbatch。1枚でも競合・不正があれば全体を取り消す。
+  const inserts = gains.map(({ material, coefficient, attackGain, defenseGain }) => {
+    const validMaterial = sql`exists (select 1 from ${userCard} where ${userCard.id} = ${material.copy.id} and ${userCard.userId} = ${ctx.session.user.id} and ${userCard.status} = 'owned' and ${userCard.attackBonus} = ${material.copy.attackBonus} and ${userCard.defenseBonus} = ${material.copy.defenseBonus} and ${notInTeam()})`;
+    return ctx.db.insert(cardFusion).values({
+      userId: ctx.session.user.id,
+      baseId: sql`case when ${validMaterial} and ${validBase} then ${input.baseId} else null end`,
+      materialId: material.copy.id,
+      coefficient,
+      attackGain,
+      defenseGain,
+    });
+  });
   try {
     await ctx.db.batch([
-      ctx.db.insert(cardFusion).values({
-        userId: ctx.session.user.id,
-        baseId: sql`case when ${validMaterial} and ${validBase} then ${input.baseId} else null end`,
-        materialId: input.materialId,
-        coefficient,
-        ...gain,
-      }),
-      ctx.db.update(userCard).set({ status: "fused" }).where(eq(userCard.id, input.materialId)),
+      inserts[0]!,
+      ...inserts.slice(1),
+      ctx.db
+        .update(userCard)
+        .set({ status: "fused" })
+        .where(inArray(userCard.id, input.materialIds)),
       ctx.db
         .update(userCard)
         .set({
-          attackBonus: sql`${userCard.attackBonus} + ${gain.attackGain}`,
-          defenseBonus: sql`${userCard.defenseBonus} + ${gain.defenseGain}`,
+          attackBonus: sql`${userCard.attackBonus} + ${total.attackGain}`,
+          defenseBonus: sql`${userCard.defenseBonus} + ${total.defenseGain}`,
         })
         .where(eq(userCard.id, input.baseId)),
     ]);
@@ -70,5 +88,9 @@ export async function handler({ ctx, input }: { ctx: ProtectedContext; input: ba
     if (isConstraintError(error)) throw fail();
     throw error;
   }
-  return { coefficient, ...gain };
+  return {
+    coefficient: gains.length === 1 ? gains[0]!.coefficient : undefined,
+    materialCount: gains.length,
+    ...total,
+  };
 }

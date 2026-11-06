@@ -8,8 +8,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import Loader from "@/components/loader";
 import { PageHeader } from "@/components/page-header";
-import { elementLabels } from "@wiki-collection/db/battle";
-import { statNumber } from "@/components/card-stats";
+import { CardStats } from "@/components/card-stats";
 import { WikiCard } from "@/components/wiki-card";
 import { formatPt, rarityLabels } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
@@ -74,22 +73,35 @@ function OwnedCards() {
       ) : (
         <div className="grid grid-cols-3 gap-3" data-testid="owned-cards">
           {cards.map((c) => (
-            <Link
-              key={c.id}
-              to="/cards/$cardId"
-              params={{ cardId: c.id }}
-              className="flex min-w-0 flex-col items-start"
-            >
-              <WikiCard card={c} size="sm" className="w-full" ownedCount={c.ownedCount} />
-              <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
-                {elementLabels[c.element]} · 基本攻撃 {statNumber(c.monthlyPageviews)}
-                <br />
-                基本防御 {c.articleLength === null ? "未計測" : statNumber(c.articleLength)}
-              </p>
+            <div key={c.id} className="flex min-w-0 flex-col items-start">
+              <WikiCard
+                card={c}
+                size="sm"
+                className="w-full"
+                ownedCount={c.ownedCount}
+                renderLink={(children) => (
+                  <Link
+                    to="/cards/$cardId"
+                    params={{ cardId: c.id }}
+                    aria-label={`${c.title}の詳細を見る`}
+                    className="block min-w-0"
+                  >
+                    {children}
+                  </Link>
+                )}
+              />
+              <div className="mt-1 w-full min-w-0">
+                <CardStats
+                  compact
+                  attack={c.monthlyPageviews}
+                  defense={c.articleLength}
+                  element={c.element}
+                />
+              </div>
               {c.listedCount > 0 && (
                 <span className="mt-1 text-xs font-bold text-amber-600">出品中{c.listedCount}</span>
               )}
-            </Link>
+            </div>
           ))}
         </div>
       )}

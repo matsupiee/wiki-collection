@@ -1,5 +1,11 @@
 import type { Database } from "@wiki-collection/db";
-import { elementOf, fight, type DailyRanking, type TeamSnapshot } from "@wiki-collection/db/battle";
+import {
+  currentBattleRuleVersion,
+  elementOf,
+  fight,
+  type DailyRanking,
+  type TeamSnapshot,
+} from "@wiki-collection/db/battle";
 import {
   battleDay,
   battleTeam,
@@ -78,7 +84,14 @@ export async function runDailyBattles(db: Database, now = new Date()) {
     const t = row.team;
     let snapshot = teams.get(t.id);
     if (!snapshot) {
-      snapshot = { id: t.id, userId: t.userId, player: row.player, name: t.name, members: [] };
+      snapshot = {
+        ruleVersion: currentBattleRuleVersion,
+        id: t.id,
+        userId: t.userId,
+        player: row.player,
+        name: t.name,
+        members: [],
+      };
       teams.set(t.id, snapshot);
     }
     const position = [t.member1, t.member2, t.member3].indexOf(row.copy.id);

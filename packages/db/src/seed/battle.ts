@@ -6,7 +6,11 @@ import type { Database } from "../index";
 import { account, battleTeam, card, cardDiscovery, genre, user, userCard } from "../schema";
 
 // 既存の利用者・カードを消さず、専用の利用者を追加する。再実行しても所持品を増やさない。
-export async function seedBattle(db: Database) {
+export async function seedBattle(
+  db: Database,
+  emailPrefix = "battle",
+  options: { fusionMaterials?: boolean } = {},
+) {
   const candidates = await db
     .select({ card, slug: genre.slug })
     .from(card)
@@ -26,7 +30,7 @@ export async function seedBattle(db: Database) {
       "能力値のあるカードが3種必要です。db:seed または wiki:load を先に実行してください。",
     );
   for (const [index, name] of ["アオイ", "アカネ"].entries()) {
-    const email = `battle${index + 1}@example.com`;
+    const email = `${emailPrefix}${index + 1}@example.com`;
     const [existing] = await db.select().from(user).where(eq(user.email, email));
     if (existing) continue;
     const id = createId();
@@ -48,6 +52,20 @@ export async function seedBattle(db: Database) {
         .insert(cardDiscovery)
         .values({ userId: id, cardId: c.id, firstAcquiredAt: new Date() })
         .onConflictDoNothing();
+    }
+    if (options.fusionMaterials) {
+      // 先頭2種類は既に各2枚あるため、各3枚を追加して未強化5枚にする。
+      for (const c of [cards[index % cards.length]!, cards[(index + 1) % cards.length]!]) {
+        for (let i = 0; i < 3; i++) await db.insert(userCard).values({ userId: id, cardId: c.id });
+      }
+      await db
+        .insert(userCard)
+        .values({
+          userId: id,
+          cardId: cards[index % cards.length]!.id,
+          attackBonus: 123,
+          defenseBonus: 45,
+        });
     }
     await db.insert(battleTeam).values({
       userId: id,

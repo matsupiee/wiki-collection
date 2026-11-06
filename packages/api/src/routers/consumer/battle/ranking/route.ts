@@ -9,6 +9,7 @@ export const battleRankingOutputSchema = z
     date: z.string(),
     ranking: z.array(
       z.object({
+        ruleVersion: z.union([z.literal(1), z.literal(2)]).optional(),
         id: z.string(),
         userId: z.string(),
         player: z.string(),

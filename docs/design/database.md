@@ -108,7 +108,7 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 - `(genreId, rarity, isActive)` に index をつける。抽選でジャンルとレアリティから候補を引くため。
 - 還元ポイントはレアリティから決まるので列に持たない。`packages/api/src/shared/card/get-redeem-points.ts` に置く。
 - Wikipedia へのリンクは `https://{wikiLang}.wikipedia.org/wiki/{title}` で作る。改名されても Wikipedia 側のリダイレクトで記事にたどり着ける。
-- 帰属表示として、取り込んだ時点の版へのリンク `https://{wikiLang}.wikipedia.org/w/index.php?oldid={wikiRevisionId}` をカード詳細に出す。要約はこの版の冒頭から取っている。
+- 取り込んだ時点の版へのリンク `https://{wikiLang}.wikipedia.org/w/index.php?oldid={wikiRevisionId}` を API で返す。要約はこの版の冒頭から取っている。カード詳細には版のリンクを表示しない。
 
 ### rarity_threshold
 
