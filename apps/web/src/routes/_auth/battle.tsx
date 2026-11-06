@@ -1,20 +1,13 @@
-import { ElementBadge } from "@/components/element-badge";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import {
-  affinityRules,
-  elements,
-  MAX_FUSION_MATERIALS,
-  fight,
-  type Fighter,
-  type RankEntry,
-} from "@wiki-collection/db/battle";
-import { CardStats, StatIcon, statNumber } from "@/components/card-stats";
+import { elements, MAX_FUSION_MATERIALS, type Fighter } from "@wiki-collection/db/battle";
+import { StatIcon, statNumber } from "@/components/card-stats";
 import { PageHeader } from "@/components/page-header";
 import { BattleSheet } from "@/components/battle/battle-sheet";
+import { BattleHelp } from "@/components/battle/battle-help";
 import {
   CardIdentity,
   FusionCardPicker,
@@ -27,10 +20,22 @@ import { SelectedTeamCards, TeamCardPicker } from "@/components/battle/team-card
 import { toggleTeamMember } from "@/components/battle/team-selection";
 import { groupFusionMaterials } from "@/components/battle/fusion-materials";
 import { FusionMaterialPicker } from "@/components/battle/fusion-material-picker";
-import { MatchDetail, outcome } from "@/components/battle/match-detail";
+import { MatchDetail } from "@/components/battle/match-detail";
 import { useTRPC } from "@/utils/trpc";
 
-export const Route = createFileRoute("/_auth/battle")({ component: BattlePage });
+export const Route = createFileRoute("/_auth/battle")({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: "ranking"; date?: string; mine?: boolean } => ({
+    tab: search.tab === "ranking" ? "ranking" : undefined,
+    date:
+      typeof search.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(search.date)
+        ? search.date
+        : undefined,
+    mine: search.mine === true ? true : undefined,
+  }),
+  component: BattlePage,
+});
 const sample: Fighter[] = [
   {
     id: "sample-1",
@@ -65,7 +70,14 @@ function BattlePage() {
   const { session } = Route.useRouteContext();
   const inventory = useQuery(trpc.battle.inventory.queryOptions());
   const teams = useQuery(trpc.battle.teams.queryOptions());
-  const [tab, setTab] = useState<"teams" | "ranking">("teams");
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const tab = search.tab ?? "teams";
+  const setTab = (tab: "teams" | "ranking") =>
+    void navigate({
+      search: (old) => ({ ...old, tab: tab === "ranking" ? tab : undefined }),
+      replace: true,
+    });
   const [sheet, setSheet] = useState<"team" | "fusion" | "practice" | null>(null);
   const [slot, setSlot] = useState(1),
     [name, setName] = useState("");
@@ -82,17 +94,14 @@ function BattlePage() {
     defenseGain: number;
     materialCount: number;
   } | null>(null);
-  const [date, setDate] = useState(""),
-    [mineOnly, setMineOnly] = useState(false);
-  const [detail, setDetail] = useState<RankEntry | null>(null);
+  const date = search.date ?? "";
+  const mineOnly = search.mine ?? false;
+  const setDate = (date: string) =>
+    void navigate({ search: (old) => ({ ...old, date: date || undefined }), replace: true });
+  const setMineOnly = (mine: boolean) =>
+    void navigate({ search: (old) => ({ ...old, mine: mine || undefined }), replace: true });
   const [practice, setPractice] = useState(false),
     [opponentId, setOpponentId] = useState("");
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    setNow(Date.now());
-    const timer = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(timer);
-  }, []);
   const ranking = useQuery(trpc.battle.ranking.queryOptions({ date: date || undefined }));
   const latest = useQuery(trpc.battle.ranking.queryOptions({}));
   const onError = (error: { message: string }) => toast.error(error.message);
@@ -198,10 +207,6 @@ function BattlePage() {
     });
     setPractice(false);
   };
-  const nextMidnight = now
-    ? (Math.floor((now + 9 * 3600000) / 86400000) + 1) * 86400000 - 9 * 3600000
-    : null;
-  const remaining = now && nextMidnight ? Math.ceil((nextMidnight - now) / 60000) : 0;
   const canFuse =
     !!base &&
     base.defense !== null &&
@@ -211,46 +216,10 @@ function BattlePage() {
     !fuse.isPending &&
     ready;
   return (
-    <div className="pb-8">
-      <PageHeader />
-      <div className="space-y-6 px-4 pt-5">
-        <header>
-          <p className="text-xs font-semibold tracking-widest text-sky-700">DAILY BATTLE</p>
-          <h1 className="mt-1 text-2xl font-black">チームと対戦</h1>
-          <p className="mt-2 text-sm text-slate-600">3枚で挑む、毎日の自動対戦。</p>
-        </header>
-        <section aria-label="参加状況" className="border-l-2 border-sky-500 pl-4 text-sm">
-          <p className="font-bold">
-            {ready ? `${savedTeams.length} / 3チーム 参加予定` : "参加状況を確認中…"}
-          </p>
-          <p className="mt-1 text-slate-600">
-            次回{" "}
-            {nextMidnight
-              ? new Intl.DateTimeFormat("ja-JP", {
-                  timeZone: "Asia/Tokyo",
-                  month: "numeric",
-                  day: "numeric",
-                }).format(nextMidnight)
-              : ""}{" "}
-            0:00（日本時間）
-            {now ? ` · あと${Math.floor(remaining / 60)}時間${remaining % 60}分` : ""}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">
-            保存したチームは毎日自動参加。変更は次回から反映されます。
-          </p>
-          {latest.data && (
-            <button
-              className="mt-2 min-h-11 text-sm font-semibold text-sky-700"
-              onClick={() => {
-                setDate("");
-                setMineOnly(true);
-                setTab("ranking");
-              }}
-            >
-              {latest.data.date} の自分の結果を見る →
-            </button>
-          )}
-        </section>
+    <div className="pb-20">
+      <PageHeader title="対戦" />
+      <BattleHelp />
+      <div className="space-y-6 px-4">
         <nav aria-label="対戦メニュー" className="flex border-b border-slate-200">
           {(
             [
@@ -427,7 +396,6 @@ function BattlePage() {
                 value={date || ranking.data?.date || ""}
                 onChange={(e) => {
                   setDate(e.target.value);
-                  setDetail(null);
                 }}
               />
             </label>
@@ -436,7 +404,6 @@ function BattlePage() {
                 className={secondary}
                 onClick={() => {
                   setDate("");
-                  setDetail(null);
                 }}
               >
                 最新の結果
@@ -450,10 +417,6 @@ function BattlePage() {
                 自分のチームだけ
               </label>
             </div>
-            <p className="text-xs text-slate-500">
-              勝ち3点・引き分け1点。勝点率＝勝点 ÷（対戦数 ×
-              3）で順位を決めます。同率は同順位。対戦報酬はありません。
-            </p>
             {ranking.isPending ? (
               <p role="status">集計結果を読み込み中…</p>
             ) : ranking.isError ? (
@@ -471,99 +434,31 @@ function BattlePage() {
               </p>
             ) : (
               <>
-                {ranking.data.ranking.some((t) => t.ruleVersion !== 2) && (
-                  <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
-                    この日は旧属性ルールの対戦結果です。内訳も当時の属性で表示します。
-                  </p>
-                )}
-                {!mine.length && (
-                  <p className="text-sm text-slate-600">
-                    この日に参加した自分のチームはありません。現在の編成は次回に反映されます。
-                  </p>
-                )}
-                {!!mine.length && (
-                  <p className="text-sm font-semibold text-sky-800">
-                    自分の成績：{mine.map((t) => `${t.name} ${t.rank}位`).join(" / ")}
-                  </p>
-                )}
                 <ol className="divide-y divide-slate-200">
-                  {(mineOnly ? mine : ranking.data.ranking).map((r) => {
-                    const count = r.wins + r.losses + r.draws,
-                      isMine = r.userId === session.user.id;
-                    return (
-                      <li
-                        key={r.id}
-                        className={`py-4 ${isMine ? "border-l-2 border-sky-600 pl-3" : ""}`}
+                  {(mineOnly ? mine : ranking.data.ranking).map((r) => (
+                    <li key={r.id}>
+                      <Link
+                        to="/battle/$date/$teamId"
+                        params={{ date: ranking.data!.date, teamId: r.id }}
+                        search={{ mine: mineOnly || undefined }}
+                        className={`flex min-h-16 items-center justify-between gap-4 px-3 py-4 hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-sky-600 ${r.userId === session.user.id ? "border-l-2 border-sky-600" : ""}`}
                       >
-                        <div className="flex gap-3">
-                          <span className="text-xl font-black text-sky-700">{r.rank}</span>
-                          <div className="min-w-0 flex-1">
-                            <h3 className="break-words font-bold">
-                              {r.name}{" "}
-                              {isMine && <span className="text-xs text-sky-700">自分</span>}
-                            </h3>
-                            <p className="text-xs text-slate-500">{r.player}</p>
-                            <p className="mt-2 text-sm">
-                              {r.wins}勝 {r.losses}敗 {r.draws}分 · {count}戦
-                            </p>
-                            <p className="text-sm">
-                              勝点率{" "}
-                              {count ? `${((r.points / (count * 3)) * 100).toFixed(1)}%` : "—"} ·{" "}
-                              {r.points}点
-                            </p>
-                            <details className="mt-3 text-xs">
-                              <summary className="cursor-pointer py-2">対戦時のカード</summary>
-                              {r.members.map((m, i) => (
-                                <div key={m.id} className="mt-2">
-                                  <div className="flex items-center gap-1 font-semibold">
-                                    <ElementBadge
-                                      element={m.element}
-                                      ruleVersion={r.ruleVersion ?? 1}
-                                    />
-                                    <p>
-                                      {i + 1}番手 · {m.title}
-                                    </p>
-                                  </div>
-                                  <CardStats {...m} ruleVersion={r.ruleVersion ?? 1} />
-                                </div>
-                              ))}
-                            </details>
-                            {isMine && (
-                              <button className={`${secondary} mt-2`} onClick={() => setDetail(r)}>
-                                対戦の内訳を見る
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
+                        <span className="min-w-8 shrink-0 text-center text-xl font-black tabular-nums text-sky-700">
+                          {r.rank}
+                          <span className="sr-only">位</span>
+                        </span>
+                        <span className="min-w-0 flex-1 break-words font-bold">{r.name}</span>
+                        <span className="shrink-0 font-semibold tabular-nums text-sky-700">
+                          {r.points}点
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
                 </ol>
               </>
             )}
           </section>
         )}
-        <details className="border-t border-slate-200 pt-4 text-xs leading-relaxed text-slate-600">
-          <summary className="min-h-11 cursor-pointer font-semibold">能力値と対戦ルール</summary>
-          <p>
-            <StatIcon stat="attack" /> は取り込み時の月間閲覧数、
-            <StatIcon stat="defense" />{" "}
-            は記事ソースのバイト数です。属性は記事のWikidata分類から決まります。未対応の記事は総合で、相性倍率はありません。
-          </p>
-          <ul className="my-3 space-y-1">
-            {affinityRules.map((r) => (
-              <li key={r.from} className="flex flex-wrap items-center gap-1">
-                <ElementBadge element={r.from} /> → <ElementBadge element={r.to} />
-                ：<StatIcon stat="attack" /> 2倍
-              </li>
-            ))}
-          </ul>
-          <p>
-            同じ位置のカード同士で、
-            <StatIcon stat="attack" /> × 相性倍率 − 相手の <StatIcon stat="defense" />
-            （最低0）を比較します。3組の勝ち数で勝敗を決めます。相性はゲーム上のルールで、現実の優劣を示すものではありません。
-          </p>
-        </details>
       </div>
       {sheet === "team" && (
         <BattleSheet
@@ -793,31 +688,6 @@ function BattlePage() {
           >
             {remove.isPending ? "解除中…" : "解除する"}
           </button>
-        </BattleSheet>
-      )}
-      {detail && (
-        <BattleSheet title={`${detail.name}の対戦内訳`} onClose={() => setDetail(null)}>
-          <p className="text-sm text-slate-600">
-            {ranking.data?.date} 時点のカード・能力値で表示しています。
-          </p>
-          {ranking.data?.ranking
-            .filter((t) => t.userId !== detail.userId)
-            .map((t) => (
-              <details key={t.id} className="border-t border-slate-200 py-3">
-                <summary className="cursor-pointer py-2 text-sm font-bold">
-                  {outcome(fight(detail.members, t.members, detail.ruleVersion ?? 1))} · {t.player}{" "}
-                  / {t.name}
-                </summary>
-                <MatchDetail
-                  left={detail.members}
-                  right={t.members}
-                  ruleVersion={detail.ruleVersion ?? 1}
-                />
-              </details>
-            ))}
-          {!ranking.data?.ranking.some((t) => t.userId !== detail.userId) && (
-            <p>この日は対戦相手がいませんでした。</p>
-          )}
         </BattleSheet>
       )}
     </div>

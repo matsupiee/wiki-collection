@@ -129,3 +129,31 @@ test("5属性時代の版なしスナップショットを返し、既存日を�
   expect((await a.api.battle.ranking({ date: "2026-10-02" }))!.ranking).toEqual([old]);
   expect((await runDailyBattles(db, new Date("2026-10-02T00:00:00Z"))).ranking).toEqual([old]);
 });
+
+test("詳細ページ用に他人の戦績と当時のカードを日付指定で取得でき、未開催日はnullを返す", async () => {
+  const viewer = await setup();
+  const owner = await setup();
+  const members: Fighter[] = [0, 1, 2].map((i) => ({
+    id: `snapshot-${i}`,
+    title: `当時のカード${i}`,
+    attack: 100 + i,
+    defense: 20,
+    element: "person",
+  }));
+  const entry = {
+    id: "historical-team",
+    userId: owner.ctx.session.user.id,
+    player: "別のプレイヤー",
+    name: "保存時のチーム",
+    rank: 1,
+    wins: 2,
+    losses: 1,
+    draws: 1,
+    points: 7,
+    ruleVersion: 2 as const,
+    members,
+  };
+  await db.insert(battleDay).values({ date: "2001-02-03", ranking: [entry] });
+  expect((await viewer.api.battle.ranking({ date: "2001-02-03" }))?.ranking).toEqual([entry]);
+  expect(await viewer.api.battle.ranking({ date: "1900-01-01" })).toBeNull();
+});

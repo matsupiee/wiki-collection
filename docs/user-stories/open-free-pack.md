@@ -17,8 +17,9 @@
    - 開封画面でも同じ袋のデザインを使う。
    - スマートフォン幅でもページ全体の横スクロールが出ない。切り替えボタンを押すと選んだパックが中央に移り、袋の反射部分が操作を妨げない。
    - 「無料パック 残り 10」「今日の分 10/10」と表示される。
-2. パック選択画面の「排出率・出やすいカードを見る」を開く。
-   - 1〜5枚目ごとにレアリティの排出率が % で出る。
+2. パック選択画面の表示を確認する。
+   - 排出率・出やすいカードの折りたたみや排出率の表は表示されない。
+   - 無料パックでは「パックをタップして開封」の案内文を表示しない。
 3. カルーセルの中央の基本パックをタップする。
    - 詳細画面や確認ダイアログを挟まず `/openings/$openingId` に移動する。
    - 処理中に連打しても重複して開封しない。左右のスワイプでは開封しない。
@@ -58,5 +59,5 @@
 - `packages/api/src/routers/consumer/pack/open/handler.integration.test.ts`
   - 5枚の抽選と並び順、NEW の判定、注目カードの重み、ジャンルの絞り込み
 - `packages/api/src/routers/consumer/pack/get/handler.integration.test.ts`
-  - 排出率の % 表示
+  - API が返す抽選設定と開封可否
 - `packages/api/src/routers/consumer/opening/get/handler.integration.test.ts`

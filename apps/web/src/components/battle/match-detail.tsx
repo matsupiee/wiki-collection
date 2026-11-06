@@ -11,10 +11,12 @@ export function MatchDetail({
   left,
   right,
   ruleVersion = 2,
+  leftLabel = "自分",
 }: {
   left: Fighter[];
   right: Fighter[];
   ruleVersion?: BattleRuleVersion;
+  leftLabel?: string;
 }) {
   return (
     <div className="space-y-3">
@@ -36,7 +38,7 @@ export function MatchDetail({
               ].map(({ c, h, defense }, side) => {
                 return (
                   <div key={side} className="min-w-0 break-words">
-                    <p className="text-slate-500">{side === 0 ? "自分" : "相手"}</p>
+                    <p className="text-slate-500">{side === 0 ? leftLabel : "相手"}</p>
                     <div className="mt-1 flex items-center gap-1 font-bold">
                       <ElementBadge element={c.element} ruleVersion={ruleVersion} />
                       <p className="min-w-0">{c.title}</p>

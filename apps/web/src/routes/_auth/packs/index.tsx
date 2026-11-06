@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import Loader from "@/components/loader";
 import { PackArt } from "@/components/pack-art";
 import { PageHeader } from "@/components/page-header";
-import { formatClock, formatPt, rarityLabels } from "@/lib/format";
+import { formatClock, formatPt } from "@/lib/format";
 import { useNow } from "@/lib/use-now";
 import { useTRPC } from "@/utils/trpc";
 
@@ -151,42 +151,18 @@ function PackSelectPage() {
           </p>
         )}
 
-        {detail.data && (
+        {detail.data && (open.isPending || current?.type !== "free_basic") && (
           <div className="my-4 w-full space-y-3 text-center text-xs text-slate-600">
             <p aria-live="polite">
               {open.isPending
                 ? "準備中…"
-                : current?.type === "free_basic"
-                  ? "パックをタップして開封"
-                  : `タップで ${formatPt(current?.priceCoins ?? 0)} を使って開封（残高 ${formatPt(detail.data.balance)}）`}
+                : `タップで ${formatPt(current?.priceCoins ?? 0)} を使って開封（残高 ${formatPt(detail.data.balance)}）`}
             </p>
             {detail.data.blockedReason === "insufficient_coins" && (
               <Link to="/point" className="font-bold text-sky-600">
                 pt が不足しています。pt を購入する
               </Link>
             )}
-            <details key={current?.id} className="rounded-2xl bg-white/80 p-3 text-left">
-              <summary className="cursor-pointer font-bold">排出率・出やすいカードを見る</summary>
-              {detail.data.featuredCards.length > 0 && (
-                <p className="mt-2">
-                  出やすいカード: {detail.data.featuredCards.map((card) => card.title).join("、")}
-                </p>
-              )}
-              <table className="mt-2 w-full" data-testid="slot-rates">
-                <tbody>
-                  {detail.data.slotRates.map((slot) => (
-                    <tr key={slot.slot} className="border-t border-slate-100">
-                      <th className="py-2 pr-2 whitespace-nowrap">{slot.slot}枚目</th>
-                      <td>
-                        {slot.rates
-                          .map((rate) => `${rarityLabels[rate.rarity]} ${rate.percent}%`)
-                          .join(" / ")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </details>
           </div>
         )}
 

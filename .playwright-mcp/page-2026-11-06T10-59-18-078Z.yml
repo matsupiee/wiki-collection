@@ -1,0 +1,23 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e6]:
+    - banner [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]: Wiki Collection
+        - link "pt 残高" [ref=e11] [cursor=pointer]:
+          - /url: /point
+          - generic [ref=e15]: …
+    - generic [ref=e16]:
+      - banner [ref=e17]:
+        - paragraph [ref=e18]: DAILY BATTLE
+        - heading "チームと対戦" [level=1] [ref=e19]
+      - navigation "対戦メニュー" [ref=e20]:
+        - button "チーム" [ref=e21]
+        - button "ランキング" [ref=e22]
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - heading "マイチーム" [level=2] [ref=e25]
+          - button "チームを編成" [disabled] [ref=e26]
+        - status [ref=e28]: カードとチームを読み込み中…
+        - button "所持カードを強化" [disabled] [ref=e29]
+        - paragraph [ref=e33]: 編成中のカードは出品・還元・強化素材に使えません。同じ1枚を複数チームに使えます。
+  - region "Notifications alt+T"
