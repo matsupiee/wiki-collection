@@ -20,6 +20,26 @@ test("ログイン・開封再開・カード・対戦・履歴・ログアウ�
   await page.getByRole("button", { name: "基本パックを選ぶ", exact: true }).click();
   await expect(page.getByRole("button", { name: "タップで開ける", exact: true })).toBeVisible();
   const opening = page.url();
+  // 戻り先がある状態で、途中まで／最後まで切り口をなぞる。
+  const tearArea = page.getByTestId("tear-area");
+  const swipe = async (fraction: number) => {
+    // 登場アニメーションが完了してから座標を取得する。
+    await expect(async () => {
+      const box = await tearArea.boundingBox();
+      expect(box?.width).toBeCloseTo(256, 0);
+    }).toPass();
+    const box = (await tearArea.boundingBox())!;
+    await page.mouse.move(box.x + 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * fraction, box.y + box.height / 2, { steps: 20 });
+    await page.mouse.up();
+  };
+  await swipe(0.45);
+  await expect(page).toHaveURL(opening);
+  await expect(page.getByRole("button", { name: "タップで開ける", exact: true })).toBeVisible();
+  await swipe(0.95);
+  await expect(page.getByRole("button", { name: "次のカード", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(opening);
   await page.reload();
   await expect(page.getByRole("button", { name: "タップで開ける", exact: true })).toBeVisible();
   expect(page.url()).toBe(opening);
