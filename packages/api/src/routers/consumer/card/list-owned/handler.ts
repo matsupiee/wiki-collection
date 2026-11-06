@@ -1,10 +1,9 @@
 import { elementOf } from "@wiki-collection/db/battle";
 import { card, genre, userCard } from "@wiki-collection/db/schema/index";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { notInTeam } from "../../../../shared/card/not-in-team";
 import type { ProtectedContext } from "../../../../context";
-import { compareRarity } from "../../../../shared/card/compare-rarity";
 import { getRedeemPoints } from "../../../../shared/card/get-redeem-points";
 import type { CardListOwnedInput, CardListOwnedOutput } from "./route";
 
@@ -42,17 +41,23 @@ export async function handler({
       ),
     )
     .groupBy(card.id)
-    .orderBy(desc(sql`max(${userCard.createdAt})`));
+    .orderBy(
+      ...(input.sort === "attack"
+        ? [desc(card.monthlyPageviews)]
+        : input.sort === "defense"
+          ? [desc(card.articleLength)]
+          : []),
+      desc(sql`max(${userCard.createdAt})`),
+      asc(card.id),
+    );
 
-  const cards = rows
-    .map((r) => ({
-      ...r,
-      element: elementOf(r.genreSlug),
-      protectedCount: Number(r.protectedCount),
-      ownedCount: Number(r.ownedCount),
-      listedCount: Number(r.listedCount),
-    }))
-    .sort((a, b) => compareRarity(b.rarity, a.rarity));
+  const cards = rows.map((r) => ({
+    ...r,
+    element: elementOf(r.genreSlug),
+    protectedCount: Number(r.protectedCount),
+    ownedCount: Number(r.ownedCount),
+    listedCount: Number(r.listedCount),
+  }));
 
   // 出品中のカードも「残す1枚」に数える
   const duplicates = cards.reduce(

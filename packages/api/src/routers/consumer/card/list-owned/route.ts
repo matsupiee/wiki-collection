@@ -6,6 +6,7 @@ import { protectedProcedure } from "../../../../index";
 import { handler } from "./handler";
 
 export const cardListOwnedInputSchema = z.object({
+  sort: z.enum(["acquired", "attack", "defense"]).optional(),
   genreId: z.string().optional(),
   rarity: z.enum(rarities).optional(),
 });

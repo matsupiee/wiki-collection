@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { rarities, type Rarity } from "@wiki-collection/db/enums";
 import { cn } from "@wiki-collection/ui/lib/utils";
@@ -30,8 +30,12 @@ function OwnedCards() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [rarity, setRarity] = useState<Rarity | undefined>();
+  const [sort, setSort] = useState<"acquired" | "attack" | "defense">("acquired");
   const [confirming, setConfirming] = useState(false);
-  const owned = useQuery(trpc.card.listOwned.queryOptions({ rarity }));
+  const owned = useQuery({
+    ...trpc.card.listOwned.queryOptions({ rarity, sort }),
+    placeholderData: keepPreviousData,
+  });
   const redeem = useMutation(
     trpc.card.redeemDuplicates.mutationOptions({
       onSuccess: async (result) => {
@@ -48,20 +52,32 @@ function OwnedCards() {
 
   return (
     <div className="px-4 pb-6">
-      <div className="mb-3 flex gap-2 overflow-x-auto pb-1 text-xs font-bold">
-        {[undefined, ...rarities].map((r) => (
-          <button
-            key={r ?? "all"}
-            type="button"
-            onClick={() => setRarity(r)}
-            className={cn(
-              "rounded-full px-3 py-1 whitespace-nowrap shadow-sm",
-              rarity === r ? "bg-slate-800 text-white" : "bg-white text-slate-500",
-            )}
-          >
-            {r ? rarityLabels[r] : "すべて"}
-          </button>
-        ))}
+      <div className="mb-3 flex items-center gap-2 text-xs font-bold">
+        <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {[undefined, ...rarities].map((r) => (
+            <button
+              key={r ?? "all"}
+              type="button"
+              onClick={() => setRarity(r)}
+              className={cn(
+                "shrink-0 rounded-full px-3 py-1 whitespace-nowrap shadow-sm",
+                rarity === r ? "bg-slate-800 text-white" : "bg-white text-slate-500",
+              )}
+            >
+              {r ? rarityLabels[r] : "すべて"}
+            </button>
+          ))}
+        </div>
+        <select
+          aria-label="並び順"
+          value={sort}
+          onChange={(event) => setSort(event.target.value as typeof sort)}
+          className="shrink-0 rounded-full bg-white px-2 py-1 text-xs font-bold text-slate-700 shadow-sm focus-visible:outline-2 focus-visible:outline-sky-500"
+        >
+          <option value="acquired">引いた順</option>
+          <option value="attack">攻撃力順</option>
+          <option value="defense">防御力順</option>
+        </select>
       </div>
       {cards.length === 0 ? (
         <div className="rounded-3xl bg-white/80 p-8 text-center text-sm text-slate-500">
