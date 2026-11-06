@@ -795,7 +795,7 @@ export const legalDocuments: Record<
                   },
                   {
                     tag: "td",
-                    text: "最新版の Chrome、Safari、Edge、Firefox。iOS・Android向けアプリは開発中です。",
+                    text: "iOS・Android向けアプリ（開発中）。規約類の閲覧にはインターネット接続とブラウザが必要です。Webサイトではゲーム機能を提供しません。",
                   },
                 ],
               },

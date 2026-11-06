@@ -53,7 +53,7 @@ bun run dev:local
 
 See [local development](docs/development/local-development.md) for sample accounts and Wikipedia imports.
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the fullstack application.
+Open [http://localhost:3001](http://localhost:3001) for legal documents. Gameplay is available in `apps/native`; see [native development](docs/development/native-app.md). The web server continues to host authentication, game APIs, and card images.
 
 ## UI Customization
 
@@ -119,7 +119,7 @@ cd packages/infra && bunx alchemy deploy --stage production
 ```
 wiki-collection/
 ├── apps/
-│   └── web/         # Fullstack application (React + TanStack Start)
+│   └── web/         # Legal pages and API server (TanStack Start)
 ├── packages/
 │   ├── ui/          # Shared shadcn/ui components and styles
 │   ├── api/         # API layer / business logic

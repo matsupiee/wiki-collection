@@ -14,9 +14,6 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-  optimizeDeps: {
-    include: ["motion/react"],
-  },
   plugins: [
     cloudflare({
       configPath: "./wrangler.local.jsonc",

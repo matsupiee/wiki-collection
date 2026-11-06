@@ -56,6 +56,8 @@ test("ログイン・開封再開・カード・対戦・履歴・ログアウ�
   await expect(page.getByText("強化内容を確認", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /枚を消費して強化/ }).click();
   await expect(page.getByText(/枚を素材にして強化しました/)).toBeVisible();
+  // 成功表示は再取得の完了より先に出る。閉じる操作が有効になるまで待つ。
+  await expect(page.getByRole("button", { name: "選択した0枚を確認", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "閉じる", exact: true }).click();
   await page.getByRole("tab", { name: /マイページ/ }).click();
   await page.getByRole("button", { name: "開封履歴", exact: true }).click();
@@ -64,9 +66,21 @@ test("ログイン・開封再開・カード・対戦・履歴・ログアウ�
   await page.getByRole("button", { name: "pt の履歴", exact: true }).click();
   await expect(page.getByText("pt の履歴", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "もどる", exact: true }).click();
-  await page.getByRole("button", { name: "プライバシーポリシー", exact: true }).click();
-  await expect(page.getByText("8. 端末内での認証情報の保存", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "もどる", exact: true }).click();
+  for (const [slug, label] of Object.entries({
+    terms: "利用規約",
+    privacy: "プライバシーポリシー",
+    tokushoho: "特定商取引法に基づく表記",
+    "payment-services": "資金決済法に基づく表示",
+  })) {
+    const popupPromise = page.waitForEvent("popup");
+    await page.getByRole("button", { name: label, exact: true }).click();
+    const popup = await popupPromise;
+    await expect(popup).toHaveURL(`http://localhost:3001/legal/${slug}`);
+    await expect(popup.getByRole("heading", { name: label, exact: true })).toBeVisible();
+    await expect(popup.getByText(/最終更新日:/)).toBeVisible();
+    await popup.close();
+    await expect(page).toHaveURL(/\/me$/);
+  }
   await page.getByRole("button", { name: "ログアウト", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "メールアドレス" })).toBeVisible();
   expect(errors).toEqual([]);
@@ -133,6 +147,14 @@ test("2人でフリマ購入・オークション入札・ポイント購入・�
     else await expect(seller.getByText("売り切れ", { exact: true })).toBeVisible();
   }
   await buyer.goto("http://localhost:8082/point");
+  for (const label of ["特定商取引法に基づく表記", "資金決済法に基づく表示"]) {
+    const popupPromise = buyer.waitForEvent("popup");
+    await buyer.getByRole("button", { name: label, exact: true }).click();
+    const popup = await popupPromise;
+    await expect(popup.getByRole("heading", { name: label, exact: true })).toBeVisible();
+    await popup.close();
+    await expect(buyer).toHaveURL(/\/point$/);
+  }
   const product = buyer.getByRole("button", { name: /500pt/ }).first();
   await expect(product).toBeEnabled();
   {
@@ -162,8 +184,6 @@ test("新規登録と未ログイン時の保護、Webとアプリの規約", as
   await page.goto("/collection");
   await expect(page.getByRole("textbox", { name: "メールアドレス" })).toBeVisible();
   for (const slug of ["terms", "privacy", "tokushoho", "payment-services"]) {
-    await page.goto(`/legal/${slug}`);
-    await expect(page.getByText(/最終更新日:/)).toBeVisible();
     await page.goto(`http://localhost:3001/legal/${slug}`);
     await expect(page.getByText(/最終更新日:/)).toBeVisible();
   }

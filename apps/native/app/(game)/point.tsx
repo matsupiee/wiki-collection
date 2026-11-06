@@ -2,7 +2,7 @@ import { Text } from "../../components/typography";
 import { useState } from "react";
 import { View, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { openLegalPage } from "../../lib/legal-browser";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTRPC } from "../../lib/client";
 import { useAction } from "../../lib/mutation";
@@ -108,7 +108,11 @@ export default function Point() {
                   ["/legal/payment-services", "資金決済法に基づく表示"],
                 ] as const
               ).map(([url, label]) => (
-                <Pressable key={url} accessibilityRole="button" onPress={() => router.push(url)}>
+                <Pressable
+                  key={url}
+                  accessibilityRole="button"
+                  onPress={() => void action.run(() => openLegalPage(url))}
+                >
                   <Text style={[note, { fontWeight: "700", color: "#0284c7" }]}>{label}</Text>
                 </Pressable>
               ))}
@@ -116,6 +120,7 @@ export default function Point() {
           </View>
         </>
       )}
+      {!!action.error && !p && <Text accessibilityRole="alert">{action.error}</Text>}
       {p && (
         <Confirm
           title="pt を購入します"

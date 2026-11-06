@@ -6,6 +6,7 @@ import { router } from "expo-router";
 import { auth, queryClient } from "../../../lib/client";
 import { useAction } from "../../../lib/mutation";
 import { Button, Panel, Screen, styles } from "../../../components/ui";
+import { openLegalPage, type LegalPath } from "../../../lib/legal-browser";
 const menu = [
   ["/me/trades", "出品・入札の管理"],
   ["/me/wallet", "pt の履歴"],
@@ -36,7 +37,11 @@ export default function Me() {
           <Pressable
             key={url}
             accessibilityRole="button"
-            onPress={() => router.push(url)}
+            onPress={() =>
+              url.startsWith("/legal/")
+                ? void action.run(() => openLegalPage(url as LegalPath))
+                : router.push(url as "/me/trades" | "/me/wallet" | "/me/openings")
+            }
             style={{
               flexDirection: "row",
               alignItems: "center",

@@ -42,4 +42,4 @@
 
 `packages/api/src/routers/consumer/battle/*/handler.integration.test.ts` が枠・枚数・所有権・未計測・更新・解除・消費保護を確認する。
 
-`apps/web/src/components/battle/team-selection.test.ts` が選択順・3枚上限・解除後の追加を確認する。
+`apps/native/lib/battle-selection.test.ts` が選択順・3枚上限・解除後の追加を確認する。

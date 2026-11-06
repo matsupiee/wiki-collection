@@ -9,11 +9,21 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.matsupiee.wikicollection",
-      "infoPlist": { "CFBundleDevelopmentRegion": "ja", "CFBundleLocalizations": ["ja"] }
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "ja",
+        "CFBundleLocalizations": ["ja"]
+      }
     },
-    "android": { "package": "com.matsupiee.wikicollection" },
-    "web": { "bundler": "metro", "output": "single" },
-    "plugins": ["expo-router", "expo-secure-store", "expo-font"],
-    "experiments": { "typedRoutes": true }
+    "android": {
+      "package": "com.matsupiee.wikicollection"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": ["expo-router", "expo-secure-store", "expo-font", "expo-web-browser"],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

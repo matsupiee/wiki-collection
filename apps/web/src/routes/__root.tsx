@@ -1,17 +1,7 @@
-import type { QueryClient } from "@tanstack/react-query";
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
-import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
-import type { AppRouter } from "@wiki-collection/api/routers/index";
-import { Toaster } from "@wiki-collection/ui/components/sonner";
-
+import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import appCss from "../index.css?url";
 
-export interface RouterAppContext {
-  trpc: TRPCOptionsProxy<AppRouter>;
-  queryClient: QueryClient;
-}
-
-export const Route = createRootRouteWithContext<RouterAppContext>()({
+export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -46,7 +36,6 @@ function RootDocument() {
             <Outlet />
           </div>
         </div>
-        <Toaster richColors position="top-center" />
         <Scripts />
       </body>
     </html>

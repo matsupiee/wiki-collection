@@ -43,7 +43,15 @@ SDK 58対応のExpo Goがない環境では、上記のローカル開発ビル�
 
 Expo Webの別オリジンを許可するのは、APIの設定URLがlocalhost / 127.0.0.1の場合だけ。許可するWebポートは8081と8082に限定する。ViteのCORSは無効にし、APIルートでプリフライトと資格情報を含むヘッダーを処理する。本番のブラウザー用CORSを無制限に広げない。
 
-公開ビルドには `EXPO_PUBLIC_API_URL` に本番APIのHTTPS URLを指定する。値はアプリに埋め込まれるため秘密情報を入れない。ストア課金はWeb版と同様に未実装で、本番APIではpt購入が無効になる。ストア申請・配信はこの変更には含めない。
+公開ビルドには `EXPO_PUBLIC_API_URL` に本番APIのHTTPS URLを指定する。値はアプリに埋め込まれるため秘密情報を入れない。ストア課金は未実装で、本番APIではpt購入が無効になる。ストア申請・配信はこの変更には含めない。
+
+## 規約ページ
+
+規約本文は `apps/web/src/lib/legal.ts` で管理する。アプリは `expo-web-browser` の `openBrowserAsync` で、APIと同じオリジンの `/legal/…` を開く。iOSはSafariビュー、AndroidはCustom Tabs、開発用Expo Webは別ウィンドウになる。
+
+モジュールを追加しているため、既存の開発ビルドは再ビルドする。API URLのホストでは規約ページも配信する。本文の変更だけならアプリの再ビルドは不要。
+
+旧Web版との比較用 `scripts/native-parity*.mjs` は移行時の記録用で、Webゲーム画面の廃止後は実行対象外。回帰確認には `test:native:e2e` を使う。
 
 ## 確認コマンド
 
@@ -64,3 +72,5 @@ bun run test:native:e2e
 - [Expo Router](https://docs.expo.dev/router/introduction/)
 - [Better AuthのExpo連携](https://better-auth.com/docs/integrations/expo)
 - [Expo SecureStore](https://docs.expo.dev/versions/latest/sdk/securestore/)
+
+- [Expo WebBrowser](https://docs.expo.dev/versions/latest/sdk/webbrowser/)
