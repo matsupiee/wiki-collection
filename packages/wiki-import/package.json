@@ -9,7 +9,9 @@
     "import": "bun src/cli.ts",
     "load": "bun src/load-cli.ts",
     "top": "bun src/top-cli.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "images": "bun src/images-cli.ts",
+    "lengths": "bun src/backfill-lengths-cli.ts"
   },
   "dependencies": {
     "@wiki-collection/db": "workspace:*",

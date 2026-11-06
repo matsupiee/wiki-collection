@@ -1,3 +1,4 @@
+import { elements } from "@wiki-collection/db/battle";
 import { rarities } from "@wiki-collection/db/enums";
 import z from "zod";
 
@@ -14,6 +15,9 @@ export const cardListOwnedOutputSchema = z.object({
     z.object({
       id: z.string(),
       title: z.string(),
+      monthlyPageviews: z.number(),
+      articleLength: z.number().nullable(),
+      element: z.enum(elements),
       imageUrl: z.string().nullable(),
       rarity: z.enum(rarities),
       genreName: z.string(),

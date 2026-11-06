@@ -1,7 +1,9 @@
+import type { WikimediaFetch } from "../wikimedia-client";
 // テスト用に、Wikimedia の API（Wikidata の SPARQL を含む）と同じ形の応答を返す fetch を作る。要約の文章はテスト用に書いたもので、Wikipedia の本文ではない
 
 export type FakeArticle = {
   pageId: number;
+  articleLength?: number;
   // 名前空間。省略すると記事（0）
   ns?: number;
   title: string;
@@ -34,14 +36,14 @@ export function createFakeWikimedia(wiki: FakeWiki) {
   const json = (body: unknown) => Response.json(body);
   const notFound = () => new Response("not found", { status: 404 });
 
-  const fetch = async (input: string | URL | Request, init?: RequestInit) => {
+  const fetch: WikimediaFetch = async (input, init) => {
     const url = new URL(String(input));
-    requests.push({ url: url.toString(), userAgent: new Headers(init?.headers).get("User-Agent") });
+    requests.push({ url: url.toString(), userAgent: init.headers["User-Agent"] ?? null });
 
     if (url.pathname === "/w/api.php") {
       const p = url.searchParams;
       const offset = Number(p.get("clcontinue") ?? 0);
-      if (p.get("prop") === "categories|pageimages|pageprops") {
+      if (p.get("prop") === "categories|pageimages|pageprops|info") {
         // カテゴリは PAGE_SIZE 件ずつ返し、continue のたびに同じページへ足していく
         const ids = p.get("pageids")!.split("|").map(Number);
         const articles = ids.map((id) => wiki.articles.find((a) => a.pageId === id));
@@ -58,6 +60,7 @@ export function createFakeWikimedia(wiki: FakeWiki) {
               };
               return {
                 pageid: a.pageId,
+                length: a.articleLength ?? 10000,
                 ns: a.ns ?? 0,
                 title: a.title,
                 categories: (a.categories ?? [])

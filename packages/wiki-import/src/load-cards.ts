@@ -7,7 +7,7 @@ import { readCardStore } from "./card-store";
 // いまは日本語版だけを扱う
 const LANG = "ja";
 // D1 は1文あたりのバインド変数が 100 個までなので、数件ずつ入れる
-const CARD_CHUNK = 6;
+const CARD_CHUNK = 5;
 const GENRE_CHUNK = 15;
 // 1回の batch に入れる文の数。カードが 10 万枚あると1回では大きすぎるため分ける。
 // 何度実行しても同じ状態になるので、途中で失敗したらやり直せばよい
@@ -94,7 +94,10 @@ export async function loadCards(input: { db: Database; dataDir: string }): Promi
         .values(cardValues.slice(i, i + CARD_CHUNK))
         .onConflictDoUpdate({
           target: [card.wikiLang, card.wikiPageId],
-          set: { isActive: sql`excluded.is_active` },
+          set: {
+            isActive: sql`excluded.is_active`,
+            articleLength: sql`coalesce(${card.articleLength}, excluded.article_length)`,
+          },
         }),
     );
   }

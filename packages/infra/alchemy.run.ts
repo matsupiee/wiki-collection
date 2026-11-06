@@ -8,13 +8,19 @@ export const db = Cloudflare.D1.Database("database", {
   migrations: "../../packages/db/src/migrations",
 });
 
+export const cardImages = Cloudflare.R2.Bucket("card-images", {});
+
 export const web = Cloudflare.Website.Vite("web", {
   rootDir: "../../apps/web",
+  main: "src/server.ts",
+  crons: ["0 15 * * *"],
+  observability: { enabled: true, traces: { enabled: true } },
   compatibility: {
     flags: ["nodejs_compat", "global_fetch_strictly_public"],
   },
   env: {
     DB: db,
+    CARD_IMAGES: cardImages,
     BETTER_AUTH_SECRET: Config.Redacted("BETTER_AUTH_SECRET"),
     BETTER_AUTH_URL: Cloudflare.Worker.URL,
   },
@@ -30,9 +36,11 @@ export default Alchemy.Stack(
   },
   Effect.gen(function* () {
     const webWorker = yield* web;
+    const imageBucket = yield* cardImages;
 
     return {
       web: webWorker.url,
+      cardImagesBucket: imageBucket.bucketName,
     };
   }),
 );

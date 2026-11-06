@@ -8,7 +8,7 @@ export const Route = createFileRoute("/legal/privacy")({
 
 function PrivacyPage() {
   return (
-    <LegalPage title="プライバシーポリシー" updatedAt="2026年10月25日">
+    <LegalPage title="プライバシーポリシー" updatedAt="2026年11月6日">
       <p>
         ［運営者名］（以下「運営者」）は、「Wiki
         Collection」（以下「本サービス」）での利用者の個人情報を、次のとおり取り扱います。
@@ -21,7 +21,8 @@ function PrivacyPage() {
             メールアドレス、ニックネーム、パスワード（ハッシュ化して保存し、運営者も元の値は知りません）
           </li>
           <li>
-            利用状況: パックの開封、カードの所持・還元、マーケットでの出品・購入・入札、pt
+            利用状況:
+            パックの開封、カードの所持・還元・合成、チーム編成と対戦結果、マーケットでの出品・購入・入札、pt
             の獲得と使用の記録
           </li>
           <li>
@@ -34,7 +35,7 @@ function PrivacyPage() {
       <section>
         <h2>2. 利用目的</h2>
         <ul>
-          <li>本サービスの提供、アカウントの認証</li>
+          <li>本サービスの提供、アカウントの認証、対戦の集計とランキングの表示</li>
           <li>pt の管理と、資金決済法にもとづく未使用残高の管理・報告</li>
           <li>マーケットでの取引の成立と、出品者名のほかの利用者への表示</li>
           <li>不正利用（複数アカウント、リアルマネートレードなど）の防止</li>
@@ -44,7 +45,7 @@ function PrivacyPage() {
       <section>
         <h2>3. ほかの利用者に表示される情報</h2>
         <p>
-          マーケットでは、出品者と入札者のニックネームがほかの利用者に表示されます。メールアドレスは表示しません。
+          マーケットでは、出品者と入札者のニックネームがほかの利用者に表示されます。ランキングでは、ニックネーム・チーム名・対戦時のカードと能力値・戦績をほかのログイン利用者に表示します。メールアドレスは表示しません。
         </p>
       </section>
       <section>
@@ -55,15 +56,16 @@ function PrivacyPage() {
         <ul>
           <li>
             Cloudflare,
-            Inc.（サーバーとデータベースの提供。データは国外のサーバーに保存されることがあります）
+            Inc.（サーバー、データベース、画像ストレージと画像配信の提供。データは国外のサーバーに保存されることがあります）
           </li>
           <li>決済サービス事業者（pt の購入代金の決済）</li>
         </ul>
         <p>
-          カードの画像は Wikimedia Foundation が運営する Wikimedia Commons
-          のサーバーから直接読み込みます。そのため、画像を表示するときに、利用者の IP
-          アドレスやブラウザの情報が Wikimedia Foundation に送られます。送られた情報は Wikimedia
-          Foundation のプライバシーポリシーに従って扱われます。
+          カードの画像は、Wikimedia Commons から取得して Cloudflare R2 に保存したものを、
+          本サービス経由で配信します。まだ保存されていない画像は Wikimedia Foundation が運営する
+          Wikimedia Commons のサーバーから直接読み込みます。その場合、利用者の IP アドレスや
+          ブラウザの情報が Wikimedia Foundation
+          に送られ、同財団のプライバシーポリシーに従って扱われます。
         </p>
       </section>
       <section>

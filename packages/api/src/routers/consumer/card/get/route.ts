@@ -1,3 +1,4 @@
+import { elements } from "@wiki-collection/db/battle";
 import { rarities } from "@wiki-collection/db/enums";
 import z from "zod";
 
@@ -15,6 +16,8 @@ export const cardGetOutputSchema = z.object({
     imageCredit: z.string().nullable(),
     rarity: z.enum(rarities),
     monthlyPageviews: z.number(),
+    articleLength: z.number().nullable(),
+    element: z.enum(elements),
     wikiUrl: z.string(),
     // 取り込んだ時点の版。seed のサンプルカードは null
     wikiRevisionUrl: z.string().nullable(),
@@ -22,6 +25,14 @@ export const cardGetOutputSchema = z.object({
     genreColorHex: z.string(),
   }),
   discovered: z.boolean(),
+  ownedCopies: z.array(
+    z.object({
+      id: z.string(),
+      attackBonus: z.number(),
+      defenseBonus: z.number(),
+      inTeam: z.boolean(),
+    }),
+  ),
   ownedUserCardIds: z.array(z.string()),
   listedCount: z.number(),
   redeemPoints: z.number(),

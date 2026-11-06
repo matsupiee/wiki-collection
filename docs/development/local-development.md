@@ -34,7 +34,7 @@ bun run dev:local  # http://localhost:3001 で起動する
 | taro@example.com   | 登録したばかり。無料パックが 10 開けられる                                              |
 | hanako@example.com | カードを集めている。フリマとオークションに出品中、演出を見ていない開封がある、pt がある |
 | jiro@example.com   | hanako のオークションに入札中。終了済みのオークションで落札待ち                         |
-| shiro@example.com  | 今日の 10 パックを使い切った                                        |
+| shiro@example.com  | 今日の 10 パックを使い切った                                                            |
 
 ## Wikipedia からカードを取り込む
 
@@ -49,6 +49,10 @@ bun run wiki:load               # JSONL をローカルの D1 に入れる
 - 取り込んだら `git diff` で除外し漏れがないかを確かめ、コミットする。
 - `wiki:load` は何度実行しても同じ状態になる。`db:seed` をやり直したら、もう一度実行する。
 - 仕組みは [database.md](../design/database.md) の「Wikipedia からのカード作成」を参照。
+
+## 画像を R2 に保存する
+
+取得済みのカードの画像を保存する手順は [画像の保存と配信](./card-images.md) を参照。ローカルの保存先は `dev:local` と共通で、本番は `--remote` を明示する。
 
 ## テストする
 
@@ -66,3 +70,7 @@ bun run db:generate
 ```
 
 `packages/db/src/schema/` を変えたら実行する。マイグレーションファイルは手で書かない（[database-pattern.md](../rules/database-pattern.md)）。
+
+## 実際の画像付きカード100件で初期化する
+
+`bun run db:seed:wiki` でローカルD1・R2を初期化し、Wikiカード100件と画像本体を登録できる。削除対象と確認方法は [Wikiカードのシード](./wiki-seed.md) を参照。

@@ -31,6 +31,7 @@ const cardRecordSchema = z.object({
   imageUrl: z.string().nullable(),
   imageCredit: z.string().nullable(),
   rarity: z.enum(rarities),
+  articleLength: z.number().int().nonnegative().nullable().optional(),
   monthlyPageviews: z.number().int(),
   pageviewsMeasuredAt: date,
   // 排出を止めるときは false に書き換えて、wiki:load で D1 に反映する
@@ -123,6 +124,7 @@ export async function writeCards(dir: string, all: CardRecord[], added: CardReco
         imageUrl: c.imageUrl,
         imageCredit: c.imageCredit,
         rarity: c.rarity,
+        articleLength: c.articleLength,
         monthlyPageviews: c.monthlyPageviews,
         pageviewsMeasuredAt: c.pageviewsMeasuredAt.toISOString(),
         isActive: c.isActive,

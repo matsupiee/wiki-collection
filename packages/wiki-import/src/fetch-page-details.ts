@@ -3,6 +3,7 @@ import type { WikimediaClient } from "./wikimedia-client";
 
 export type PageDetail = {
   pageId: number;
+  articleLength: number | null;
   // 名前空間。記事は 0
   ns: number;
   title: string;
@@ -27,7 +28,7 @@ export async function fetchPageDetails(
   const details = new Map<number, PageDetail>();
   for (let i = 0; i < input.pageIds.length; i += BATCH_SIZE) {
     const results = await queryActionApi(client, input.lang, {
-      prop: "categories|pageimages|pageprops",
+      prop: "categories|pageimages|pageprops|info",
       pageids: input.pageIds.slice(i, i + BATCH_SIZE).join("|"),
       cllimit: "max",
       piprop: "name",
@@ -47,6 +48,7 @@ export async function fetchPageDetails(
       }
       details.set(page.pageid, {
         pageId: page.pageid,
+        articleLength: page.length ?? null,
         ns: page.ns,
         title: page.title,
         categories,

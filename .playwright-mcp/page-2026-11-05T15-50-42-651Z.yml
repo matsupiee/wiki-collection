@@ -1,0 +1,33 @@
+- generic [active] [ref=e1]:
+  - main [ref=e4]:
+    - generic [ref=e5]:
+      - img "歴史" [ref=e6]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: WIKI COLLECTION
+          - generic [ref=e12]: KNOWLEDGE SERIES
+          - generic [ref=e17]: 5 CARDS / PACK
+      - img "基本パック（無料）" [ref=e20]:
+        - generic [ref=e24]:
+          - generic [ref=e25]: WIKI COLLECTION
+          - generic [ref=e26]: KNOWLEDGE SERIES
+          - generic [ref=e30]: 無料
+      - img "宇宙" [ref=e33]:
+        - generic [ref=e37]:
+          - generic [ref=e38]: WIKI COLLECTION
+          - generic [ref=e39]: KNOWLEDGE SERIES
+          - generic [ref=e44]: 5 CARDS / PACK
+    - generic [ref=e47]:
+      - heading "Wiki Collection" [level=1] [ref=e48]
+      - paragraph [ref=e49]: Wikipedia の記事がカードになった。よく読まれている記事ほどレア。パックを開けて集めよう。
+      - paragraph [ref=e50]: 毎日無料で 10 パック開けられる
+    - link [ref=e51] [cursor=pointer]:
+      - /url: /login
+      - button "はじめる" [ref=e52]
+    - generic [ref=e53]:
+      - link "利用規約" [ref=e54] [cursor=pointer]:
+        - /url: /legal/terms
+      - link "プライバシーポリシー" [ref=e55] [cursor=pointer]:
+        - /url: /legal/privacy
+      - link "特定商取引法に基づく表記" [ref=e56] [cursor=pointer]:
+        - /url: /legal/tokushoho
+  - region "Notifications alt+T"

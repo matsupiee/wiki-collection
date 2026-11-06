@@ -5,6 +5,7 @@ import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { CardStats, statNumber } from "@/components/card-stats";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import Loader from "@/components/loader";
 import { PageHeader } from "@/components/page-header";
@@ -23,11 +24,13 @@ function CardDetailPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
+  const [selectedCopy, setSelectedCopy] = useState("");
   const detail = useQuery(trpc.card.get.queryOptions({ cardId }));
   const redeem = useMutation(
     trpc.card.redeem.mutationOptions({
       onSuccess: async ({ points }) => {
         setConfirming(false);
+        setSelectedCopy("");
         await queryClient.invalidateQueries();
         toast.success(`${formatPt(points)} を受け取りました`);
       },
@@ -45,7 +48,9 @@ function CardDetailPage() {
   }
   if (!detail.data) return <Loader />;
   const { card, ownedUserCardIds, listedCount, redeemPoints, lowestMarketPrice } = detail.data;
-  const firstOwned = ownedUserCardIds[0];
+  const firstOwned =
+    detail.data.ownedCopies.find((c) => c.id === selectedCopy && !c.inTeam)?.id ??
+    (selectedCopy ? undefined : detail.data.ownedCopies.find((c) => !c.inTeam)?.id);
 
   return (
     <div className="pb-8">
@@ -63,6 +68,12 @@ function CardDetailPage() {
         <p className="text-xs text-slate-500">
           {card.genreName}・月間 {formatPageviews(card.monthlyPageviews)} 閲覧
         </p>
+        <CardStats
+          attack={card.monthlyPageviews}
+          defense={card.articleLength}
+          element={card.element}
+        />
+        <p className="text-xs text-slate-400">基本能力値 · 防御力は記事ソースのバイト数</p>
         <p className="text-sm leading-relaxed text-slate-700">{card.summary}</p>
         <a
           href={card.wikiUrl}
@@ -90,6 +101,38 @@ function CardDetailPage() {
         <p className="text-sm font-bold text-slate-700" data-testid="owned-count">
           所持 {ownedUserCardIds.length}枚{listedCount > 0 && `（ほかに出品中 ${listedCount}枚）`}
         </p>
+        <ul className="mt-3 space-y-2 text-xs text-slate-600">
+          {detail.data.ownedCopies.map((c) => (
+            <li key={c.id}>
+              #{c.id.slice(-5)} 攻撃 +{statNumber(c.attackBonus)} / 防御 +
+              {statNumber(c.defenseBonus)}
+              {c.inTeam && " · 編成中"}
+            </li>
+          ))}
+        </ul>
+        {detail.data.ownedCopies.length > 0 && (
+          <label className="mt-3 block text-xs text-slate-500">
+            出品・還元する1枚
+            <select
+              aria-label="出品・還元する1枚"
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-2 text-sm"
+              value={selectedCopy || firstOwned || ""}
+              onChange={(e) => setSelectedCopy(e.target.value)}
+            >
+              <option value="">カードを選ぶ</option>
+              {detail.data.ownedCopies.map((c) => (
+                <option key={c.id} value={c.id} disabled={c.inTeam}>
+                  #{c.id.slice(-5)} 攻撃 +{statNumber(c.attackBonus)} / 防御 +
+                  {statNumber(c.defenseBonus)}
+                  {c.inTeam ? "（編成中）" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <Link to="/battle" className="mt-3 block text-sm font-bold text-sky-700">
+          チームを編成・カードを合成する →
+        </Link>
         <div className="mt-3 flex gap-3">
           <Button
             variant="outline"

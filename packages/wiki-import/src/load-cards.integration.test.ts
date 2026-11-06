@@ -116,3 +116,20 @@ describe("loadCards", () => {
     expect(await db.select().from(card)).toHaveLength(3);
   });
 });
+
+test("既存の未計測サイズは補完でき、測定済みの能力値は再ロードしても固定", async () => {
+  const c = record(700001, "サイズ補完");
+  await writeCards(dataDir, [record(1, "太陽")], [record(1, "太陽")]);
+  await writeCards(dataDir, [c], [c]);
+  await loadCards({ db, dataDir });
+  let rows = await db.select().from(card);
+  expect(rows.find((r) => r.wikiPageId === c.wikiPageId)!.articleLength).toBeNull();
+  await writeCards(dataDir, [{ ...c, articleLength: 8765 }], [c]);
+  await loadCards({ db, dataDir });
+  rows = await db.select().from(card);
+  expect(rows.find((r) => r.wikiPageId === c.wikiPageId)!.articleLength).toBe(8765);
+  await writeCards(dataDir, [{ ...c, articleLength: 99999 }], [c]);
+  await loadCards({ db, dataDir });
+  rows = await db.select().from(card);
+  expect(rows.find((r) => r.wikiPageId === c.wikiPageId)!.articleLength).toBe(8765);
+});

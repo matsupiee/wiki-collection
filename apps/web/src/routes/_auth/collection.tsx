@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import Loader from "@/components/loader";
 import { PageHeader } from "@/components/page-header";
+import { elementLabels } from "@wiki-collection/db/battle";
+import { statNumber } from "@/components/card-stats";
 import { WikiCard } from "@/components/wiki-card";
 import { formatPt, rarityLabels } from "@/lib/format";
 import { useTRPC } from "@/utils/trpc";
@@ -79,6 +81,11 @@ function OwnedCards() {
               className="flex min-w-0 flex-col items-start"
             >
               <WikiCard card={c} size="sm" className="w-full" ownedCount={c.ownedCount} />
+              <p className="mt-1 text-[10px] leading-relaxed text-slate-500">
+                {elementLabels[c.element]} · 基本攻撃 {statNumber(c.monthlyPageviews)}
+                <br />
+                基本防御 {c.articleLength === null ? "未計測" : statNumber(c.articleLength)}
+              </p>
               {c.listedCount > 0 && (
                 <span className="mt-1 text-xs font-bold text-amber-600">出品中{c.listedCount}</span>
               )}

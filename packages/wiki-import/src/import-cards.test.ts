@@ -119,6 +119,7 @@ describe("importCards", () => {
       ["木星", "Q634", "uncommon", 200],
     ]);
     expect(cards[0]).toEqual({
+      articleLength: 10000,
       wikiPageId: 1,
       title: "太陽",
       genre: "Q523",

@@ -64,7 +64,7 @@
 
 - `packages/wiki-import/src/top-pages.test.ts`: dump の日本語版の行を page_id ごとに足し、月平均の多い順に並べること、bz2 を展開して読むことを確かめる。
 - `packages/wiki-import/src/import-cards.test.ts`: Wikimedia の API と Wikidata の SPARQL を模した応答で、分類の選び方、除外、画像のライセンス判定、下限の決定、ファイルへの書き込み、2回目の取り込みを確かめる。
-- `packages/wiki-import/src/load-cards.integration.test.ts`: ファイルを D1 に入れること、ジャンルの並び順、何度実行しても同じ状態になること、`isActive` だけを揃えること、ジャンルがないときに何も入れないことを確かめる。
+- `packages/wiki-import/src/load-cards.integration.test.ts`: ファイルを D1 に入れること、ジャンルの並び順、何度実行しても同じ状態になること、`isActive` を揃え、未計測の記事サイズだけを補完すること、ジャンルがないときに何も入れないことを確かめる。
 - `packages/wiki-import/src/card-store.test.ts`: 形の合わない行を、ファイル名と行番号付きのエラーにすることを確かめる。
 - `packages/wiki-import/src/wikimedia-client.test.ts`: User-Agent、再試行、同時リクエスト数の上限を確かめる。
 - `packages/api/src/routers/consumer/card/get/handler.integration.test.ts`: 版へのリンクを返すことを確かめる。

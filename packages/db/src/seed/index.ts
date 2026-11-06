@@ -27,46 +27,16 @@ import {
   packOpening,
   packSlotRate,
   rarityThreshold,
-  session,
   user,
   userCard,
-  verification,
 } from "../schema";
+import { reset } from "./reset";
 import { openLocalDb } from "./local-db";
 import { rarityByRank, thresholdsFromPageviews } from "../rarity";
 import { cards, coinProducts, genres, packs, slotRates } from "./master-data";
 
 const PASSWORD = "password1234";
 const HOUR = 60 * 60 * 1000;
-
-async function reset(db: Database) {
-  // 外部キーの参照先より先に参照元を消す
-  for (const table of [
-    coinDepositWithdraw,
-    coinWithdraw,
-    coinDeposit,
-    auctionBid,
-    marketListing,
-    coinPurchase,
-    cardDiscovery,
-    userCard,
-    packOpening,
-    freePackAllowance,
-    packFeaturedCard,
-    packSlotRate,
-    pack,
-    card,
-    rarityThreshold,
-    genre,
-    coinProduct,
-    session,
-    account,
-    verification,
-    user,
-  ]) {
-    await db.delete(table);
-  }
-}
 
 async function seedMaster(db: Database) {
   // D1 は1文あたりのバインド変数が 100 個までなので分けて入れる
@@ -95,6 +65,7 @@ async function seedMaster(db: Database) {
     summary,
     genreId: genreIdBySlug.get(genreSlug)!,
     rarity: rarityByRank(rank, ranked.length),
+    articleLength: 10000 + rank * 500,
     monthlyPageviews,
     pageviewsMeasuredAt: new Date(),
     wikiFetchedAt: new Date(),
@@ -110,11 +81,11 @@ async function seedMaster(db: Database) {
   );
   // D1 は1文あたりのバインド変数が 100 個までなので分けて入れる
   const cardRows = [];
-  for (let i = 0; i < cardValues.length; i += 8) {
+  for (let i = 0; i < cardValues.length; i += 5) {
     cardRows.push(
       ...(await db
         .insert(card)
-        .values(cardValues.slice(i, i + 8))
+        .values(cardValues.slice(i, i + 5))
         .returning()),
     );
   }

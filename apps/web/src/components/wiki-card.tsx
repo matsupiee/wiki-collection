@@ -1,3 +1,4 @@
+import { cardImageDisplayUrl } from "@wiki-collection/db/card-image";
 import type { Rarity } from "@wiki-collection/db/enums";
 import { cn } from "@wiki-collection/ui/lib/utils";
 import { useState } from "react";
@@ -44,7 +45,7 @@ export function WikiCard({
       >
         {card.imageUrl && failedImage !== card.imageUrl ? (
           <img
-            src={card.imageUrl}
+            src={cardImageDisplayUrl(card.imageUrl)}
             alt={showText ? "" : card.title}
             className="absolute inset-0 h-full w-full object-cover"
             draggable={false}

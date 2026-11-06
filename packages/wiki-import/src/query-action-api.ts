@@ -10,6 +10,8 @@ export type ActionPage = {
   ns: number;
   title: string;
   missing?: boolean;
+  length?: number;
+  revisions?: { revid: number; size: number }[];
   categories?: { ns: number; title: string }[];
   pageimage?: string;
   pageprops?: { disambiguation?: string; wikibase_item?: string };

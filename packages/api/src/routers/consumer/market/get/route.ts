@@ -1,3 +1,4 @@
+import { elements } from "@wiki-collection/db/battle";
 import { listingFormats, listingStatuses, rarities } from "@wiki-collection/db/enums";
 import z from "zod";
 
@@ -28,6 +29,10 @@ export const marketGetOutputSchema = z.object({
     imageUrl: z.string().nullable(),
     rarity: z.enum(rarities),
     monthlyPageviews: z.number(),
+    articleLength: z.number().nullable(),
+    attack: z.number(),
+    defense: z.number().nullable(),
+    element: z.enum(elements),
     genreName: z.string(),
     genreColorHex: z.string(),
   }),

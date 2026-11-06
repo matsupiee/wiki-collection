@@ -1,11 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpen, Gift, Store, User } from "lucide-react";
+import { BookOpen, Gift, Store, Swords, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 const tabs = [
   { to: "/packs", label: "パック", icon: Gift },
   { to: "/collection", label: "コレクション", icon: BookOpen },
+  { to: "/battle", label: "対戦", icon: Swords },
   { to: "/market", label: "マーケット", icon: Store },
   { to: "/me", label: "マイページ", icon: User },
 ] as const;
@@ -21,7 +22,7 @@ export function BottomNav() {
       aria-label="メインナビゲーション"
       className="fixed inset-x-0 bottom-0 z-40 h-[calc(3.5rem+env(safe-area-inset-bottom))] border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
-      <div className="mx-auto grid h-full max-w-md grid-cols-4">
+      <div className="mx-auto grid h-full max-w-md grid-cols-5">
         {tabs.map(({ to, label, icon: Icon }) => (
           <Link
             key={to}

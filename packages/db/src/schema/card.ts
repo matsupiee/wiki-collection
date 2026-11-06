@@ -33,6 +33,8 @@ export const card = sqliteTable(
       .references(() => genre.id),
     // カードを作った時点で固定する。閲覧数が変わってもマーケットでの価値が勝手に動かないようにするため
     rarity: text("rarity", { enum: rarities }).notNull(),
+    // MediaWiki の記事ソースのバイト数。既存の未計測記事は null
+    articleLength: integer("article_length"),
     monthlyPageviews: integer("monthly_pageviews").notNull(),
     pageviewsMeasuredAt: integer("pageviews_measured_at", { mode: "timestamp_ms" }).notNull(),
     isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),

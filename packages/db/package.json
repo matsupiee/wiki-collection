@@ -9,7 +9,11 @@
     "check-types": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate:deploy": "drizzle-kit migrate",
-    "seed": "bun src/seed/index.ts"
+    "seed": "bun src/seed/index.ts",
+    "seed:images": "bun src/seed/images.ts",
+    "seed:wiki": "bun src/seed/wiki-cli.ts",
+    "seed:battle": "bun src/seed/battle-cli.ts",
+    "battle:run": "bun src/seed/run-battles.ts"
   },
   "dependencies": {
     "@libsql/client": "catalog:",

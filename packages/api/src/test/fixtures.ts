@@ -76,6 +76,7 @@ export async function createCard(
       summary: "テスト用のカード",
       genreId: input.genreId,
       rarity: input.rarity,
+      articleLength: 1000,
       monthlyPageviews: 1000,
       pageviewsMeasuredAt: new Date(),
       isActive: input.isActive ?? true,

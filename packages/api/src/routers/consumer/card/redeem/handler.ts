@@ -2,6 +2,7 @@ import { card, coinDeposit, userCard } from "@wiki-collection/db/schema/index";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 
+import { notInTeam } from "../../../../shared/card/not-in-team";
 import type { ProtectedContext } from "../../../../context";
 import { getRedeemPoints } from "../../../../shared/card/get-redeem-points";
 import type { CardRedeemInput, CardRedeemOutput } from "./route";
@@ -23,6 +24,7 @@ export async function handler({
         eq(userCard.id, input.userCardId),
         eq(userCard.userId, userId),
         eq(userCard.status, "owned"),
+        notInTeam(),
       ),
     )
     .returning({ id: userCard.id, cardId: userCard.cardId });

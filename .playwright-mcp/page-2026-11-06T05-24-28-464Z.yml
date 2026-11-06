@@ -1,0 +1,45 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e6]:
+    - banner [ref=e7]:
+      - generic [ref=e8]:
+        - generic [ref=e9]: Wiki Collection
+        - link "pt 残高" [ref=e11] [cursor=pointer]:
+          - /url: /point
+          - generic [ref=e15]: …
+    - generic [ref=e16]:
+      - banner [ref=e17]:
+        - paragraph [ref=e18]: DAILY BATTLE
+        - heading "チームと対戦" [level=1] [ref=e19]
+        - paragraph [ref=e20]: 3枚で挑む、毎日の自動対戦。日本時間0時に開催。
+      - tablist "対戦メニュー" [ref=e21]:
+        - tab "チーム" [selected] [ref=e22]
+        - tab "カード合成" [ref=e23]
+        - tab "ランキング" [ref=e24]
+      - generic [ref=e26]:
+        - heading "チームを編成" [level=2] [ref=e27]
+        - generic [ref=e28]:
+          - text: 保存先
+          - combobox "保存先" [ref=e29]:
+            - option "チーム1" [selected]
+            - option "チーム2"
+            - option "チーム3"
+        - generic [ref=e30]:
+          - text: チーム名
+          - textbox "チーム名" [ref=e31]: チーム1
+        - generic [ref=e32]:
+          - text: 1枚目
+          - combobox "1枚目" [ref=e33]:
+            - option "カードを選ぶ" [selected]
+        - generic [ref=e34]:
+          - text: 2枚目
+          - combobox "2枚目" [ref=e35]:
+            - option "カードを選ぶ" [selected]
+        - generic [ref=e36]:
+          - text: 3枚目
+          - combobox "3枚目" [ref=e37]:
+            - option "カードを選ぶ" [selected]
+        - button "チームを保存" [disabled]
+        - paragraph [ref=e38]: 最大3チーム。同じ1枚を複数チームに使えます。編成中のカードは出品・還元・合成素材にできません。解除すると再び使えます。
+      - group [ref=e39]:
+        - generic "能力値と対戦ルール" [ref=e40] [cursor=pointer]
+  - region "Notifications alt+T"

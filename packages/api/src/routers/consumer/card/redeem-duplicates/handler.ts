@@ -1,6 +1,7 @@
 import { card, coinDeposit, userCard } from "@wiki-collection/db/schema/index";
 import { and, asc, eq, inArray } from "drizzle-orm";
 
+import { notInTeam } from "../../../../shared/card/not-in-team";
 import type { ProtectedContext } from "../../../../context";
 import { getRedeemPoints } from "../../../../shared/card/get-redeem-points";
 import type { CardRedeemDuplicatesOutput } from "./route";
@@ -17,6 +18,7 @@ export async function handler({
       cardId: userCard.cardId,
       status: userCard.status,
       rarity: card.rarity,
+      available: notInTeam().mapWith(Boolean),
     })
     .from(userCard)
     .innerJoin(card, eq(card.id, userCard.cardId))
@@ -28,8 +30,8 @@ export async function handler({
   const cardIds = new Set(copies.map((c) => c.cardId));
   for (const cardId of cardIds) {
     const sameCard = copies.filter((c) => c.cardId === cardId);
-    const owned = sameCard.filter((c) => c.status === "owned");
-    const keepOne = sameCard.some((c) => c.status === "listed") ? 0 : 1;
+    const owned = sameCard.filter((c) => c.status === "owned" && c.available);
+    const keepOne = sameCard.some((c) => c.status === "listed" || !c.available) ? 0 : 1;
     targetIds.push(...owned.slice(keepOne).map((c) => c.id));
   }
   if (targetIds.length === 0) return { count: 0, points: 0 };
@@ -47,6 +49,7 @@ export async function handler({
             inArray(userCard.id, targetIds.slice(i, i + 50)),
             eq(userCard.userId, userId),
             eq(userCard.status, "owned"),
+            notInTeam(),
           ),
         )
         .returning({ id: userCard.id })),

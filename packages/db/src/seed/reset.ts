@@ -1,0 +1,62 @@
+import type { Database } from "../index";
+import {
+  battleTeam,
+  battleDay,
+  cardFusion,
+  account,
+  auctionBid,
+  card,
+  cardDiscovery,
+  coinDeposit,
+  coinDepositWithdraw,
+  coinProduct,
+  coinPurchase,
+  coinWithdraw,
+  freePackAllowance,
+  genre,
+  marketListing,
+  pack,
+  packFeaturedCard,
+  packOpening,
+  packSlotRate,
+  rarityThreshold,
+  session,
+  user,
+  userCard,
+  verification,
+} from "../schema";
+
+export async function reset(db: Database) {
+  // 外部キーの参照先より先に参照元を消す
+  for (const table of [
+    battleDay,
+    battleTeam,
+    cardFusion,
+    coinDepositWithdraw,
+    coinWithdraw,
+    coinDeposit,
+    auctionBid,
+    marketListing,
+    coinPurchase,
+    cardDiscovery,
+    userCard,
+    packOpening,
+    freePackAllowance,
+    packFeaturedCard,
+    packSlotRate,
+    pack,
+    card,
+    rarityThreshold,
+    genre,
+    coinProduct,
+    session,
+    battleTeam,
+    battleDay,
+    cardFusion,
+    account,
+    verification,
+    user,
+  ]) {
+    await db.delete(table);
+  }
+}

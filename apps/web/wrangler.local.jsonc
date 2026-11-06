@@ -4,7 +4,8 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "wiki-collection-local",
-  "main": "@tanstack/react-start/server-entry",
+  "main": "src/server.ts",
+  "triggers": { "crons": ["0 15 * * *"] },
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [
@@ -14,6 +15,7 @@
       "database_id": "00000000-0000-0000-0000-000000000000",
     },
   ],
+  "r2_buckets": [{ "binding": "CARD_IMAGES", "bucket_name": "wiki-collection-images-local" }],
   "vars": {
     "BETTER_AUTH_URL": "http://localhost:3001",
     // ローカル専用の値。本番の秘密鍵は Alchemy の BETTER_AUTH_SECRET から渡す

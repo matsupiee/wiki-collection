@@ -7,7 +7,7 @@ export type PackType = (typeof packTypes)[number];
 export const packPayments = ["free_initial", "free_daily", "coin"] as const;
 export type PackPayment = (typeof packPayments)[number];
 
-export const userCardStatuses = ["owned", "listed", "redeemed"] as const;
+export const userCardStatuses = ["owned", "listed", "redeemed", "fused"] as const;
 export type UserCardStatus = (typeof userCardStatuses)[number];
 
 export const listingFormats = ["fixed_price", "auction"] as const;

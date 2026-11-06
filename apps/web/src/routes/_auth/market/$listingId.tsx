@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import Loader from "@/components/loader";
 import { PageHeader } from "@/components/page-header";
+import { CardStats } from "@/components/card-stats";
 import { WikiCard } from "@/components/wiki-card";
 import { formatDateTime, formatDuration, formatPt } from "@/lib/format";
 import { useNow } from "@/lib/use-now";
@@ -58,7 +59,12 @@ function ListingPage() {
     <div className="pb-8">
       <PageHeader back="/market" />
       <div className="flex justify-center pt-2">
-        <WikiCard card={card} size="md" />
+        <div>
+          <WikiCard card={card} size="md" />
+          <div className="mt-3">
+            <CardStats attack={card.attack} defense={card.defense} element={card.element} />
+          </div>
+        </div>
       </div>
       <section className="mx-4 mt-5 space-y-3 rounded-3xl bg-white/90 p-5 shadow-sm">
         <div className="flex items-baseline justify-between">

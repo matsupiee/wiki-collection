@@ -1,6 +1,8 @@
+import { elementOf } from "@wiki-collection/db/battle";
 import { card, genre, userCard } from "@wiki-collection/db/schema/index";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
+import { notInTeam } from "../../../../shared/card/not-in-team";
 import type { ProtectedContext } from "../../../../context";
 import { compareRarity } from "../../../../shared/card/compare-rarity";
 import { getRedeemPoints } from "../../../../shared/card/get-redeem-points";
@@ -16,11 +18,15 @@ export async function handler({
   const rows = await ctx.db
     .select({
       id: card.id,
+      genreSlug: genre.slug,
+      monthlyPageviews: card.monthlyPageviews,
+      articleLength: card.articleLength,
       title: card.title,
       imageUrl: card.imageUrl,
       rarity: card.rarity,
       genreName: genre.name,
       genreColorHex: genre.colorHex,
+      protectedCount: sql<number>`sum(case when ${userCard.status} = 'owned' and not (${notInTeam()}) then 1 else 0 end)`,
       ownedCount: sql<number>`sum(case when ${userCard.status} = 'owned' then 1 else 0 end)`,
       listedCount: sql<number>`sum(case when ${userCard.status} = 'listed' then 1 else 0 end)`,
     })
@@ -41,6 +47,8 @@ export async function handler({
   const cards = rows
     .map((r) => ({
       ...r,
+      element: elementOf(r.genreSlug),
+      protectedCount: Number(r.protectedCount),
       ownedCount: Number(r.ownedCount),
       listedCount: Number(r.listedCount),
     }))
@@ -49,7 +57,10 @@ export async function handler({
   // 出品中のカードも「残す1枚」に数える
   const duplicates = cards.reduce(
     (acc, c) => {
-      const count = Math.min(c.ownedCount, c.ownedCount + c.listedCount - 1);
+      const count = Math.max(
+        0,
+        Math.min(c.ownedCount - Number(c.protectedCount), c.ownedCount + c.listedCount - 1),
+      );
       return { count: acc.count + count, points: acc.points + count * getRedeemPoints(c.rarity) };
     },
     { count: 0, points: 0 },

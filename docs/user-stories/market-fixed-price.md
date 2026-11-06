@@ -31,6 +31,8 @@
 8. 残高が足りない出品を開く。
    - ボタンが「pt を購入する」になる。
 
+チームに編成中のカードは出品できない。強化したカードは出品詳細で現在の能力値を確認でき、売買後も強化値を引き継ぐ。→ [カード合成](./fuse-cards.md)
+
 ## データの持ち方
 
 - `market_listing`: `format = fixed_price`、`price` が価格。売れたら `status = sold`、`buyerId`、`soldPrice`、`feeAmount` を入れる。

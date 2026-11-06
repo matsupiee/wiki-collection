@@ -1,3 +1,4 @@
+import { cardImageDisplayUrl } from "@wiki-collection/db/card-image";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { Rarity } from "@wiki-collection/db/enums";
@@ -53,7 +54,7 @@ function OpeningPage() {
         new Promise((resolve) => {
           const img = new Image();
           img.onload = img.onerror = resolve;
-          img.src = url;
+          img.src = cardImageDisplayUrl(url);
         }),
     );
     Promise.all([minimum, ...images]).then(() => setStage("pack"));

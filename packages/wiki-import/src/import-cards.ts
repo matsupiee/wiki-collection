@@ -197,6 +197,7 @@ async function importChunk(
       imageUrl: image?.url ?? null,
       imageCredit: image?.credit ?? null,
       rarity: rarityByThresholds(page.monthlyPageviews, input.thresholds),
+      articleLength: detail.articleLength,
       monthlyPageviews: page.monthlyPageviews,
       pageviewsMeasuredAt: now,
       isActive: true,

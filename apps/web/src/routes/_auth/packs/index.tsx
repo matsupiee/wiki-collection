@@ -1,12 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 import Loader from "@/components/loader";
 import { PackArt } from "@/components/pack-art";
 import { PageHeader } from "@/components/page-header";
-import { formatClock, formatPt } from "@/lib/format";
+import { formatClock, formatPt, rarityLabels } from "@/lib/format";
 import { useNow } from "@/lib/use-now";
 import { useTRPC } from "@/utils/trpc";
 
@@ -22,6 +23,27 @@ function PackSelectPage() {
   const dragStart = useRef<number | null>(null);
   const now = useNow();
 
+  const queryClient = useQueryClient();
+  const opening = useRef(false);
+  const swiped = useRef(false);
+  const currentPack = packs.data?.packs[index];
+  const detail = useQuery(
+    trpc.pack.get.queryOptions({ slug: currentPack?.slug ?? "" }, { enabled: !!currentPack }),
+  );
+  const open = useMutation(
+    trpc.pack.open.mutationOptions({
+      onSuccess: ({ openingId }) => {
+        void queryClient.invalidateQueries();
+        void navigate({ to: "/openings/$openingId", params: { openingId } });
+      },
+      onError: (error) => {
+        opening.current = false;
+        toast.error(error.message);
+        void queryClient.invalidateQueries();
+      },
+    }),
+  );
+
   if (!packs.data) return <Loader />;
   const list = packs.data.packs;
   const { freePack } = packs.data;
@@ -36,12 +58,21 @@ function PackSelectPage() {
       <div className="flex flex-1 flex-col items-center px-4 pt-4">
         <div
           className="relative mt-2 h-[22rem] w-full touch-pan-y overflow-x-clip"
-          onPointerDown={(e) => (dragStart.current = e.clientX)}
+          onPointerDown={(e) => {
+            dragStart.current = e.clientX;
+            swiped.current = false;
+          }}
+          onPointerCancel={() => {
+            dragStart.current = null;
+          }}
           onPointerUp={(e) => {
             if (dragStart.current === null) return;
             const dx = e.clientX - dragStart.current;
             dragStart.current = null;
-            if (Math.abs(dx) > 40) move(dx < 0 ? 1 : -1);
+            if (Math.abs(dx) > 40) {
+              swiped.current = true;
+              move(dx < 0 ? 1 : -1);
+            }
           }}
         >
           {list.map((p, i) => {
@@ -68,11 +99,18 @@ function PackSelectPage() {
                       ? { repeat: Infinity, duration: 3, ease: "easeInOut" }
                       : { duration: 0.3 },
                 }}
-                onClick={() =>
-                  offset === 0
-                    ? navigate({ to: "/packs/$packSlug", params: { packSlug: p.slug } })
-                    : setIndex(i)
+                disabled={
+                  open.isPending || (offset === 0 && (!detail.data || !detail.data.canOpen))
                 }
+                onClick={() => {
+                  if (swiped.current || opening.current) return;
+                  if (offset !== 0) {
+                    setIndex(i);
+                    return;
+                  }
+                  opening.current = true;
+                  open.mutate({ packId: p.id });
+                }}
               >
                 <PackArt
                   name={p.name}
@@ -111,6 +149,45 @@ function PackSelectPage() {
             <br />
             {current.description}
           </p>
+        )}
+
+        {detail.data && (
+          <div className="my-4 w-full space-y-3 text-center text-xs text-slate-600">
+            <p aria-live="polite">
+              {open.isPending
+                ? "準備中…"
+                : current?.type === "free_basic"
+                  ? "パックをタップして開封"
+                  : `タップで ${formatPt(current?.priceCoins ?? 0)} を使って開封（残高 ${formatPt(detail.data.balance)}）`}
+            </p>
+            {detail.data.blockedReason === "insufficient_coins" && (
+              <Link to="/point" className="font-bold text-sky-600">
+                pt が不足しています。pt を購入する
+              </Link>
+            )}
+            <details key={current?.id} className="rounded-2xl bg-white/80 p-3 text-left">
+              <summary className="cursor-pointer font-bold">排出率・出やすいカードを見る</summary>
+              {detail.data.featuredCards.length > 0 && (
+                <p className="mt-2">
+                  出やすいカード: {detail.data.featuredCards.map((card) => card.title).join("、")}
+                </p>
+              )}
+              <table className="mt-2 w-full" data-testid="slot-rates">
+                <tbody>
+                  {detail.data.slotRates.map((slot) => (
+                    <tr key={slot.slot} className="border-t border-slate-100">
+                      <th className="py-2 pr-2 whitespace-nowrap">{slot.slot}枚目</th>
+                      <td>
+                        {slot.rates
+                          .map((rate) => `${rarityLabels[rate.rarity]} ${rate.percent}%`)
+                          .join(" / ")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          </div>
         )}
 
         <div

@@ -7,8 +7,13 @@ export type WikimediaClient = {
   getJson<T>(url: string): Promise<T | null>;
 };
 
+export type WikimediaFetch = (
+  url: string,
+  init: { headers: Record<string, string> },
+) => Promise<Response>;
+
 type Options = {
-  fetch?: typeof fetch;
+  fetch?: WikimediaFetch;
   // 同時に投げるリクエストの数。Wikimedia に負荷をかけないよう少なくする
   concurrency?: number;
   maxRetries?: number;

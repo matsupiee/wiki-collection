@@ -15,10 +15,10 @@ describe("createWikimediaClient", () => {
     const waits: number[] = [];
     const agents: (string | null)[] = [];
     const client = createWikimediaClient({
-      fetch: (async (_url: string, init?: RequestInit) => {
-        agents.push(new Headers(init?.headers).get("User-Agent"));
+      fetch: async (_url, init) => {
+        agents.push(init.headers["User-Agent"] ?? null);
         return responses.shift()!;
-      }) as unknown as typeof fetch,
+      },
       sleep: async (ms) => void waits.push(ms),
     });
 
