@@ -59,3 +59,14 @@ temp
 
 # Wrangler (local dev)
 .wrangler
+
+# Expo (Continuous Native Generation)
+apps/native/.expo/
+apps/native/expo-env.d.ts
+apps/native/ios/
+apps/native/android/
+/playwright-report/
+/test-results/
+
+/output/native/
+/output/native-parity/

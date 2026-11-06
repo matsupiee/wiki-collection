@@ -1,0 +1,164 @@
+import { Text } from "../../../../components/typography";
+import { useEffect } from "react";
+import { ScrollView, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { router, useLocalSearchParams } from "expo-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useTRPC } from "../../../../lib/client";
+import { useAction } from "../../../../lib/mutation";
+import { Button, Card, Loading } from "../../../../components/ui";
+import { AppBackground } from "../../../../components/app-background";
+import { BottomNav } from "../../../../components/bottom-nav";
+export default function Result() {
+  const { openingId } = useLocalSearchParams<{ openingId: string }>();
+  const trpc = useTRPC();
+  const q = useQuery(trpc.opening.get.queryOptions({ openingId }));
+  const reveal = useMutation(trpc.opening.reveal.mutationOptions());
+  const open = useMutation(trpc.pack.open.mutationOptions());
+  const action = useAction();
+  useEffect(() => {
+    if (q.data && !q.data.opening.revealedAt) reveal.mutate({ openingId });
+  }, [q.data?.opening.id]);
+  return (
+    <View style={{ flex: 1 }}>
+      <AppBackground />
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          width: "100%",
+          maxWidth: 448,
+          alignSelf: "center",
+          paddingHorizontal: 16,
+          paddingTop: 32,
+          paddingBottom: 28,
+        }}
+      >
+        {!q.data ? (
+          <Loading error={q.error} retry={q.refetch} />
+        ) : (
+          <>
+            <Text
+              style={{
+                fontSize: 20,
+                lineHeight: 28,
+                fontWeight: "900",
+                textAlign: "center",
+                color: "#334155",
+              }}
+            >
+              開封結果
+            </Text>
+            <LinearGradient
+              colors={["#7dd3fc", "#c4b5fd", "#fde68a"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ height: 4, borderRadius: 999, marginTop: 8 }}
+            />
+            <Text
+              style={{
+                fontSize: 12,
+                lineHeight: 16,
+                textAlign: "center",
+                color: "#64748b",
+                marginTop: 8,
+              }}
+            >
+              {q.data.pack.name}
+            </Text>
+            <View style={{ marginTop: 24, gap: 16, alignItems: "center" }}>
+              {[q.data.cards.slice(0, 3), q.data.cards.slice(3)].map((row, i) => (
+                <View
+                  key={i}
+                  style={{ flexDirection: "row", justifyContent: "center", gap: 12, width: "100%" }}
+                >
+                  {row.map((c) => (
+                    <View key={c.userCardId} style={{ width: 112, maxWidth: "31.3%" }}>
+                      {c.isNew && (
+                        <View
+                          style={{
+                            position: "absolute",
+                            top: -8,
+                            left: -4,
+                            zIndex: 10,
+                            borderRadius: 999,
+                            backgroundColor: "#ec4899",
+                            paddingHorizontal: 6,
+                            boxShadow: "0 1px 3px #0003",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              lineHeight: 15,
+                              fontWeight: "900",
+                              color: "white",
+                            }}
+                          >
+                            NEW
+                          </Text>
+                        </View>
+                      )}
+                      <Card
+                        card={c.card}
+                        small
+                        onPress={() => router.push(`/cards/${c.card.id}`)}
+                      />
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </View>
+            <View style={{ marginTop: "auto", paddingTop: 32, gap: 12 }}>
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <LinearGradient
+                  colors={["#38bdf8", "#22d3ee"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ flex: 1.12, flexBasis: 0, borderRadius: 999 }}
+                >
+                  <Button
+                    title={action.pending ? "準備中…" : "もう1パック"}
+                    textStyle={{ fontSize: 12, fontWeight: "800" }}
+                    disabled={action.pending}
+                    style={{ backgroundColor: "transparent", height: 48, justifyContent: "center" }}
+                    onPress={() =>
+                      void action.run(async () => {
+                        const result = await open.mutateAsync({ packId: q.data!.pack.id });
+                        router.replace(`/openings/${result.openingId}`);
+                      })
+                    }
+                  />
+                </LinearGradient>
+                <Button
+                  secondary
+                  title="コレクションへ"
+                  textStyle={{ fontSize: 12, fontWeight: "800" }}
+                  style={{
+                    flex: 1,
+                    flexBasis: 0,
+                    height: 48,
+                    paddingHorizontal: 0,
+                    justifyContent: "center",
+                  }}
+                  onPress={() => router.replace("/collection")}
+                />
+              </View>
+              <Button
+                variant="link"
+                title="パック選択にもどる"
+                textStyle={{ fontSize: 12, color: "#64748b" }}
+                onPress={() => router.replace("/packs")}
+              />
+              {!!action.error && (
+                <Text accessibilityRole="alert" style={{ color: "#e11d48" }}>
+                  {action.error}
+                </Text>
+              )}
+            </View>
+          </>
+        )}
+      </ScrollView>
+      <BottomNav pathname="/openings" />
+    </View>
+  );
+}

@@ -9,6 +9,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   server: {
     port: 3001,
+    cors: false, // APIルート自身が許可オリジンと資格情報を含むCORSを処理する。
   },
   resolve: {
     tsconfigPaths: true,

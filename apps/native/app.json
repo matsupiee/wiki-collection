@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Wiki Collection",
+    "slug": "wiki-collection",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "wiki-collection",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.matsupiee.wikicollection",
+      "infoPlist": { "CFBundleDevelopmentRegion": "ja", "CFBundleLocalizations": ["ja"] }
+    },
+    "android": { "package": "com.matsupiee.wikicollection" },
+    "web": { "bundler": "metro", "output": "single" },
+    "plugins": ["expo-router", "expo-secure-store", "expo-font"],
+    "experiments": { "typedRoutes": true }
+  }
+}

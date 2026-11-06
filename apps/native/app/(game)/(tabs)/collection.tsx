@@ -1,0 +1,214 @@
+import { ElementBadge } from "../../../components/element";
+import { Text } from "../../../components/typography";
+import { useState } from "react";
+import { Pressable, View, ScrollView, Modal, useWindowDimensions } from "react-native";
+import { ChevronDown, Check } from "lucide-react-native";
+import { router } from "expo-router";
+import { useMutation, useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useTRPC } from "../../../lib/client";
+import { useAction } from "../../../lib/mutation";
+import { Button, Card, Confirm, Loading, Screen, Stats } from "../../../components/ui";
+import { rarities, type Rarity } from "@wiki-collection/db/enums";
+const rarityLabels = {
+  common: "コモン",
+  uncommon: "アンコモン",
+  rare: "レア",
+  double_rare: "ダブルレア",
+  legendary: "レジェンド",
+};
+const sortOptions = [
+  ["acquired", "引いた順"],
+  ["attack", "攻撃力順"],
+  ["defense", "防御力順"],
+] as const;
+export default function Collection() {
+  const trpc = useTRPC();
+  const { width } = useWindowDimensions();
+  const cellWidth = (Math.min(width, 448) - 32 - 24) / 3;
+  const [rarity, setRarity] = useState<Rarity>();
+  const [sort, setSort] = useState<"acquired" | "attack" | "defense">("acquired");
+  const [sortOpen, setSortOpen] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const q = useQuery({
+    ...trpc.card.listOwned.queryOptions({ sort, rarity }),
+    placeholderData: keepPreviousData,
+  });
+  const redeem = useMutation(trpc.card.redeemDuplicates.mutationOptions());
+  const action = useAction();
+  return (
+    <Screen title="コレクション" contentStyle={{ gap: 0, paddingBottom: 24 }}>
+      {!q.data ? (
+        <Loading error={q.error} retry={q.refetch} />
+      ) : (
+        <>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ flex: 1, minWidth: 0 }}
+              contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
+            >
+              {[undefined, ...rarities].map((r) => (
+                <Button
+                  key={r ?? "all"}
+                  title={r ? rarityLabels[r] : "すべて"}
+                  variant="chip"
+                  style={{ backgroundColor: rarity === r ? "#1e293b" : "white" }}
+                  textStyle={{ color: rarity === r ? "white" : "#64748b" }}
+                  onPress={() => setRarity(r)}
+                />
+              ))}
+            </ScrollView>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="並び順"
+              onPress={() => setSortOpen(true)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                borderRadius: 999,
+                backgroundColor: "white",
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                boxShadow: "0 1px 2px #0000000d",
+              }}
+            >
+              <Text style={{ fontSize: 12, lineHeight: 16, fontWeight: "700", color: "#334155" }}>
+                {sortOptions.find(([value]) => value === sort)?.[1]}
+              </Text>
+              <ChevronDown size={12} color="#334155" />
+            </Pressable>
+          </View>
+          {q.data.cards.length === 0 ? (
+            <View
+              style={{
+                padding: 32,
+                borderRadius: 24,
+                backgroundColor: "rgba(255,255,255,.8)",
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ fontSize: 14, lineHeight: 20, color: "#64748b" }}>
+                まだカードがありません。
+              </Text>
+              <Button
+                title="パックを開けよう"
+                variant="link"
+                onPress={() => router.push("/packs")}
+                style={{ marginTop: 8 }}
+                textStyle={{ fontWeight: "700" }}
+              />
+            </View>
+          ) : (
+            <View
+              style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, alignItems: "flex-start" }}
+            >
+              {q.data.cards.map((c) => (
+                <View key={c.id} style={{ width: cellWidth, alignItems: "flex-start" }}>
+                  <Card
+                    card={c}
+                    size="sm"
+                    ownedCount={c.ownedCount}
+                    elementBadge={<ElementBadge element={c.element} />}
+                    onPress={() => router.push(`/cards/${c.id}`)}
+                  />
+                  <View style={{ marginTop: 4, width: "100%", minWidth: 0 }}>
+                    <Stats compact attack={c.monthlyPageviews} defense={c.articleLength} />
+                  </View>
+                  {c.listedCount > 0 && (
+                    <Text
+                      style={{
+                        marginTop: 4,
+                        fontSize: 12,
+                        lineHeight: 16,
+                        fontWeight: "700",
+                        color: "#d97706",
+                      }}
+                    >
+                      出品中{c.listedCount}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
+          {q.data.duplicates.count > 0 && (
+            <Button
+              title={`重複をまとめて還元（${q.data.duplicates.count}枚・${q.data.duplicates.points.toLocaleString("ja-JP")}pt）`}
+              variant="chip"
+              style={{ marginTop: 24, paddingVertical: 12 }}
+              textStyle={{ fontSize: 14, lineHeight: 20, fontWeight: "800", color: "#7c3aed" }}
+              onPress={() => setConfirm(true)}
+            />
+          )}
+        </>
+      )}
+      {sortOpen && (
+        <Modal transparent visible onRequestClose={() => setSortOpen(false)} animationType="fade">
+          <Pressable
+            onPress={() => setSortOpen(false)}
+            style={{
+              flex: 1,
+              backgroundColor: "#0f172a40",
+              justifyContent: "center",
+              alignItems: "center",
+              padding: 24,
+            }}
+          >
+            <View
+              style={{
+                width: "100%",
+                maxWidth: 300,
+                backgroundColor: "white",
+                borderRadius: 16,
+                padding: 8,
+              }}
+            >
+              {sortOptions.map(([value, label]) => (
+                <Pressable
+                  key={value}
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  onPress={() => {
+                    setSort(value);
+                    setSortOpen(false);
+                  }}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: 12,
+                  }}
+                >
+                  <Text style={{ fontSize: 14, lineHeight: 20, fontWeight: "700" }}>{label}</Text>
+                  {value === sort && <Check size={16} color="#0284c7" />}
+                </Pressable>
+              ))}
+            </View>
+          </Pressable>
+        </Modal>
+      )}
+      {confirm && (
+        <Confirm
+          title="重複をまとめて還元します"
+          confirmLabel="還元する"
+          pending={action.pending}
+          onCancel={() => setConfirm(false)}
+          onConfirm={() =>
+            void action.run(
+              () => redeem.mutateAsync(),
+              () => setConfirm(false),
+            )
+          }
+        >
+          <Text style={{ fontSize: 14, lineHeight: 20, color: "#475569", textAlign: "center" }}>
+            各カードを1枚ずつ残して {q.data?.duplicates.count} 枚を手放し、
+            {q.data?.duplicates.points.toLocaleString("ja-JP")}pt を受け取ります。
+          </Text>
+          {!!action.error && <Text accessibilityRole="alert">{action.error}</Text>}
+        </Confirm>
+      )}
+    </Screen>
+  );
+}

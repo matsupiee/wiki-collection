@@ -33,7 +33,7 @@
     "check": "oxlint && oxfmt --write",
     "db:seed": "bun run --cwd packages/db seed",
     "dev:local": "bun run --cwd apps/web dev:local",
-    "test": "bun run --cwd packages/api test && bun run --cwd packages/wiki-import test && bun run --cwd apps/web test",
+    "test": "bun run --cwd packages/api test && bun run --cwd packages/wiki-import test && bun run --cwd apps/web test && bun run --cwd apps/native test",
     "wiki:import": "bun run --cwd packages/wiki-import import",
     "wiki:load": "bun run --cwd packages/wiki-import load",
     "wiki:top": "bun run --cwd packages/wiki-import top",
@@ -47,13 +47,18 @@
     "db:seed:fusion": "bun run --cwd packages/db seed:fusion",
     "db:seed:stats": "bun run packages/db/src/seed/stat-icons-cli.ts",
     "db:seed:collection": "bun run packages/db/src/seed/collection-sort-cli.ts",
-    "db:seed:elements": "bun run packages/db/src/seed/element-icons-cli.ts"
+    "db:seed:elements": "bun run packages/db/src/seed/element-icons-cli.ts",
+    "dev:native": "bun run --cwd apps/native start",
+    "dev:native:web": "bun run --cwd apps/native web",
+    "db:seed:native": "bun packages/db/src/seed/native-cli.ts",
+    "test:native:e2e": "playwright test --config playwright.native.config.ts"
   },
   "dependencies": {
     "zod": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260906.1",
+    "@playwright/test": "^1.65.0",
     "@types/node": "^26.4.1",
     "@wiki-collection/config": "workspace:*",
     "lefthook": "^2.2.1",

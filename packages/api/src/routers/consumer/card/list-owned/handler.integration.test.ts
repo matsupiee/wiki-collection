@@ -77,11 +77,11 @@ describe("card/list-owned", () => {
     ]);
     const api = appRouter.createCaller(ctx).card;
     const acquired = await api.listOwned({});
-    expect(acquired.cards.map((c) => c.id)).toEqual([ids[1], ids[3], ids[2], ids[0]]);
+    expect(acquired.cards.map((c) => c.id)).toEqual([ids[1]!, ids[3]!, ids[2]!, ids[0]!]);
     for (const [sort, expected] of [
-      ["acquired", [ids[1], ids[3], ids[2], ids[0]]],
-      ["attack", [ids[0], ids[1], ids[2], ids[3]]],
-      ["defense", [ids[1], ids[2], ids[0], ids[3]]],
+      ["acquired", [ids[1]!, ids[3]!, ids[2]!, ids[0]!]],
+      ["attack", [ids[0]!, ids[1]!, ids[2]!, ids[3]!]],
+      ["defense", [ids[1]!, ids[2]!, ids[0]!, ids[3]!]],
     ] as const) {
       const result = await api.listOwned({ sort });
       expect(result.cards.map((c) => c.id)).toEqual([...expected]);

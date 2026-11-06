@@ -1,3 +1,5 @@
+import { expo } from "@better-auth/expo";
+import { browserOrigins } from "./origins";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
 import type { Database } from "@wiki-collection/db";
 import * as schema from "@wiki-collection/db/schema/auth";
@@ -15,11 +17,12 @@ export function createAuth(env: AuthConfig, database: Database) {
       provider: "sqlite",
       schema,
     }),
-    trustedOrigins: [env.BETTER_AUTH_URL],
+    trustedOrigins: [...browserOrigins(env.BETTER_AUTH_URL), "wiki-collection://"],
     emailAndPassword: { enabled: true },
+    advanced: { disableOriginCheck: false, disableCSRFCheck: false },
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
-    plugins: [tanstackStartCookies()],
+    plugins: [expo(), tanstackStartCookies()],
   });
 }
 
