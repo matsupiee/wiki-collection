@@ -15,7 +15,10 @@ export default function Layout() {
     <View style={{ flex: 1 }}>
       <Stack screenOptions={{ headerShown: false }}>
         {/* 切り口をなぞる操作とiOSの戻るスワイプを競合させない。 */}
-        <Stack.Screen name="openings/[openingId]/index" options={{ gestureEnabled: false }} />
+        <Stack.Screen
+          name="openings/[openingId]/index"
+          options={{ gestureEnabled: false, statusBarStyle: "light" }}
+        />
       </Stack>
       {detail && <BottomNav pathname={pathname} />}
     </View>

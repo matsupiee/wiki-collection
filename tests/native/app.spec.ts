@@ -26,7 +26,7 @@ test("ログイン・開封再開・カード・対戦・履歴・ログアウ�
     // 登場アニメーションが完了してから座標を取得する。
     await expect(async () => {
       const box = await tearArea.boundingBox();
-      expect(box?.width).toBeCloseTo(256, 0);
+      expect(box?.width).toBeGreaterThan(140);
     }).toPass();
     const box = (await tearArea.boundingBox())!;
     await page.mouse.move(box.x + 2, box.y + box.height / 2);
@@ -34,6 +34,29 @@ test("ログイン・開封再開・カード・対戦・履歴・ログアウ�
     await page.mouse.move(box.x + box.width * fraction, box.y + box.height / 2, { steps: 20 });
     await page.mouse.up();
   };
+  // A failed skip must leave the same pack openable, even if the player swipes while it is pending.
+  const revealPath = /\/api\/trpc\/opening\.reveal(?:\?|$)/;
+  let releaseResponse!: () => void;
+  const hold = new Promise<void>((resolve) => {
+    releaseResponse = resolve;
+  });
+  await page.route(
+    revealPath,
+    async (route) => {
+      await hold;
+      await route.fulfill({ status: 503, contentType: "application/json", body: "[]" });
+    },
+    { times: 1 },
+  );
+  const pendingSkip = page.waitForRequest(revealPath);
+  await page.getByRole("button", { name: "スキップ", exact: true }).click();
+  await pendingSkip;
+  try {
+    await swipe(0.95);
+  } finally {
+    releaseResponse();
+  }
+  await expect(page.getByRole("alert")).toBeVisible();
   await swipe(0.45);
   await expect(page).toHaveURL(opening);
   await expect(page.getByRole("button", { name: "タップで開ける", exact: true })).toBeVisible();
@@ -44,8 +67,12 @@ test("ログイン・開封再開・カード・対戦・履歴・ログアウ�
   await expect(page.getByRole("button", { name: "タップで開ける", exact: true })).toBeVisible();
   expect(page.url()).toBe(opening);
   await page.getByRole("button", { name: "タップで開ける", exact: true }).click();
-  for (let i = 0; i < 5; i++)
+  for (const range of ["1–2 / 5", "3–4 / 5"]) {
+    await expect(page.getByText(range, { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /、カード詳細$/ })).toHaveCount(2);
     await page.getByRole("button", { name: "次のカード", exact: true }).click();
+  }
+  await page.getByRole("button", { name: "開封結果を見る", exact: true }).click();
   await expect(page.getByText("開封結果", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "コレクションへ", exact: true }).click();
   await page.getByRole("button", { name: "並び順", exact: true }).click();

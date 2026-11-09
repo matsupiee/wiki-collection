@@ -1,525 +1,576 @@
-import { Text } from "../../../../components/typography";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   ActivityIndicator,
-  Animated,
   Image,
-  Platform,
   Pressable,
+  StyleSheet,
   View,
-  Vibration,
-  useWindowDimensions,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { cardImageDisplayUrl } from "@wiki-collection/db/card-image";
-import { router, useLocalSearchParams } from "expo-router";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  interpolate,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { scheduleOnRN } from "react-native-worklets";
+import * as Haptics from "expo-haptics";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { cardImageDisplayUrl } from "@wiki-collection/db/card-image";
 import { apiUrl, useTRPC } from "../../../../lib/client";
 import { useAction } from "../../../../lib/mutation";
-import { Card, Loading, marks } from "../../../../components/ui";
-import { AppBackground } from "../../../../components/app-background";
-import { Pack } from "../../../../components/pack";
-const colors: Record<string, readonly [string, string, string]> = {
-  common: ["#a5b4fc", "#ddd6fe", "#e0f2fe"],
-  uncommon: ["#a5b4fc", "#ddd6fe", "#ccfbf1"],
-  rare: ["#a78bfa", "#f5d0fe", "#e0f2fe"],
-  double_rare: ["#fbcfe8", "#c4b5fd", "#a5f3fc"],
-  legendary: ["#fcd34d", "#fef9c3", "#fed7aa"],
-};
+import { Loading } from "../../../../components/ui";
+import { Text } from "../../../../components/typography";
+import { OPENING_PACK_RATIO, OpeningPack } from "../../../../components/opening-pack";
+import {
+  carouselPitch,
+  carouselOffset,
+  carouselScale,
+  restingPackCenter,
+  sealFraction,
+  wrapperPosition,
+} from "../../../../components/opening-geometry";
+import { OpeningInspection } from "../../../../components/opening-inspection";
+import {
+  CinematicCard,
+  OpeningAtmosphere,
+  OpeningBeam,
+  OpeningRainbow,
+} from "../../../../components/opening-stage";
+
 export default function Opening() {
   const { openingId } = useLocalSearchParams<{ openingId: string }>();
-  const { height } = useWindowDimensions();
+  return <OpeningScene key={openingId} openingId={openingId} />;
+}
+function OpeningScene({ openingId }: { openingId: string }) {
   const trpc = useTRPC();
   const query = useQuery(trpc.opening.get.queryOptions({ openingId }));
   const reveal = useMutation(trpc.opening.reveal.mutationOptions());
   const action = useAction();
-  const [stage, setStage] = useState<"loading" | "pack" | "torn" | "cards">("loading");
-  const [index, setIndex] = useState(0);
-  const [tear, setTear] = useState(0);
-  const [reduce, setReduce] = useState(false);
-  const [flash, setFlash] = useState(false);
-  const tearing = useRef(false);
-  const area = useRef<View>(null);
-  const left = useRef(0);
-  const tearProgress = useRef(0);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const enter = useRef(new Animated.Value(0)).current;
-  const torn = useRef(new Animated.Value(0)).current;
-  const cardAnim = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(0.5)).current;
-  const exiting = useRef(false);
-  const exit = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduce);
-    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduce);
-    return () => sub.remove();
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [stage, setStage] = useState<"pack" | "running" | "revealed">("pack");
+  const [page, setPage] = useState(0);
+  const [detail, setDetail] = useState<number | null>(null);
+  const [motionPreference, setMotionPreference] = useState<boolean | null>(null);
+  const reduce = motionPreference !== false;
+  const [packLaidOut, setPackLaidOut] = useState(false);
+  const introFrame = useRef<number | null>(null);
+  const cancelIntroFrame = useCallback(() => {
+    if (introFrame.current !== null) cancelAnimationFrame(introFrame.current);
+    introFrame.current = null;
   }, []);
+  const mounted = useRef(true);
+  const busy = useRef(false);
+  const leaving = useRef(false);
+  const focused = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      focused.current = true;
+      return () => {
+        focused.current = false;
+      };
+    }, []),
+  );
+  const time = useSharedValue(-1);
+  const drag = useSharedValue(0);
+  const arrival = useSharedValue(0);
+  const cut = useSharedValue(0);
+  const committed = useSharedValue(false);
+  const validStart = useSharedValue(false);
+  const { width: w, height: h } = size;
+  const pw = w * 0.48;
+  const ph = pw * OPENING_PACK_RATIO;
+  const cards = query.data?.cards.slice(page * 2, page * 2 + 2) ?? [];
+  const last = (page + 1) * 2 >= (query.data?.cards.length ?? 0);
   useEffect(() => {
-    if (!query.data) return;
+    mounted.current = true;
     let active = true;
-    Promise.all([
-      new Promise((r) => setTimeout(r, 600)),
-      ...query.data.cards.map((c) =>
-        c.card.imageUrl
-          ? Image.prefetch(new URL(cardImageDisplayUrl(c.card.imageUrl), apiUrl).href).catch(
-              () => false,
-            )
-          : Promise.resolve(),
-      ),
-    ]).then(() => {
-      if (active) setStage("pack");
+    let preferenceChanged = false;
+    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", (enabled) => {
+      preferenceChanged = true;
+      if (active) setMotionPreference(enabled);
     });
+    void AccessibilityInfo.isReduceMotionEnabled()
+      .catch(() => true)
+      .then((enabled) => {
+        if (active && !preferenceChanged) setMotionPreference(enabled);
+      });
     return () => {
       active = false;
+      mounted.current = false;
+      cancelIntroFrame();
+      sub.remove();
+      cancelAnimation(time);
+      cancelAnimation(arrival);
+      cancelAnimation(drag);
+      cancelAnimation(cut);
     };
+  }, []);
+  useEffect(() => {
+    for (const c of query.data?.cards ?? []) {
+      if (c.card.imageUrl)
+        void Image.prefetch(new URL(cardImageDisplayUrl(c.card.imageUrl), apiUrl).href).catch(
+          () => {},
+        );
+    }
   }, [query.data?.opening.id]);
-  useEffect(() => {
-    if (stage !== "pack") return;
-    Animated.timing(enter, {
-      toValue: 1,
-      duration: reduce ? 0 : 600,
-      useNativeDriver: Platform.OS !== "web",
-    }).start();
-    if (reduce) return;
-    const a = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: Platform.OS !== "web",
-        }),
-        Animated.timing(pulse, {
-          toValue: 0.5,
-          duration: 800,
-          useNativeDriver: Platform.OS !== "web",
-        }),
-      ]),
-    );
-    a.start();
-    return () => a.stop();
-  }, [stage, reduce]);
-  const current = query.data?.cards[index];
-  useEffect(() => {
-    if (stage !== "cards") return;
-    cardAnim.setValue(0);
-    exit.setValue(0);
-    exiting.current = false;
-    Animated.spring(cardAnim, {
-      toValue: 1,
-      stiffness: current?.card.rarity === "legendary" ? 80 : 220,
-      damping: current?.card.rarity === "legendary" ? 14 : 22,
-      useNativeDriver: Platform.OS !== "web",
-    }).start();
-  }, [stage, index]);
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
+  function revealed() {
+    if (!mounted.current) return;
+    busy.current = false;
+    setStage("revealed");
+  }
+  useAnimatedReaction(
+    () => time.get() >= 4300,
+    (done, previous) => {
+      if (done && !previous) scheduleOnRN(revealed);
     },
-    [],
   );
-  const finish = () =>
-    void action.run(
-      () => reveal.mutateAsync({ openingId }),
-      () => router.replace(`/openings/${openingId}/result`),
-    );
-  const tearOpen = () => {
-    if (stage !== "pack") return;
-    tearing.current = false;
-    setTear(1);
-    setStage("torn");
-    setFlash(true);
-    Vibration.vibrate(40);
-    Animated.timing(torn, {
-      toValue: 1,
-      duration: reduce ? 0 : 700,
-      useNativeDriver: Platform.OS !== "web",
-    }).start();
-    timer.current = setTimeout(
-      () => {
-        setFlash(false);
-        setStage("cards");
-      },
-      reduce ? 200 : 900,
-    );
-  };
-  const advance = () => {
-    if (stage !== "cards" || exiting.current || action.pending) return;
-    if (index >= (query.data?.cards.length ?? 0) - 1) {
-      finish();
+  function play(nextPage = 0, side = 0) {
+    if (leaving.current) {
+      if (!busy.current && stage === "pack") {
+        committed.set(false);
+        cut.set(0);
+      }
       return;
     }
-    exiting.current = true;
-    Animated.timing(exit, {
-      toValue: 1,
-      duration: reduce ? 0 : 350,
-      useNativeDriver: Platform.OS !== "web",
-    }).start(() => setIndex((i) => i + 1));
-  };
-  const move = (pageX: number) => {
-    if (!tearing.current || stage !== "pack") return;
-    const t = Math.min(1, Math.max(0, (pageX - left.current) / 256));
-    tearProgress.current = Math.max(tearProgress.current, t);
-    setTear(tearProgress.current);
-    if (t >= 0.9) tearOpen();
-  };
-  return (
-    <View style={{ flex: 1 }}>
-      <AppBackground />
-      <LinearGradient
-        colors={
-          stage === "loading"
-            ? ["white", "white"]
-            : stage === "cards" && current
-              ? (colors[current.card.rarity] ?? colors.common!)
-              : ["#c7d2fe", "#ede9fe", "#f0f9ff"]
+    if (busy.current || !query.data) return;
+    busy.current = true;
+    cancelIntroFrame();
+    const pickup =
+      drag.get() + (reduce ? side * carouselPitch : carouselOffset(arrival.get(), side)) * w;
+    cancelAnimation(arrival);
+    arrival.set(1380);
+    drag.set(reduce ? 0 : pickup);
+    drag.set(
+      withTiming(0, { duration: reduce ? 0 : 320, easing: Easing.bezier(0.23, 1, 0.32, 1) }),
+    );
+    committed.set(true);
+    setPage(nextPage);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    if (reduce) {
+      time.set(5000);
+      revealed();
+      return;
+    }
+    setStage("running");
+    time.set(nextPage ? 1350 : 0);
+    time.set(withTiming(5000, { duration: nextPage ? 3650 : 5000, easing: Easing.linear }));
+  }
+  function finish() {
+    if (leaving.current) return;
+    leaving.current = true;
+    void action
+      .run(
+        () => reveal.mutateAsync({ openingId }),
+        () => {
+          if (mounted.current && focused.current) router.replace(`/openings/${openingId}/result`);
+        },
+      )
+      .finally(() => {
+        leaving.current = false;
+        if (mounted.current && stage === "pack" && !busy.current) {
+          committed.set(false);
+          cut.set(0);
         }
-        style={{
-          flex: 1,
-          width: "100%",
-          maxWidth: 448,
-          alignSelf: "center",
-          alignItems: "center",
-          overflow: "hidden",
-        }}
-      >
-        {stage !== "loading" && (
+      });
+  }
+  const tear = Gesture.Pan()
+    .enabled(!action.pending)
+    .minDistance(0)
+    .onBegin((e) => {
+      validStart.set(e.x < pw * 0.35 && !committed.get());
+    })
+    .onUpdate((e) => {
+      if (!validStart.get() || committed.get()) return;
+      const p = Math.max(0, Math.min(1, e.translationX / (pw * 0.7)));
+      cut.set(p);
+      if (p >= 0.95) {
+        committed.set(true);
+        scheduleOnRN(play, 0);
+      }
+    })
+    .onFinalize(() => {
+      if (!committed.get()) cut.set(withSpring(0, { duration: 400, dampingRatio: 1 }));
+      validStart.set(false);
+    });
+  useEffect(() => {
+    if (!packLaidOut || reduce || committed.get()) return;
+    arrival.set(0);
+    // Let the first small foil wrapper paint before its approach clock starts.
+    introFrame.current = requestAnimationFrame(() => {
+      introFrame.current = requestAnimationFrame(() => {
+        introFrame.current = null;
+        if (mounted.current && !committed.get()) {
+          arrival.set(withDelay(80, withTiming(1380, { duration: 1380, easing: Easing.linear })));
+        }
+      });
+    });
+    return () => {
+      cancelIntroFrame();
+      cancelAnimation(arrival);
+    };
+  }, [packLaidOut, reduce, arrival, committed, cancelIntroFrame]);
+  const carousel = Gesture.Pan()
+    .onUpdate((e) => {
+      if (!committed.get()) drag.set(e.translationX * 0.55);
+    })
+    .onEnd((e) => {
+      if (committed.get()) return;
+      const pitch = w * carouselPitch;
+      const snap =
+        Math.abs(e.translationX) > pitch * 0.4 || Math.abs(e.velocityX) > 500
+          ? Math.sign(e.translationX) * pitch
+          : 0;
+      drag.set(
+        withSpring(
+          snap,
+          { duration: 400, dampingRatio: 1, velocity: e.velocityX * 0.3 },
+          (done) => {
+            if (done) drag.set(0);
+          },
+        ),
+      );
+    });
+  const packStyle = useAnimatedStyle(() => {
+    const t = time.get();
+    const position = wrapperPosition(t, w, h);
+    const x = drag.get() + (reduce ? 0 : carouselOffset(arrival.get()) * w);
+    const distance = reduce || !w ? 0 : Math.min(1, Math.abs(x) / (w * carouselPitch));
+    return {
+      opacity: (1 - distance * 0.5) * interpolate(t, [1180, 1250], [1, 0], "clamp"),
+      transform: [
+        { translateX: x },
+        { translateY: reduce ? 0 : position.y },
+        { perspective: 800 },
+        { rotateY: `${-Math.sign(x) * distance * 20}deg` },
+        {
+          scale: reduce ? 1 : position.scale * carouselScale(arrival.get()) * (1 - distance * 0.07),
+        },
+      ],
+    };
+  });
+  // Keep the card behind the foil: a moving aperture ends exactly at the mouth.
+  const aperture = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY:
+          reduce || page > 0 ? 0 : Math.min(0, wrapperPosition(time.get(), w, h).mouth - h),
+      },
+    ],
+  }));
+  const undoAperture = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY:
+          reduce || page > 0 ? 0 : Math.max(0, h - wrapperPosition(time.get(), w, h).mouth),
+      },
+    ],
+  }));
+  const sealStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(time.get(), [620, 790], [1, 0], "clamp"),
+    transform: [
+      { translateY: reduce ? 0 : interpolate(time.get(), [650, 850], [0, -12], "clamp") },
+    ],
+  }));
+  const guideStyle = useAnimatedStyle(() => ({
+    opacity: cut.get(),
+    transform: [{ scaleX: cut.get() }],
+  }));
+  return (
+    <View style={styles.screen} onLayout={(e) => setSize(e.nativeEvent.layout)}>
+      <OpeningAtmosphere width={w} height={h} time={time} reduced={reduce} />
+      {query.isPending || motionPreference === null ? (
+        <ActivityIndicator color="#ffffff" />
+      ) : query.error && !query.data ? (
+        <View style={{ alignItems: "center", padding: 24 }}>
+          <Loading error={query.error} retry={query.refetch} />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="スキップ"
-            onPress={finish}
-            disabled={action.pending}
-            style={{
-              position: "absolute",
-              right: 16,
-              top: 16,
-              zIndex: 50,
-              borderRadius: 999,
-              backgroundColor: "#ffffffb3",
-              paddingHorizontal: 16,
-              paddingVertical: 6,
-              boxShadow: "0 1px 3px #0003",
-            }}
+            accessibilityLabel="パック一覧に戻る"
+            style={styles.next}
+            onPress={() => router.replace("/packs")}
           >
-            <Text style={{ fontSize: 12, lineHeight: 16, fontWeight: "700", color: "#475569" }}>
-              スキップ
-            </Text>
+            <Text style={styles.nextText}>パック一覧に戻る</Text>
           </Pressable>
-        )}
-        {stage === "loading" &&
-          (query.error ? (
-            <Loading error={query.error} retry={query.refetch} />
-          ) : (
-            <ActivityIndicator
-              color="#6ee7b7"
-              style={{ position: "absolute", bottom: 24, right: 24 }}
-            />
-          ))}
-        {query.data && (stage === "pack" || stage === "torn") && (
-          <Animated.View
-            style={{
-              marginTop: height * 0.18,
-              alignItems: "center",
-              opacity: enter,
-              transform: [
-                {
-                  scale: enter.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: reduce ? [1, 1] : [0.35, 1],
-                  }),
-                },
-              ],
-            }}
-          >
-            <View style={{ width: 256, height: 409.6 }}>
+        </View>
+      ) : (
+        w > 0 && (
+          <>
+            <OpeningRainbow time={time} width={w} height={h} reduced={reduce} />
+            <Animated.View
+              pointerEvents="box-none"
+              style={[StyleSheet.absoluteFill, { overflow: "hidden" }, aperture]}
+            >
               <Animated.View
-                style={{
-                  position: "absolute",
-                  top: 409.6 * 0.13,
-                  left: 0,
-                  width: 256,
-                  height: 409.6 * 0.87,
-                  overflow: "hidden",
-                  opacity: torn.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-                  transform: [
-                    { translateY: torn.interpolate({ inputRange: [0, 1], outputRange: [0, 500] }) },
-                  ],
-                }}
+                pointerEvents="box-none"
+                style={[StyleSheet.absoluteFill, undoAperture]}
               >
-                <View style={{ marginTop: -409.6 * 0.13 }}>
-                  <Pack color={query.data.pack.colorHex} width={256} />
-                </View>
-              </Animated.View>
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: 256,
-                  height: 409.6 * 0.13,
-                  overflow: "hidden",
-                  opacity: torn.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-                  transform: [
-                    { translateX: torn.interpolate({ inputRange: [0, 1], outputRange: [0, 160] }) },
-                    {
-                      translateY: torn.interpolate({ inputRange: [0, 1], outputRange: [0, -220] }),
-                    },
-                    {
-                      rotate: torn.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ["0deg", "35deg"],
-                      }),
-                    },
-                  ],
-                }}
-              >
-                <Pack color={query.data.pack.colorHex} width={256} />
-              </Animated.View>
-              {stage === "pack" && (
-                <View
-                  ref={area}
-                  testID="tear-area"
-                  style={{ position: "absolute", top: "7%", height: "12%", width: "100%" }}
-                  onStartShouldSetResponder={() => true}
-                  onMoveShouldSetResponder={() => true}
-                  onResponderGrant={(e) => {
-                    const x = e.nativeEvent.pageX;
-                    tearing.current = true;
-                    area.current?.measureInWindow((l) => {
-                      left.current = l;
-                      move(x);
-                    });
-                  }}
-                  onResponderMove={(e) => move(e.nativeEvent.pageX)}
-                  onResponderRelease={() => {
-                    tearing.current = false;
-                    tearProgress.current = 0;
-                    setTear(0);
-                  }}
-                >
-                  <View
-                    style={{
-                      position: "absolute",
-                      top: "45%",
-                      width: "100%",
-                      borderTopWidth: 2,
-                      borderStyle: "dashed",
-                      borderColor: "#ffffff99",
-                    }}
+                {cards.map((c, i) => (
+                  <CinematicCard
+                    key={`${page}-${c.userCardId}`}
+                    card={c.card}
+                    slot={i}
+                    count={cards.length}
+                    time={time}
+                    width={w}
+                    height={h}
+                    reduced={reduce}
+                    firstPage={page === 0}
+                    revealed={stage === "revealed"}
+                    onPress={() => setDetail(i)}
                   />
-                  <View
-                    style={{
-                      position: "absolute",
-                      top: "40%",
-                      height: 6,
-                      width: `${tear * 100}%`,
-                      borderRadius: 999,
-                      backgroundColor: "white",
-                      boxShadow: "0 0 14px 4px #ffffffe6",
-                    }}
-                  />
-                </View>
-              )}
-            </View>
-            <View
-              style={{
-                width: 192,
-                height: 40,
-                marginTop: 8,
-                borderRadius: 999,
-                backgroundColor: "#312e811a",
-                filter: "blur(12px)",
-              }}
-            />
-            {stage === "pack" && (
+                ))}
+              </Animated.View>
+            </Animated.View>
+            {page === 0 && stage !== "revealed" && (
               <>
-                <Animated.View style={{ opacity: reduce ? 1 : pulse, marginTop: 24 }}>
-                  <Text
-                    style={{ fontSize: 14, lineHeight: 20, fontWeight: "700", color: "#475569" }}
-                  >
-                    パックの上を左から右へなぞって開けよう
-                  </Text>
-                </Animated.View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="タップで開ける"
-                  onPress={tearOpen}
-                  style={{ marginTop: 8 }}
+                {[-2, -1, 1, 2].map((side) => (
+                  <PackNeighbor
+                    key={side}
+                    side={side}
+                    width={pw}
+                    height={h}
+                    screenWidth={w}
+                    time={time}
+                    drag={drag}
+                    arrival={arrival}
+                    onSelect={() => play(0, side)}
+                    reduced={reduce}
+                  />
+                ))}
+                <Animated.View
+                  onLayout={() => setPackLaidOut(true)}
+                  style={[
+                    {
+                      position: "absolute",
+                      left: (w - pw) / 2,
+                      top: h * restingPackCenter - ph / 2,
+                      width: pw,
+                      height: ph,
+                    },
+                    packStyle,
+                  ]}
                 >
-                  <Text
+                  <View
                     style={{
-                      fontSize: 12,
-                      lineHeight: 16,
-                      color: "#94a3b8",
-                      textDecorationLine: "underline",
+                      position: "absolute",
+                      top: ph * sealFraction,
+                      width: pw,
+                      height: ph * (1 - sealFraction),
+                      overflow: "hidden",
                     }}
                   >
-                    タップで開ける
-                  </Text>
-                </Pressable>
+                    <View style={{ marginTop: -ph * sealFraction }}>
+                      <OpeningPack width={pw} />
+                    </View>
+                  </View>
+                  <Animated.View
+                    style={[{ height: ph * sealFraction, overflow: "hidden" }, sealStyle]}
+                  >
+                    <OpeningPack width={pw} />
+                  </Animated.View>
+                  {stage === "pack" && (
+                    <>
+                      <GestureDetector gesture={carousel}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="タップで開ける"
+                          onPress={() => play()}
+                          style={{ position: "absolute", top: 45, bottom: 0, width: pw }}
+                        />
+                      </GestureDetector>
+                      <GestureDetector gesture={tear}>
+                        <View
+                          collapsable={false}
+                          testID="tear-area"
+                          style={{ position: "absolute", top: -12, height: 52, width: pw }}
+                        >
+                          <Animated.View
+                            style={[
+                              {
+                                top: ph * sealFraction + 12,
+                                height: 2,
+                                backgroundColor: "#c5f5ff",
+                                transformOrigin: "left",
+                                boxShadow: "0 0 12px #70cfff",
+                              },
+                              guideStyle,
+                            ]}
+                          />
+                        </View>
+                      </GestureDetector>
+                    </>
+                  )}
+                </Animated.View>
+                <OpeningBeam
+                  time={time}
+                  width={w}
+                  height={h}
+                  y={wrapperPosition(650, w, h).mouth}
+                  reduced={reduce}
+                />
               </>
             )}
-          </Animated.View>
-        )}
-        {stage === "cards" && current && (
-          <View style={{ paddingTop: height * 0.1, alignItems: "center", width: "100%" }}>
-            <Text
-              style={{
-                fontSize: 14,
-                lineHeight: 20,
-                fontWeight: "700",
-                color: "white",
-                marginBottom: 12,
-                textShadowColor: "#0003",
-                textShadowRadius: 2,
-              }}
-            >
-              カードをタップしてめくろう（{index + 1}/{query.data!.cards.length}）
-            </Text>
-            <View style={{ width: 288 }}>
-              {query.data!.cards.slice(index + 1).map((c, i) => (
-                <View
-                  key={c.userCardId}
-                  style={{
-                    position: "absolute",
-                    top: (i + 1) * 4,
-                    left: (i + 1) * 4,
-                    width: 288,
-                    height: 288,
-                    borderRadius: 17,
-                    backgroundColor: "white",
-                    boxShadow:
-                      i === 0 && c.card.rarity === "legendary"
-                        ? "0 0 30px 10px #fbbf24e6"
-                        : "0 10px 15px #0002",
-                  }}
-                />
-              ))}
-              <Animated.View
-                style={{
-                  opacity: Animated.multiply(
-                    cardAnim,
-                    exit.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-                  ),
-                  transform: [
-                    {
-                      translateX: exit.interpolate({ inputRange: [0, 1], outputRange: [0, -480] }),
-                    },
-                    {
-                      translateY: cardAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [reduce ? 0 : index === 0 ? 400 : 0, 0],
-                      }),
-                    },
-                    {
-                      scale: cardAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [
-                          reduce
-                            ? 1
-                            : current.card.rarity === "legendary"
-                              ? 0.3
-                              : current.card.rarity === "double_rare"
-                                ? 0.7
-                                : 0.96,
-                          1,
-                        ],
-                      }),
-                    },
-                    {
-                      rotateY: cardAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [
-                          !reduce && current.card.rarity === "legendary" ? "540deg" : "0deg",
-                          "0deg",
-                        ],
-                      }),
-                    },
-                    {
-                      rotate: exit.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: ["0deg", "-18deg"],
-                      }),
-                    },
-                  ],
-                }}
-              >
-                {current.isNew && (
-                  <View
-                    style={{
-                      position: "absolute",
-                      top: -12,
-                      left: -8,
-                      zIndex: 10,
-                      borderRadius: 999,
-                      paddingHorizontal: 10,
-                      paddingVertical: 2,
-                      backgroundColor: "#ec4899",
-                      boxShadow: "0 1px 3px #0003",
-                    }}
-                  >
-                    <Text
-                      style={{ fontSize: 12, lineHeight: 16, fontWeight: "900", color: "white" }}
-                    >
-                      NEW
-                    </Text>
-                  </View>
-                )}
+            {stage === "pack" && (
+              <Text style={[styles.hint, { top: h * 0.86 }]} pointerEvents="none">
+                パックをタップして開封
+              </Text>
+            )}
+            {stage === "revealed" && (
+              <View style={[styles.controls, { top: h * 0.81 }]}>
+                <Text style={styles.hintInline}>タップしてカードを見る</Text>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="次のカード"
+                  accessibilityLabel={last ? "開封結果を見る" : "次のカード"}
+                  onPress={() => (last ? finish() : play(page + 1))}
                   disabled={action.pending}
-                  onPress={advance}
+                  style={styles.next}
                 >
-                  <Card card={current.card} size="lg" />
+                  <Text style={styles.nextText}>{last ? "開封結果を見る" : "次のカードへ"}</Text>
                 </Pressable>
-                {["rare", "double_rare", "legendary"].includes(current.card.rarity) && (
-                  <View pointerEvents="none" style={{ position: "absolute", inset: -20 }}>
-                    {Array.from(
-                      { length: current.card.rarity === "legendary" ? 24 : 12 },
-                      (_, i) => (
-                        <Text
-                          key={i}
-                          style={{
-                            position: "absolute",
-                            left: `${50 + 48 * Math.cos(i * 2.399)}%`,
-                            top: `${45 + 43 * Math.sin(i * 2.399)}%`,
-                            color: current.card.rarity === "legendary" ? "#fbbf24" : "white",
-                            fontSize: 12 + (i % 3) * 4,
-                          }}
-                        >
-                          ✦
-                        </Text>
-                      ),
-                    )}
-                  </View>
-                )}
-              </Animated.View>
-            </View>
-            <Text
-              style={{
-                marginTop: 24,
-                height: 48,
-                fontSize: 32,
-                color: current.card.rarity === "legendary" ? "#f59e0b" : "#64748b",
-              }}
+                <Text style={styles.count}>
+                  {cards.length > 1 ? `${page * 2 + 1}–${page * 2 + 2}` : page * 2 + 1} /{" "}
+                  {query.data!.cards.length}
+                </Text>
+              </View>
+            )}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="スキップ"
+              onPress={finish}
+              disabled={action.pending}
+              style={styles.skip}
             >
-              {marks[current.card.rarity]}
-            </Text>
-          </View>
-        )}
-        {flash && (
-          <View
-            pointerEvents="none"
-            style={{ position: "absolute", inset: 0, backgroundColor: "#ffffff80" }}
-          />
-        )}
-        {!!action.error && (
-          <Text accessibilityRole="alert" style={{ color: "#e11d48", margin: 16 }}>
-            {action.error}
-          </Text>
-        )}
-      </LinearGradient>
+              <Text style={styles.skipText}>スキップ</Text>
+            </Pressable>
+            {detail !== null && cards[detail] && (
+              <OpeningInspection
+                index={detail}
+                count={cards.length}
+                select={setDetail}
+                card={cards[detail].card}
+                isNew={cards[detail].isNew}
+                origin={cards.length === 1 ? 0 : detail === 0 ? -0.22 : 0.22}
+                width={w}
+                height={h}
+                reduced={reduce}
+                close={() => setDetail(null)}
+              />
+            )}
+          </>
+        )
+      )}
+      {!!action.error && (
+        <Text accessibilityRole="alert" style={styles.error}>
+          {action.error}
+        </Text>
+      )}
     </View>
   );
 }
+function PackNeighbor({
+  side,
+  width,
+  height,
+  screenWidth,
+  time,
+  drag,
+  arrival,
+  onSelect,
+  reduced,
+}: {
+  side: number;
+  width: number;
+  height: number;
+  screenWidth: number;
+  time: ReturnType<typeof useSharedValue<number>>;
+  drag: ReturnType<typeof useSharedValue<number>>;
+  arrival: ReturnType<typeof useSharedValue<number>>;
+  onSelect: () => void;
+  reduced: boolean;
+}) {
+  const style = useAnimatedStyle(() => {
+    const offset =
+      (reduced ? side * carouselPitch : carouselOffset(arrival.get(), side)) * screenWidth +
+      drag.get();
+    const distance = Math.min(1, Math.abs(offset) / (screenWidth * carouselPitch));
+    return {
+      opacity:
+        (reduced ? 1 : interpolate(arrival.get(), [120, 250], [0, 1], "clamp")) *
+        (1 - distance * 0.5) *
+        interpolate(time.get(), [0, 400], [1, 0], "clamp"),
+      transform: [
+        { translateX: offset },
+        { perspective: 800 },
+        { rotateY: `${reduced ? 0 : -Math.sign(offset) * distance * 20}deg` },
+        { scale: (1 - distance * 0.07) * (reduced ? 1 : carouselScale(arrival.get())) },
+      ],
+    };
+  });
+  return (
+    <Animated.View
+      style={[
+        {
+          position: "absolute",
+          left: (screenWidth - width) / 2,
+          top: height * restingPackCenter - (width * OPENING_PACK_RATIO) / 2,
+        },
+        style,
+      ]}
+    >
+      <Pressable accessible={false} onPress={onSelect}>
+        <OpeningPack width={width} />
+      </Pressable>
+    </Animated.View>
+  );
+}
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: "#000",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  hint: {
+    position: "absolute",
+    width: "100%",
+    textAlign: "center",
+    color: "#8b8c92",
+    fontSize: 11,
+  },
+  hintInline: { color: "#85878e", fontSize: 11 },
+  controls: { position: "absolute", alignItems: "center", width: "100%" },
+  next: {
+    minHeight: 44,
+    minWidth: 120,
+    paddingHorizontal: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#ffffff35",
+    borderRadius: 24,
+    backgroundColor: "#ffffff0b",
+  },
+  nextText: { color: "#eeeef1", fontSize: 12 },
+  count: { color: "#666971", fontSize: 10, marginTop: 12 },
+  skip: {
+    position: "absolute",
+    right: 12,
+    top: 8,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    justifyContent: "center",
+    zIndex: 10,
+  },
+  skipText: { color: "#777a82", fontSize: 11 },
+  error: { position: "absolute", bottom: 12, color: "#fda4af", padding: 16, zIndex: 30 },
+});

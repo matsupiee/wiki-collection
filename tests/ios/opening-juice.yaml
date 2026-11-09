@@ -1,0 +1,36 @@
+appId: com.matsupiee.wikicollection
+---
+# Run db:seed:opening and sign in as opening-juice1@example.com.
+- openLink: wiki-collection://openings/opening-juice-all-rarities
+- tapOn:
+    text: "開く"
+    optional: true
+- extendedWaitUntil:
+    visible: "タップで開ける"
+    timeout: 15000
+- tapOn: "タップで開ける"
+- extendedWaitUntil:
+    visible: ".*、COMMON、カード詳細"
+    timeout: 12000
+- assertVisible: ".*、UNCOMMON、カード詳細"
+- tapOn: ".*、COMMON、カード詳細"
+- assertVisible: "カードを閉じる"
+- tapOn: "次のカード詳細"
+- assertVisible: "2 / 2"
+- tapOn: "前のカード詳細"
+- assertVisible: "1 / 2"
+- tapOn: "カードを閉じる"
+- tapOn: "次のカード"
+- assertVisible: ".*、RARE、カード詳細"
+- assertVisible: ".*、DOUBLE RARE、カード詳細"
+- tapOn: "次のカード"
+- assertVisible: ".*、LEGENDARY、カード詳細"
+- tapOn: "開封結果を見る"
+- assertVisible: "開封結果"
+- openLink: wiki-collection://openings/opening-juice-skip
+- tapOn:
+    text: "開く"
+    optional: true
+- assertVisible: "タップで開ける"
+- tapOn: "スキップ"
+- assertVisible: "開封結果"

@@ -1,0 +1,27 @@
+appId: com.matsupiee.wikicollection
+---
+# iPhone 18 Pro, portrait. Seed/login prerequisites match opening-juice.yaml.
+- openLink: wiki-collection://openings/opening-juice-all-rarities
+- tapOn:
+    text: "開く"
+    optional: true
+- assertVisible: "タップで開ける"
+- swipe:
+    start: "30%,36%"
+    end: "49%,36%"
+    duration: 450
+- assertVisible: "タップで開ける"
+- takeScreenshot: /tmp/wiki-opening-partial-reset
+- swipe:
+    start: "30%,36%"
+    end: "81%,36%"
+    duration: 600
+- extendedWaitUntil:
+    visible: ".*、COMMON、カード詳細"
+    timeout: 12000
+- tapOn: "スキップ"
+- assertVisible: "開封結果"
+- tapOn: "もう1パック"
+- assertVisible: "タップで開ける"
+- tapOn: "スキップ"
+- assertVisible: "開封結果"

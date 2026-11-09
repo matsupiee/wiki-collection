@@ -51,7 +51,8 @@
     "dev:native": "bun run --cwd apps/native start",
     "dev:native:web": "bun run --cwd apps/native web",
     "db:seed:native": "bun packages/db/src/seed/native-cli.ts",
-    "test:native:e2e": "playwright test --config playwright.native.config.ts"
+    "test:native:e2e": "playwright test --config playwright.native.config.ts",
+    "db:seed:opening": "bun packages/db/src/seed/opening-juice-cli.ts"
   },
   "dependencies": {
     "zod": "catalog:"
