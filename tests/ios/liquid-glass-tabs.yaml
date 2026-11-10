@@ -13,4 +13,4 @@ appId: com.matsupiee.wikicollection
 - tapOn: "ポイント購入"
 - assertVisible: "タブバー"
 - tapOn: "パック"
-- assertVisible: "開封する"
+- assertVisible: "無料で開封する"

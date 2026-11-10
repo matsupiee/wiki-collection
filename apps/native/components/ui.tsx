@@ -2,10 +2,10 @@ import { cardImageDisplayUrl } from "@wiki-collection/db/card-image";
 import { Text, TextInput } from "./typography";
 import { AppBackground } from "./app-background";
 import { Brand, CoinIcon } from "./brand";
-import { ChevronLeft, Swords, Shield } from "lucide-react-native";
+import { ChevronLeft, Gift, Swords, Shield } from "lucide-react-native";
 import type { HistoricalElement } from "@wiki-collection/db/battle";
 import { ElementSymbol } from "./element-symbol";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { PropsWithChildren, ReactNode } from "react";
 import {
   ActivityIndicator,
@@ -18,7 +18,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import type { TextInputProps, StyleProp, ViewStyle, TextStyle } from "react-native";
-import { router, useSegments } from "expo-router";
+import { router, useFocusEffect, useSegments } from "expo-router";
 import { Platform } from "react-native";
 import { SafeAreaView } from "react-native-screens/experimental";
 
@@ -77,6 +77,7 @@ export const styles = StyleSheet.create({
 });
 export function Button({
   title,
+  icon,
   onPress,
   disabled,
   secondary,
@@ -86,6 +87,7 @@ export function Button({
   textStyle,
 }: {
   title: string;
+  icon?: ReactNode;
   onPress: () => void;
   disabled?: boolean;
   secondary?: boolean;
@@ -103,6 +105,7 @@ export function Button({
       onPress={onPress}
       style={[
         styles.button,
+        !!icon && { flexDirection: "row", justifyContent: "center", gap: 6 },
         mode === "outline" && {
           backgroundColor: "rgba(255,255,255,.9)",
           borderWidth: 1,
@@ -124,6 +127,7 @@ export function Button({
         style,
       ]}
     >
+      {icon}
       <Text
         style={[
           styles.buttonText,
@@ -169,6 +173,16 @@ export function Screen({
   scroll?: boolean;
 }>) {
   const trpc = useTRPC();
+  const [showFreePackInfo, setShowFreePackInfo] = useState(false);
+  const [giftCenter, setGiftCenter] = useState(0);
+  const { width } = useWindowDimensions();
+  const headerWidth = Math.min(width, 448);
+  const bubbleWidth = Math.min(248, headerWidth - 32);
+  const bubbleLeft = Math.max(
+    16,
+    Math.min(giftCenter - bubbleWidth / 2, headerWidth - bubbleWidth - 16),
+  );
+  useFocusEffect(useCallback(() => () => setShowFreePackInfo(false), []));
   const balance = useQuery(trpc.coin.getBalance.queryOptions());
   const packs = useQuery(
     trpc.pack.list.queryOptions(undefined, {
@@ -207,12 +221,30 @@ export function Screen({
                 <Brand />
               ) : null}
             </View>
-            <View style={{ alignItems: "center", marginHorizontal: 6 }}>
-              <Text style={{ fontSize: 10, color: "#475569" }}>無料パック</Text>
-              <Text style={{ fontSize: 13, fontWeight: "800", color: "#334155" }}>
-                残り {packs.data?.freePack.remaining ?? "…"}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                packs.data ? `無料パック 残り${packs.data.freePack.remaining}個` : "無料パック"
+              }
+              accessibilityHint="無料パックの回復について表示します"
+              accessibilityState={{ expanded: showFreePackInfo }}
+              onLayout={({ nativeEvent: { layout } }) => setGiftCenter(layout.x + layout.width / 2)}
+              onPress={() => setShowFreePackInfo((open) => !open)}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 44,
+                minHeight: 44,
+                gap: 4,
+                marginHorizontal: 6,
+              }}
+            >
+              <Gift size={20} color="#475569" />
+              <Text style={{ fontSize: 14, fontWeight: "800", color: "#334155" }}>
+                {packs.data?.freePack.remaining ?? "…"}
               </Text>
-            </View>
+            </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="ポイント購入"
@@ -247,6 +279,48 @@ export function Screen({
           </ScrollView>
         ) : (
           <View style={[styles.content, { flex: 1 }, contentStyle]}>{children}</View>
+        )}
+        {showFreePackInfo && (
+          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="無料パックの説明を閉じる"
+              onPress={() => setShowFreePackInfo(false)}
+              style={StyleSheet.absoluteFill}
+            />
+            <View
+              pointerEvents="box-none"
+              style={{ width: "100%", maxWidth: 448, alignSelf: "center" }}
+            >
+              <View
+                style={{
+                  position: "absolute",
+                  top: 52,
+                  left: bubbleLeft,
+                  width: bubbleWidth,
+                  backgroundColor: "#334155",
+                  borderRadius: 12,
+                  paddingHorizontal: 14,
+                  paddingVertical: 10,
+                }}
+              >
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -5,
+                    left: giftCenter - bubbleLeft - 5,
+                    width: 10,
+                    height: 10,
+                    backgroundColor: "#334155",
+                    transform: [{ rotate: "45deg" }],
+                  }}
+                />
+                <Text accessibilityRole="alert" style={[styles.text, { color: "white" }]}>
+                  10分ごとに無料パックが1つ引けるようになる
+                </Text>
+              </View>
+            </View>
+          </View>
         )}
       </SafeAreaView>
     </View>

@@ -17,6 +17,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/client";
 import { useAction } from "@/lib/mutation";
 import { Button, Confirm, Loading, Screen, styles } from "@/components/ui";
+import { CoinIcon } from "@/components/brand";
 import { OpeningPack } from "@/components/opening-pack";
 import { formatClock, formatPt } from "@/lib/format";
 const packWidth = 178;
@@ -132,7 +133,7 @@ export default function Packs() {
     setIndex(next);
   }
   return (
-    <Screen contentStyle={{ flexGrow: 1, gap: 0, paddingTop: 32, paddingBottom: 32 }}>
+    <Screen contentStyle={{ flexGrow: 1, gap: 0, paddingTop: 72, paddingBottom: 32 }}>
       {!packs.data ? (
         <Loading error={packs.error} retry={packs.refetch} />
       ) : (
@@ -201,17 +202,15 @@ export default function Packs() {
                   10分で1パック回復（最大{freePack.limit}パック）
                 </Text>
               )}
-              <Text
-                style={{ textAlign: "center", fontSize: 22, fontWeight: "800", color: "#334155" }}
-              >
-                {formatPt(p.type === "free_basic" ? 0 : (p.priceCoins ?? 0))}
-              </Text>
               <Button
                 title={
                   waitingForRefill && freePack.nextRefillAt
                     ? `次の無料パックまで ${formatClock(Date.parse(freePack.nextRefillAt) - now)}`
-                    : "開封する"
+                    : freePack
+                      ? "無料で開封する"
+                      : `${formatPt(p.priceCoins ?? 0)} で開封する`
                 }
+                icon={freePack ? undefined : <CoinIcon />}
                 disabled={action.pending || waitingForRefill}
                 onPress={() =>
                   void action.run(async () => {

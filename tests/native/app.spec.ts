@@ -30,8 +30,8 @@ test("ログイン・開封再開・カード・対戦・履歴・ログアウ�
   await page.mouse.up();
   await expect.poll(async () => (await basicPack.boundingBox())?.x).toBeCloseTo(initial.x, 0);
   await page.getByRole("button", { name: "基本パックを選ぶ", exact: true }).click();
-  await expect(page.getByText("0pt", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "開封する", exact: true }).click();
+  await expect(page.getByText("0pt", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "無料で開封する", exact: true }).click();
   await expect(page.getByRole("button", { name: "タップで開ける", exact: true })).toBeVisible();
   const opening = page.url();
   // 戻り先がある状態で、途中まで／最後まで切り口をなぞる。
@@ -241,10 +241,18 @@ test("新規登録と未ログイン時の保護、Webとアプリの規約", as
   await page.getByRole("textbox", { name: "パスワード" }).fill("password1234");
   await page.getByRole("button", { name: "登録する", exact: true }).click();
   await expect(page.getByRole("button", { name: "基本パックを選ぶ", exact: true })).toBeVisible();
-  await expect(page.getByText("残り 10", { exact: true })).toBeVisible();
+  const freePacks = page.getByRole("button", { name: "無料パック 残り10個", exact: true });
+  await expect(freePacks).toHaveText("10");
+  await freePacks.click();
+  await expect(page.getByText("10分ごとに無料パックが1つ引けるようになる")).toBeVisible();
+  await page
+    .getByRole("button", { name: "無料パックの説明を閉じる" })
+    .click({ position: { x: 8, y: 200 } });
+  await expect(page.getByText("10分ごとに無料パックが1つ引けるようになる")).toHaveCount(0);
+  await expect(freePacks).toBeVisible();
   await page.getByRole("button", { name: "ダブルレア確定ガチャへ", exact: true }).click();
-  await expect(page.getByText("100pt", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "開封する", exact: true }).click();
+  await expect(page.getByText("100pt", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "100pt で開封する", exact: true }).click();
   await expect(page.getByText("ポイントが不足しています", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "ポイント購入へ", exact: true }).click();
   await expect(page).toHaveURL(/\/point$/);

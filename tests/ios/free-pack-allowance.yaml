@@ -2,8 +2,20 @@ appId: com.matsupiee.wikicollection
 ---
 # 無料枠のseedで残り0にし、基本パックを表示してから実行する。
 - assertVisible: "次の無料パックまで [0-9]{2}:[0-9]{2}:[0-9]{2}"
-- assertNotVisible: "開封する"
+- assertNotVisible: "無料で開封する"
 - extendedWaitUntil:
-    visible: "開封する"
+    visible: "無料で開封する"
     timeout: 30000
 - assertNotVisible: "次の無料パックまで.*"
+- tapOn: "無料パック 残り1個"
+- assertVisible: "10分ごとに無料パックが1つ引けるようになる"
+- tapOn:
+    point: "50%,50%"
+- assertNotVisible: "10分ごとに無料パックが1つ引けるようになる"
+- assertVisible: "無料パック 残り1個"
+- tapOn: "ダブルレア確定ガチャへ"
+- assertVisible: "100pt で開封する"
+- assertNotVisible: "^100pt$"
+- tapOn: "レジェンド確定ガチャへ"
+- assertVisible: "500pt で開封する"
+- tapOn: "基本パックへ"
