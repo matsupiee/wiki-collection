@@ -25,9 +25,15 @@ function storage() {
   return { saved, api };
 }
 const png = () =>
-  new Response(new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), {
-    headers: { "Content-Type": "image/png" },
-  });
+  new Response(
+    Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAIAAADZSiLoAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAD0lEQVQImWNgaGCAIiwsAEOeBIE/4ZsuAAAAAElFTkSuQmCC",
+      "base64",
+    ),
+    {
+      headers: { "Content-Type": "image/png" },
+    },
+  );
 
 describe("mirrorImages", () => {
   test("画像を保存し、URL が同じカードと再実行では再取得しない。元データも変えない", async () => {
@@ -44,7 +50,7 @@ describe("mirrorImages", () => {
     expect(await mirrorImages(input)).toEqual({ uploaded: 1, existing: 0, skipped: 2, failed: 0 });
     expect((await mirrorImages(input)).existing).toBe(1);
     expect(calls).toBe(1);
-    expect(saved.get(await cardImageKey(source))?.type).toBe("image/png");
+    expect(saved.get(await cardImageKey(source))?.type).toBe("image/webp");
     expect(JSON.stringify(cards)).toBe(before);
   });
   test("並列転送は指定数以内で重なり、重複と試行上限を守る", async () => {

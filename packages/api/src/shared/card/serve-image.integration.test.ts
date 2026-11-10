@@ -45,14 +45,19 @@ describe("card image delivery", () => {
     expect(res.headers.get("cache-control")).toBe("no-store");
   });
   test("R2 の画像バイトを返し、ETag と HEAD に対応する", async () => {
-    const bytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const bytes = Uint8Array.from(
+      Buffer.from(
+        "UklGRjoAAABXRUJQVlA4IC4AAADQAQCdASoDAAMAAUAmJaACdLoB+AADsAD+82mX/mwIGaH0wf+mkeNI8aR8poAA",
+        "base64",
+      ),
+    );
     await bucket.put(await cardImageKey(source), bytes, {
-      httpMetadata: { contentType: "image/png" },
+      httpMetadata: { contentType: "image/webp" },
     });
     const res = await request();
     expect(res.status).toBe(200);
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(bytes);
-    expect(res.headers.get("content-type")).toBe("image/png");
+    expect(res.headers.get("content-type")).toBe("image/webp");
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
     const etag = res.headers.get("etag")!;
     const cached = await request(source, { headers: { "If-None-Match": `"other", W/${etag}` } });
@@ -60,8 +65,17 @@ describe("card image delivery", () => {
     expect(await cached.text()).toBe("");
     const head = await request(source, { method: "HEAD" });
     expect(head.status).toBe(200);
-    expect(head.headers.get("content-length")).toBe("8");
+    expect(head.headers.get("content-length")).toBe(String(bytes.length));
     expect(await head.text()).toBe("");
+  });
+  test("以前に保存したJPEGも同じURLから配信する", async () => {
+    const legacy = source.replace("Test.png", "Legacy.jpg");
+    await bucket.put(await cardImageKey(legacy), new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), {
+      httpMetadata: { contentType: "image/jpeg" },
+    });
+    const res = await request(legacy, { method: "HEAD" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/jpeg");
   });
   test("任意の URL や非画像オブジェクトを配信しない", async () => {
     for (const bad of [

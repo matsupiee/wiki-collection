@@ -17,7 +17,7 @@ appId: com.matsupiee.wikicollection
     end: "81%,36%"
     duration: 600
 - extendedWaitUntil:
-    visible: ".*、COMMON、カード詳細"
+    visible: ".*、COMMON、めくる"
     timeout: 12000
 - tapOn: "スキップ"
 - assertVisible: "開封結果"

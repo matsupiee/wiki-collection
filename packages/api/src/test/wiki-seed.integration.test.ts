@@ -31,7 +31,13 @@ test("wiki seed resets existing data, creates 100 cards and stores every image i
         images: proxy.env.CARD_IMAGES,
         store,
         fetch: async () =>
-          new Response(new Uint8Array([1, 2, 3]), { headers: { "Content-Type": "image/png" } }),
+          new Response(
+            Buffer.from(
+              "iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAIAAADZSiLoAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAD0lEQVQImWNgaGCAIiwsAEOeBIE/4ZsuAAAAAElFTkSuQmCC",
+              "base64",
+            ),
+            { headers: { "Content-Type": "image/png" } },
+          ),
         sleep: async () => {},
       });
       expect(await db.select().from(user)).toHaveLength(0);
@@ -40,7 +46,9 @@ test("wiki seed resets existing data, creates 100 cards and stores every image i
       expect(rows).toHaveLength(100);
       for (const row of rows) {
         expect(row.imageCredit).toBeTruthy();
-        expect(await proxy.env.CARD_IMAGES.head(await cardImageKey(row.imageUrl!))).not.toBeNull();
+        const image = await proxy.env.CARD_IMAGES.head(await cardImageKey(row.imageUrl!));
+        expect(image?.httpMetadata?.contentType).toBe("image/webp");
+        expect(image!.size).toBeLessThanOrEqual(50_000);
       }
     }
     const ctx = await createUserContext(db);

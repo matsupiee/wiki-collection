@@ -1,4 +1,5 @@
 import { cardImageKey, cardImageTypes, commonsImageUrl } from "@wiki-collection/db/card-image";
+import { encodeCardWebp } from "./card-webp";
 import type { CardRecord } from "./card-store";
 import { USER_AGENT } from "./wikimedia-client";
 
@@ -65,8 +66,9 @@ export async function mirrorImages(input: {
         if (stopped || attempted >= limit) return;
         attempted++;
         try {
-          const { bytes, contentType } = await downloadImage(source, doFetch, sleep);
-          await input.storage.put(key, bytes, contentType);
+          const { bytes } = await downloadImage(source, doFetch, sleep);
+          const webp = await encodeCardWebp(bytes);
+          await input.storage.put(key, webp, "image/webp");
           result.uploaded++;
           log(`保存: ${key}`);
         } catch (error) {

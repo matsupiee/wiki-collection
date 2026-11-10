@@ -73,18 +73,19 @@ test("ログイン・開封再開・カード・対戦・履歴・ログアウ�
   await expect(page).toHaveURL(opening);
   await expect(page.getByRole("button", { name: "タップで開ける", exact: true })).toBeVisible();
   await swipe(0.95);
-  await expect(page.getByRole("button", { name: "次のカード", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /、めくる$/ })).toBeVisible();
   await expect(page).toHaveURL(opening);
   await page.reload();
   await expect(page.getByRole("button", { name: "タップで開ける", exact: true })).toBeVisible();
   expect(page.url()).toBe(opening);
   await page.getByRole("button", { name: "タップで開ける", exact: true }).click();
-  for (const range of ["1–2 / 5", "3–4 / 5"]) {
-    await expect(page.getByText(range, { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: /、カード詳細$/ })).toHaveCount(2);
-    await page.getByRole("button", { name: "次のカード", exact: true }).click();
+  const front = page.getByRole("button", { name: /、めくる$/ });
+  for (let i = 1; i < 5; i++) {
+    await expect(page.getByText(new RegExp(`^${i} / 5`))).toBeVisible();
+    await expect(front).toHaveCount(1);
+    await front.click();
   }
-  await page.getByRole("button", { name: "開封結果を見る", exact: true }).click();
+  await page.getByRole("button", { name: /、開封結果を見る$/ }).click();
   await expect(page.getByText("開封結果", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "コレクションへ", exact: true }).click();
   await page.getByRole("button", { name: "並び順", exact: true }).click();

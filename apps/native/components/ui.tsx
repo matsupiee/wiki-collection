@@ -268,33 +268,20 @@ export const marks: Record<string, string> = {
   double_rare: "◇◇◇◇",
   legendary: "☆",
 };
-export function Card({
+export type CardArtData = { title: string; imageUrl: string | null; genreColorHex?: string };
+export function CardArt({
   card,
-  small = false,
-  size,
-  onPress,
+  effectiveSize = "md",
   ownedCount,
-  elementBadge,
 }: {
-  card: {
-    title: string;
-    imageUrl: string | null;
-    genreColorHex?: string;
-    rarity?: string;
-    element?: HistoricalElement;
-  };
-  small?: boolean;
-  size?: "xs" | "sm" | "md" | "lg";
-  onPress?: () => void;
+  card: CardArtData;
+  effectiveSize?: "xs" | "sm" | "md" | "lg";
   ownedCount?: number;
-  elementBadge?: ReactNode;
 }) {
-  const effectiveSize = size ?? (small ? "sm" : "md");
-  const showText = effectiveSize !== "xs";
   const [failed, setFailed] = useState(false);
   const uri = card.imageUrl ? new URL(cardImageDisplayUrl(card.imageUrl), apiUrl).href : null;
   useEffect(() => setFailed(false), [uri]);
-  const art = (
+  return (
     <View
       style={{
         width: "100%",
@@ -344,6 +331,31 @@ export function Card({
       )}
     </View>
   );
+}
+export function Card({
+  card,
+  small = false,
+  size,
+  onPress,
+  ownedCount,
+  elementBadge,
+}: {
+  card: {
+    title: string;
+    imageUrl: string | null;
+    genreColorHex?: string;
+    rarity?: string;
+    element?: HistoricalElement;
+  };
+  small?: boolean;
+  size?: "xs" | "sm" | "md" | "lg";
+  onPress?: () => void;
+  ownedCount?: number;
+  elementBadge?: ReactNode;
+}) {
+  const effectiveSize = size ?? (small ? "sm" : "md");
+  const showText = effectiveSize !== "xs";
+  const art = <CardArt card={card} effectiveSize={effectiveSize} ownedCount={ownedCount} />;
   const title = (
     <Text
       numberOfLines={2}

@@ -12,7 +12,6 @@ import Svg, {
 } from "react-native-svg";
 import { wrapperPosition } from "./opening-geometry";
 import { OpeningStars } from "./opening-effects";
-export { CinematicCard } from "./opening-stage-card";
 type SceneProps = { width: number; height: number; time: SharedValue<number>; reduced: boolean };
 export function OpeningAtmosphere({ width, height, time, reduced }: SceneProps) {
   const id = useId().replace(/:/g, "");

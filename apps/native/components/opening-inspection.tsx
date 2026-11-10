@@ -8,13 +8,17 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { OpeningCardFace, openingFaceRatio, type OpeningCardData } from "./opening-card";
+import { CardArt, type CardArtData } from "./ui";
 import { Text } from "./typography";
 
 type InspectionProps = {
-  card: OpeningCardData;
+  card: CardArtData & {
+    rarity: string;
+    genreName: string;
+    summary: string | null;
+    monthlyPageviews: number;
+  };
   isNew: boolean;
-  origin: number;
   width: number;
   height: number;
   reduced: boolean;
@@ -26,7 +30,6 @@ type InspectionProps = {
 export function OpeningInspection({
   card,
   isNew,
-  origin,
   width,
   height,
   reduced,
@@ -36,7 +39,7 @@ export function OpeningInspection({
   close,
 }: InspectionProps) {
   const zoom = useSharedValue(0);
-  const cardWidth = Math.min(width * 0.656, (height * 0.59) / openingFaceRatio(card.rarity));
+  const cardWidth = Math.min(width * 0.656, height * 0.43);
   useEffect(() => {
     zoom.set(
       withTiming(1, { duration: reduced ? 0 : 155, easing: Easing.bezier(0.23, 1, 0.32, 1) }),
@@ -45,15 +48,7 @@ export function OpeningInspection({
   }, [zoom, reduced]);
   const backdrop = useAnimatedStyle(() => ({ opacity: zoom.get() }));
   const cardStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: reduced ? 0 : origin * width * (1 - zoom.get()) },
-      { translateY: reduced ? 0 : height * 0.034 * (1 - zoom.get()) },
-      {
-        scale: reduced
-          ? 1
-          : (width * 0.36) / cardWidth + zoom.get() * (1 - (width * 0.36) / cardWidth),
-      },
-    ],
+    transform: [{ scale: reduced ? 1 : 0.95 + 0.05 * zoom.get() }],
   }));
   return (
     <View
@@ -79,17 +74,23 @@ export function OpeningInspection({
           {
             position: "absolute",
             left: (width - cardWidth) / 2,
-            top: height * 0.456 - (cardWidth * openingFaceRatio(card.rarity)) / 2,
+            top: height * 0.38 - cardWidth / 2,
+            width: cardWidth,
             boxShadow: "0 10px 22px #0008",
           },
           cardStyle,
         ]}
       >
-        <OpeningCardFace key={card.title} card={card} width={cardWidth} />
+        <CardArt key={index} card={card} />
       </Animated.View>
       <Animated.View
         style={[
-          { position: "absolute", top: height * 0.79 - 22, width: "100%", alignItems: "center" },
+          {
+            position: "absolute",
+            top: height * 0.38 + cardWidth / 2 + 8,
+            width: "100%",
+            alignItems: "center",
+          },
           backdrop,
         ]}
       >
@@ -120,8 +121,19 @@ export function OpeningInspection({
             </Pressable>
           )}
         </View>
-        <Text numberOfLines={2} style={[styles.title, { marginTop: height * 0.05 }]}>
+        <Text numberOfLines={2} style={[styles.title, { marginTop: 4 }]}>
           {card.title}
+        </Text>
+        <Text style={styles.caption}>
+          {card.genreName} · {card.rarity.replace("_", " ").toUpperCase()}
+        </Text>
+        {card.summary && (
+          <Text numberOfLines={3} style={styles.caption}>
+            {card.summary}
+          </Text>
+        )}
+        <Text style={styles.caption}>
+          月間閲覧数 {card.monthlyPageviews.toLocaleString("ja-JP")} 回
         </Text>
         {isNew && <Text style={styles.newLabel}>NEW</Text>}
       </Animated.View>
@@ -148,6 +160,13 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     paddingHorizontal: 24,
     textAlign: "center",
+  },
+  caption: {
+    color: "#b8bbc0",
+    fontSize: 12,
+    textAlign: "center",
+    paddingHorizontal: 24,
+    marginTop: 4,
   },
   newLabel: { color: "#ffc677", fontSize: 10, letterSpacing: 2, marginTop: 4 },
 });

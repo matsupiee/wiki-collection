@@ -16,6 +16,7 @@
   "dependencies": {
     "@wiki-collection/db": "workspace:*",
     "drizzle-orm": "catalog:",
+    "sharp": "0.35.5",
     "zod": "catalog:"
   },
   "devDependencies": {

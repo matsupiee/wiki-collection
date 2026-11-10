@@ -11,6 +11,6 @@ const area=page.getByTestId('tear-area');const box=await area.boundingBox();
 await page.mouse.move(box.x+4,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+box.width*.5,box.y+box.height/2,{steps:5});await page.mouse.up();
 await expect(page.getByRole('button',{name:'タップで開ける',exact:true})).toBeVisible();
 await page.mouse.move(box.x+4,box.y+box.height/2);await page.mouse.down();await page.mouse.move(box.x+box.width*.96,box.y+box.height/2,{steps:12});await page.mouse.up();
-await expect(page.getByRole('button',{name:'次のカード',exact:true})).toBeVisible();await fs.mkdir('output/native-parity/round-15',{recursive:true});await page.screenshot({path:'output/native-parity/round-15/opening-card-native.png'});
+await expect(page.getByRole('button',{name:/、めくる$/})).toBeVisible();await fs.mkdir('output/native-parity/round-15',{recursive:true});await page.screenshot({path:'output/native-parity/round-15/opening-card-native.png'});
 await page.getByRole('button',{name:'スキップ',exact:true}).click();await expect(page.getByText('開封結果',{exact:true})).toBeVisible();await page.screenshot({path:'output/native-parity/round-15/result-native.png'});
 expect(errors).toEqual([]);console.log('Partial drag resets, full drag opens, skip reveals result: passed');await browser.close();

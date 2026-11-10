@@ -10,22 +10,28 @@ appId: com.matsupiee.wikicollection
     timeout: 15000
 - tapOn: "タップで開ける"
 - extendedWaitUntil:
-    visible: ".*、COMMON、カード詳細"
+    visible: ".*、COMMON、めくる"
     timeout: 12000
-- assertVisible: ".*、UNCOMMON、カード詳細"
-- tapOn: ".*、COMMON、カード詳細"
-- assertVisible: "カードを閉じる"
-- tapOn: "次のカード詳細"
+- assertNotVisible: ".*、UNCOMMON、めくる"
+- swipe:
+    start: "55%,47%"
+    end: "61%,47%"
+    duration: 500
+- assertVisible: ".*、COMMON、めくる"
+- swipe:
+    start: "70%,47%"
+    end: "28%,47%"
+    duration: 500
+- assertVisible: ".*、UNCOMMON、めくる"
+- tapOn: "写真の詳細を見る"
 - assertVisible: "2 / 2"
 - tapOn: "前のカード詳細"
 - assertVisible: "1 / 2"
 - tapOn: "カードを閉じる"
-- tapOn: "次のカード"
-- assertVisible: ".*、RARE、カード詳細"
-- assertVisible: ".*、DOUBLE RARE、カード詳細"
-- tapOn: "次のカード"
-- assertVisible: ".*、LEGENDARY、カード詳細"
-- tapOn: "開封結果を見る"
+- tapOn: ".*、UNCOMMON、めくる"
+- tapOn: ".*、RARE、めくる"
+- tapOn: ".*、DOUBLE RARE、めくる"
+- tapOn: ".*、LEGENDARY、開封結果を見る"
 - assertVisible: "開封結果"
 - openLink: wiki-collection://openings/opening-juice-skip
 - tapOn:

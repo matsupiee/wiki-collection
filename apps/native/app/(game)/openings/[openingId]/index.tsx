@@ -11,7 +11,6 @@ import Animated, {
   cancelAnimation,
   Easing,
   interpolate,
-  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -37,9 +36,9 @@ import {
   sealFraction,
   wrapperPosition,
 } from "../../../../components/opening-geometry";
+import { OpeningPhoto, stackReadyAt } from "../../../../components/opening-photo";
 import { OpeningInspection } from "../../../../components/opening-inspection";
 import {
-  CinematicCard,
   OpeningAtmosphere,
   OpeningBeam,
   OpeningRainbow,
@@ -56,7 +55,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
   const action = useAction();
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [stage, setStage] = useState<"pack" | "running" | "revealed">("pack");
-  const [page, setPage] = useState(0);
+  const [front, setFront] = useState(0);
   const [detail, setDetail] = useState<number | null>(null);
   const [motionPreference, setMotionPreference] = useState<boolean | null>(null);
   const reduce = motionPreference !== false;
@@ -87,8 +86,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
   const { width: w, height: h } = size;
   const pw = w * 0.48;
   const ph = pw * OPENING_PACK_RATIO;
-  const cards = query.data?.cards.slice(page * 2, page * 2 + 2) ?? [];
-  const last = (page + 1) * 2 >= (query.data?.cards.length ?? 0);
+  const cards = query.data?.cards ?? [];
   useEffect(() => {
     mounted.current = true;
     let active = true;
@@ -126,13 +124,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
     busy.current = false;
     setStage("revealed");
   }
-  useAnimatedReaction(
-    () => time.get() >= 4300,
-    (done, previous) => {
-      if (done && !previous) scheduleOnRN(revealed);
-    },
-  );
-  function play(nextPage = 0, side = 0) {
+  function play(side = 0) {
     if (leaving.current) {
       if (!busy.current && stage === "pack") {
         committed.set(false);
@@ -152,16 +144,20 @@ function OpeningScene({ openingId }: { openingId: string }) {
       withTiming(0, { duration: reduce ? 0 : 320, easing: Easing.bezier(0.23, 1, 0.32, 1) }),
     );
     committed.set(true);
-    setPage(nextPage);
+    const end = stackReadyAt;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (reduce) {
-      time.set(5000);
+      time.set(end);
       revealed();
       return;
     }
     setStage("running");
-    time.set(nextPage ? 1350 : 0);
-    time.set(withTiming(5000, { duration: nextPage ? 3650 : 5000, easing: Easing.linear }));
+    time.set(0);
+    time.set(
+      withTiming(end, { duration: end, easing: Easing.linear }, (finished) => {
+        if (finished) scheduleOnRN(revealed);
+      }),
+    );
   }
   function finish() {
     if (leaving.current) return;
@@ -256,23 +252,6 @@ function OpeningScene({ openingId }: { openingId: string }) {
       ],
     };
   });
-  // Keep the card behind the foil: a moving aperture ends exactly at the mouth.
-  const aperture = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY:
-          reduce || page > 0 ? 0 : Math.min(0, wrapperPosition(time.get(), w, h).mouth - h),
-      },
-    ],
-  }));
-  const undoAperture = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY:
-          reduce || page > 0 ? 0 : Math.max(0, h - wrapperPosition(time.get(), w, h).mouth),
-      },
-    ],
-  }));
   const sealStyle = useAnimatedStyle(() => ({
     opacity: interpolate(time.get(), [620, 790], [1, 0], "clamp"),
     transform: [
@@ -304,32 +283,26 @@ function OpeningScene({ openingId }: { openingId: string }) {
         w > 0 && (
           <>
             <OpeningRainbow time={time} width={w} height={h} reduced={reduce} />
-            <Animated.View
-              pointerEvents="box-none"
-              style={[StyleSheet.absoluteFill, { overflow: "hidden" }, aperture]}
-            >
-              <Animated.View
-                pointerEvents="box-none"
-                style={[StyleSheet.absoluteFill, undoAperture]}
-              >
-                {cards.map((c, i) => (
-                  <CinematicCard
-                    key={`${page}-${c.userCardId}`}
-                    card={c.card}
-                    slot={i}
-                    count={cards.length}
-                    time={time}
-                    width={w}
-                    height={h}
-                    reduced={reduce}
-                    firstPage={page === 0}
-                    revealed={stage === "revealed"}
-                    onPress={() => setDetail(i)}
-                  />
-                ))}
-              </Animated.View>
-            </Animated.View>
-            {page === 0 && stage !== "revealed" && (
+            {stage !== "pack" &&
+              cards.slice(front).map((c, depth) => (
+                <OpeningPhoto
+                  key={c.userCardId}
+                  card={c.card}
+                  depth={depth}
+                  width={w}
+                  height={h}
+                  time={time}
+                  reduced={reduce}
+                  enabled={stage === "revealed" && detail === null && !action.pending}
+                  last={front + depth === cards.length - 1}
+                  onTurn={() => {
+                    if (!mounted.current) return;
+                    if (front === cards.length - 1) finish();
+                    else setFront(front + 1);
+                  }}
+                />
+              ))}
+            {stage !== "revealed" && (
               <>
                 {[-2, -1, 1, 2].map((side) => (
                   <PackNeighbor
@@ -342,7 +315,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
                     time={time}
                     drag={drag}
                     arrival={arrival}
-                    onSelect={() => play(0, side)}
+                    onSelect={() => play(side)}
                     reduced={reduce}
                   />
                 ))}
@@ -426,20 +399,21 @@ function OpeningScene({ openingId }: { openingId: string }) {
             )}
             {stage === "revealed" && (
               <View style={[styles.controls, { top: h * 0.81 }]}>
-                <Text style={styles.hintInline}>タップしてカードを見る</Text>
+                <Text style={styles.hintInline}>
+                  {front + 1} / {cards.length}　
+                  {front + 1 === cards.length
+                    ? "めくって結果を見る"
+                    : "タップまたはスワイプでめくる"}
+                </Text>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={last ? "開封結果を見る" : "次のカード"}
-                  onPress={() => (last ? finish() : play(page + 1))}
+                  accessibilityLabel="写真の詳細を見る"
+                  onPress={() => setDetail(front)}
                   disabled={action.pending}
                   style={styles.next}
                 >
-                  <Text style={styles.nextText}>{last ? "開封結果を見る" : "次のカードへ"}</Text>
+                  <Text style={styles.nextText}>写真の詳細を見る</Text>
                 </Pressable>
-                <Text style={styles.count}>
-                  {cards.length > 1 ? `${page * 2 + 1}–${page * 2 + 2}` : page * 2 + 1} /{" "}
-                  {query.data!.cards.length}
-                </Text>
               </View>
             )}
             <Pressable
@@ -454,11 +428,10 @@ function OpeningScene({ openingId }: { openingId: string }) {
             {detail !== null && cards[detail] && (
               <OpeningInspection
                 index={detail}
-                count={cards.length}
+                count={front + 1}
                 select={setDetail}
                 card={cards[detail].card}
                 isNew={cards[detail].isNew}
-                origin={cards.length === 1 ? 0 : detail === 0 ? -0.22 : 0.22}
                 width={w}
                 height={h}
                 reduced={reduce}
@@ -564,7 +537,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff0b",
   },
   nextText: { color: "#eeeef1", fontSize: 12 },
-  count: { color: "#666971", fontSize: 10, marginTop: 12 },
   skip: {
     position: "absolute",
     right: 12,

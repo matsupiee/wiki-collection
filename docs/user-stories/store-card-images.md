@@ -10,7 +10,7 @@
 ## 動作確認の手順
 
 1. `bun run db:seed:images` と `bun run dev:local` を実行する。
-   - seed が表示する URL をブラウザで開くと、テスト用 PNG が表示される。外部画像サーバーへの接続や D1 の初期化は行わない。
+   - seed が表示する URL をブラウザで開くと、テスト用 WebP が表示される。外部画像サーバーへの接続や D1 の初期化は行わない。
 2. [Wikipedia の記事をカードとして取り込む](./import-cards-from-wikipedia.md) の手順で画像付きのカードを取り込む。
    - 保存前は画像 API から元の Wikimedia URL に転送し、従来どおり画像が表示される。
 3. `bun run wiki:images --limit 30` を実行する。
@@ -18,7 +18,7 @@
    - 既定で最大3件を並列転送する。`--concurrency 6` を追加すると最大6件、`--concurrency 1` なら逐次処理になる。並列実行でも30件の試行上限と重複排除が守られる。
    - カードの元 URL、作者・ライセンス、要約、レアリティは変わらない。
 4. 保存した画像があるカードをコレクション・詳細・開封結果で表示する。
-   - 画像 API が R2 のバイトを返し、ブラウザから Wikimedia への直接アクセスは発生しない。
+   - 新規保存した画像は画像 API が image/webp で返し、Content-Length は50,000バイト以下になる。ブラウザから Wikimedia への直接アクセスは発生しない。
    - 元データには作者・ライセンスが残るが、詳細画面には表示しない。画像がないカードはタイトルの1文字目を表示する。
 5. 同じコマンドを再実行する。
    - 保存済みの画像を再取得せず、次の未保存画像へ進む。複数カードが同じ画像 URL を使っても重複保存しない。
@@ -36,6 +36,7 @@
 
 - `packages/wiki-import/src/mirror-images.test.ts`: 保存、重複排除、再実行、上限、失敗時の継続、再試行、転送先・形式・サイズの検査。
 - `packages/api/src/shared/card/serve-image.integration.test.ts`: 実際のローカル R2 を使った配信、未保存時の転送、HEAD、ETag、不正 URL・形式の拒否。
-- ブラウザでテスト PNG と実画像を表示し、既存のカード画面を確認する。
+- `packages/wiki-import/src/card-webp.test.ts`: 対応する入力形式、容量の上限、小さい画像の寸法、破損した入力の拒否。
+- iOSアプリのカード詳細で、R2から配信されたWebPが表示されることを確認する。
 
 ローカル環境を実際の画像付きカード100件から確認するときは [Wikiカードのシード](../development/wiki-seed.md) を使う。`packages/api/src/test/wiki-seed.integration.test.ts` が全削除、100件の登録、全画像のR2保存、再実行、入力不足時の削除防止、画像取得失敗時の異常終了を確認する。
