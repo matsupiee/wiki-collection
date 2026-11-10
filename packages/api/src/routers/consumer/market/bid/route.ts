@@ -1,3 +1,4 @@
+import { minimumAuctionPrice } from "@wiki-collection/db/enums";
 import z from "zod";
 
 import { protectedProcedure } from "../../../../index";
@@ -5,7 +6,7 @@ import { handler } from "./handler";
 
 export const marketBidInputSchema = z.object({
   listingId: z.string(),
-  amount: z.number().int().min(1).max(10_000_000),
+  amount: z.number().int().min(minimumAuctionPrice).max(10_000_000),
 });
 
 export const marketBidOutputSchema = z.object({ currentPrice: z.number() });

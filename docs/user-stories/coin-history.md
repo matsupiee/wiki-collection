@@ -9,7 +9,7 @@ pt を使っているユーザーとして、いつ、何で pt が増えたり�
 
 ## 動作確認の手順
 
-`bun run db:seed` を実行し、`bun run dev:local` で起動しておく。
+`bun packages/db/src/seed/index.ts` を実行し、`bun run dev:local` で起動しておく。
 
 1. `hanako@example.com` でログインし、マイページの「pt の履歴」を開く。
    - 残高の合計と、有償・無償の内訳が出る。

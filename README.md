@@ -27,7 +27,7 @@ bun install
 
 This project uses Cloudflare D1 (SQLite) with Drizzle ORM.
 
-Local development uses the Cloudflare `DB` binding from `apps/web/wrangler.local.jsonc`. The development server, `db:seed`, and `wiki:load` share the database under `.wrangler/state/v3/d1/`. Production bindings are configured in `packages/infra/alchemy.run.ts`. If a local `DATABASE_URL` is present, it is only for database tooling.
+Local development uses the Cloudflare `DB` binding from `apps/web/wrangler.local.jsonc`. The development server and `db:seed:local` share the database under `.wrangler/state/v3/d1/`. Production bindings are configured in `packages/infra/alchemy.run.ts`. If a local `DATABASE_URL` is present, it is only for database tooling.
 
 Alchemy provisions the D1 database and applies migrations during `deploy`.
 
@@ -40,7 +40,7 @@ bun run db:generate
 For a fresh local database, create the sample data once:
 
 ```bash
-bun run db:seed
+bun run db:seed:local
 ```
 
 This resets all local data. Skip it if you already have data to keep.

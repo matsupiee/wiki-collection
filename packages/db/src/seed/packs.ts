@@ -8,24 +8,34 @@ import { basicRates } from "./master-data";
 const guaranteedPacks = [
   {
     slug: "double-rare-guaranteed",
-    name: "ダブルレア確定ガチャ",
-    description: "5枚すべてダブルレア以上。",
+    name: "SR1枚確定ガチャ",
+    description: "5枚のうち1枚はSR確定。",
     priceCoins: 100,
     colorHex: "#4f46e5",
-    rates: [
-      { rarity: "double_rare", weight: 9900 },
-      { rarity: "legendary", weight: 100 },
-    ],
+    guaranteedRarity: "super_rare",
   },
   {
     slug: "legend-guaranteed",
-    name: "レジェンド確定ガチャ",
-    description: "5枚すべてレジェンド。",
+    name: "レジェンド1枚確定ガチャ",
+    description: "5枚のうち1枚はレジェンド確定。",
     priceCoins: 500,
     colorHex: "#b45309",
-    rates: [{ rarity: "legendary", weight: 10000 }],
+    guaranteedRarity: "legendary",
   },
 ] as const;
+
+function slotRows(packId: string, rates: Partial<Record<Rarity, number>>[]) {
+  return rates.flatMap((weights, index) =>
+    Object.entries(weights)
+      .filter(([, weight]) => weight > 0)
+      .map(([rarity, weight]) => ({
+        packId,
+        slot: index + 1,
+        rarity: rarity as Rarity,
+        weight,
+      })),
+  );
+}
 
 export async function syncGuaranteedPacks(db: Database) {
   const retireGenres = db
@@ -33,7 +43,7 @@ export async function syncGuaranteedPacks(db: Database) {
     .set({ isActive: false })
     .where(and(eq(pack.type, "premium"), isNotNull(pack.genreId), eq(pack.isActive, true)));
   const queries: [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]] = [retireGenres];
-  for (const [index, { rates, ...definition }] of guaranteedPacks.entries()) {
+  for (const [index, { guaranteedRarity, ...definition }] of guaranteedPacks.entries()) {
     const values = { ...definition, type: "premium" as const, sortOrder: index + 1 };
     const id = definition.slug;
     queries.push(
@@ -44,9 +54,7 @@ export async function syncGuaranteedPacks(db: Database) {
       db.delete(packSlotRate).where(eq(packSlotRate.packId, id)),
       db
         .insert(packSlotRate)
-        .values(
-          [1, 2, 3, 4, 5].flatMap((slot) => rates.map((rate) => ({ ...rate, packId: id, slot }))),
-        ),
+        .values(slotRows(id, [...basicRates.slice(0, 4), { [guaranteedRarity]: 10000 }])),
     );
   }
   await db.batch(queries);
@@ -63,18 +71,7 @@ export async function seedPacks(db: Database) {
       colorHex: "#7c3aed",
     })
     .returning();
-  await db.insert(packSlotRate).values(
-    basicRates.flatMap((weights, index) =>
-      Object.entries(weights)
-        .filter(([, weight]) => weight > 0)
-        .map(([rarity, weight]) => ({
-          packId: basic!.id,
-          slot: index + 1,
-          rarity: rarity as Rarity,
-          weight,
-        })),
-    ),
-  );
+  await db.insert(packSlotRate).values(slotRows(basic!.id, basicRates));
   await syncGuaranteedPacks(db);
   return db.select().from(pack).where(eq(pack.isActive, true));
 }

@@ -1,3 +1,4 @@
+import { GameSoundProvider } from "@/lib/game-sounds";
 import { Redirect, Stack } from "expo-router";
 import { auth } from "../../lib/client";
 import { Loading } from "../../components/ui";
@@ -7,9 +8,11 @@ export default function Layout() {
   if (session.error) return <Loading error={session.error} retry={session.refetch} />;
   if (!session.data) return <Redirect href="/login" />;
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      {/* 切り口をなぞる操作とiOSの戻るスワイプを競合させない。 */}
-      <Stack.Screen name="openings/[openingId]/index" options={{ gestureEnabled: false }} />
-    </Stack>
+    <GameSoundProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* 切り口をなぞる操作とiOSの戻るスワイプを競合させない。 */}
+        <Stack.Screen name="openings/[openingId]/index" options={{ gestureEnabled: false }} />
+      </Stack>
+    </GameSoundProvider>
   );
 }

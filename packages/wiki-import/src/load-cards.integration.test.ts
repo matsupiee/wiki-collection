@@ -50,15 +50,16 @@ describe("loadCards", () => {
       record(1, "太陽", {
         genre: "Q523",
         rarity: "legendary",
+        monthlyPageviews: 100000,
         imageUrl: "https://example.com/sun.jpg",
       }),
-      record(2, "火星", { rarity: "rare", monthlyPageviews: 900 }),
+      record(2, "火星", { rarity: "rare", monthlyPageviews: 10000 }),
       // 10 万件ごとに別のファイルに入る
       record(250_000, "土星"),
     ];
     await writeCards(dataDir, cards, cards);
     await writeGenres(dataDir, genres);
-    await writeThresholds(dataDir, { legendary: 1000, double_rare: 950, rare: 800, uncommon: 300 });
+    await writeThresholds(dataDir, { legendary: 100000, super_rare: 50000, rare: 10000 });
 
     expect(await loadCards({ db, dataDir })).toEqual({ genres: 2, cards: 3, thresholds: true });
     expect(await loadCards({ db, dataDir })).toEqual({ genres: 2, cards: 3, thresholds: true });
@@ -81,10 +82,9 @@ describe("loadCards", () => {
     expect(rows[0]!.wikiFetchedAt).toEqual(fetchedAt);
     const thresholds = await db.select().from(rarityThreshold);
     expect(Object.fromEntries(thresholds.map((t) => [t.rarity, t.minMonthlyPageviews]))).toEqual({
-      legendary: 1000,
-      double_rare: 950,
-      rare: 800,
-      uncommon: 300,
+      legendary: 100000,
+      super_rare: 50000,
+      rare: 10000,
     });
   });
 
@@ -96,7 +96,7 @@ describe("loadCards", () => {
         summary: "書き換えた要約は反映しない。",
         isActive: false,
       }),
-      record(2, "火星", { rarity: "rare", monthlyPageviews: 900 }),
+      record(2, "火星", { rarity: "rare", monthlyPageviews: 10000 }),
     ];
     await writeCards(dataDir, cards, cards);
 

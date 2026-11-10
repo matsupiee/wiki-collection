@@ -1,3 +1,4 @@
+import { rarityFromPageviews } from "../rarity";
 import { hashPassword } from "better-auth/crypto";
 import { account, card, cardDiscovery, genre, user, userCard } from "../schema";
 import { openLocalDb } from "./local-db";
@@ -30,23 +31,22 @@ try {
     .values({ id: userId, slug: userId, name: "並び替え確認", colorHex: "#6366f1" })
     .onConflictDoNothing();
   const specs = [
-    { title: "閲覧数トップ", monthlyPageviews: 900, articleLength: 100, rarity: "rare" as const },
+    { title: "閲覧数トップ", monthlyPageviews: 100000, articleLength: 100 },
     {
       title: "記事サイズトップ",
-      monthlyPageviews: 500,
+      monthlyPageviews: 50000,
       articleLength: 900,
-      rarity: "rare" as const,
     },
-    { title: "新しいカード", monthlyPageviews: 300, articleLength: 500, rarity: "common" as const },
+    { title: "新しいカード", monthlyPageviews: 10000, articleLength: 500 },
     {
       title: "記事サイズ未計測",
-      monthlyPageviews: 100,
+      monthlyPageviews: 9999,
       articleLength: null,
-      rarity: "common" as const,
     },
   ];
   for (const [i, spec] of specs.entries()) {
     const id = `${userId}-${i}`;
+    const rarity = rarityFromPageviews(spec.monthlyPageviews);
     const createdAt = new Date(Date.UTC(2026, 0, i + 1));
     await db
       .insert(card)
@@ -57,13 +57,16 @@ try {
         title: spec.title,
         summary: "並び替え動作確認用のサンプルカード",
         genreId: userId,
-        rarity: spec.rarity,
+        rarity,
         monthlyPageviews: spec.monthlyPageviews,
         articleLength: spec.articleLength,
         pageviewsMeasuredAt: createdAt,
         isActive: false,
       })
-      .onConflictDoUpdate({ target: card.id, set: { title: spec.title } });
+      .onConflictDoUpdate({
+        target: card.id,
+        set: { title: spec.title, monthlyPageviews: spec.monthlyPageviews, rarity },
+      });
     await db.insert(userCard).values({ id, userId, cardId: id, createdAt }).onConflictDoNothing();
     await db
       .insert(cardDiscovery)

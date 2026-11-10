@@ -28,7 +28,7 @@ import {
 import { seedPacks } from "./packs";
 import { reset } from "./reset";
 import { openLocalDb } from "./local-db";
-import { rarityByRank, thresholdsFromPageviews } from "../rarity";
+import { rarityFromPageviews, rarityThresholds } from "../rarity";
 import { cards, coinProducts, genres } from "./master-data";
 
 const HOUR = 60 * 60 * 1000;
@@ -59,14 +59,14 @@ async function seedMaster(db: Database) {
     title,
     summary,
     genreId: genreIdBySlug.get(genreSlug)!,
-    rarity: rarityByRank(rank, ranked.length),
+    rarity: rarityFromPageviews(monthlyPageviews),
     articleLength: 10000 + rank * 500,
     monthlyPageviews,
     pageviewsMeasuredAt: new Date(),
     wikiFetchedAt: new Date(),
   }));
   // Wikipedia から取り込むときは、ここで入れた下限でレアリティを決める
-  const thresholds = thresholdsFromPageviews(ranked.map((c) => c[2]));
+  const thresholds = rarityThresholds;
   await db.insert(rarityThreshold).values(
     Object.entries(thresholds).map(([rarity, minMonthlyPageviews]) => ({
       wikiLang: "ja",
@@ -176,7 +176,7 @@ async function openPack(
       revealedAt: options.revealed ? new Date() : null,
     })
     .returning();
-  const rarityOrder = ["common", "uncommon", "rare", "double_rare", "legendary"];
+  const rarityOrder = ["common", "rare", "super_rare", "legendary"];
   const sorted = titles
     .map((t) => cardByTitle.get(t)!)
     .sort((a, b) => rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity));
@@ -210,12 +210,12 @@ async function main() {
     await reset(db);
     const { cardByTitle, packBySlug, productRows } = await seedMaster(db);
     const basic = packBySlug.get("basic")!;
-    const doubleRare = packBySlug.get("double-rare-guaranteed")!;
+    const superRare = packBySlug.get("double-rare-guaranteed")!;
     const now = Date.now();
 
     await createUser(db, "たろう", "taro@example.com");
 
-    // hanako: 基本パックを3回、ダブルレア確定ガチャを1回開けている。最後の基本パックは演出を見ていない
+    // hanako: 基本パックを3回、SR1枚確定ガチャを1回開けている。最後の基本パックは演出を見ていない
     const hanako = await createUser(db, "はなこ", "hanako@example.com");
     await purchase(db, hanako, productRows[1]!);
     await db.insert(freePackAllowance).values({
@@ -223,9 +223,6 @@ async function main() {
       initialRemaining: 0,
       fullAt: now + 30 * 60_000,
     });
-    const guaranteedCards = [...cardByTitle.values()].filter(
-      (c) => c.rarity === "double_rare" || c.rarity === "legendary",
-    );
     const opened = [
       await openPack(
         db,
@@ -252,16 +249,13 @@ async function main() {
       await openPack(
         db,
         hanako,
-        doubleRare.id,
-        Array.from(
-          { length: 5 },
-          (_, index) => guaranteedCards[index % guaranteedCards.length]!.title,
-        ),
+        superRare.id,
+        ["瀬戸内海", "折り紙", "信濃川", "将棋", "太陽"],
         cardByTitle,
         {
           revealed: true,
           payment: "coin",
-          coinsSpent: doubleRare.priceCoins!,
+          coinsSpent: superRare.priceCoins!,
         },
       ),
       await openPack(
@@ -279,7 +273,7 @@ async function main() {
     await withdraw(db, {
       userId: hanako,
       purpose: "pack_open",
-      amount: doubleRare.priceCoins!,
+      amount: superRare.priceCoins!,
       packOpeningId: opened[2]!.opening.id,
     });
     const pick = (index: number, title: string) =>
@@ -320,6 +314,24 @@ async function main() {
       marketListingId: auction!.id,
       auctionBidId: bid!.id,
     });
+
+    // 3列の一覧で2行目まで確認するため、追加の3枚を出品する。
+    for (const [index, title] of ["折り紙", "信濃川", "将棋"].entries()) {
+      const cardId = cardByTitle.get(title)!.id;
+      const [copy] = await db
+        .insert(userCard)
+        .values({ userId: hanako, cardId, status: "listed" })
+        .returning();
+      const price = (index + 1) * 100;
+      await db.insert(marketListing).values({
+        sellerId: hanako,
+        userCardId: copy!.id,
+        cardId,
+        format: "auction",
+        startPrice: price,
+        endsAt: new Date(now + (72 + index) * HOUR),
+      });
+    }
 
     // 終了済みのオークション: 富士山に jiro が 60pt で入札したまま1時間前に終わった。マーケットを開くと締められる
     const fuji = pick(1, "富士山");

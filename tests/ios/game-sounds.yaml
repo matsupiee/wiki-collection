@@ -1,0 +1,24 @@
+appId: com.matsupiee.wikicollection
+---
+# ログイン済みのアプリで実行する。音の聞き分けは手順に沿って確認する。
+- tapOn: "コレクション"
+- tapOn:
+    text: ".*の詳細を見る"
+    index: 0
+- assertVisible: "Wikipediaで読む（新しいタブで開く）"
+- tapOn: "パック"
+- swipe:
+    start: "70%,35%"
+    end: "36%,35%"
+    duration: 600
+- assertVisible: "100pt で開封する"
+- tapOn: "基本パックへ"
+- tapOn: "無料で開封する"
+- tapOn: "タップで開ける"
+- tapOn: "写真の詳細を見る"
+- tapOn: "カードを閉じる"
+- swipe:
+    start: "70%,47%"
+    end: "28%,47%"
+    duration: 450
+- assertVisible: ".*2 / 5.*"

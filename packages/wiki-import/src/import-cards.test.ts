@@ -76,7 +76,7 @@ function testWiki(): FakeWiki {
 }
 
 // 閲覧数の多い順。15 は存在しないページ
-const views = [1200, 1000, 800, 600, 400, 200, 150, 140, 130, 120, 110, 100, 90, 80, 70];
+const views = [100000, 99999, 50000, 49999, 10000, 9999, 150, 140, 130, 120, 110, 100, 90, 80, 70];
 const topPages = views.map((monthlyPageviews, i) => ({ pageId: i + 1, monthlyPageviews }));
 
 const readLines = async (file: string) =>
@@ -86,7 +86,7 @@ const readLines = async (file: string) =>
     .map((l) => JSON.parse(l));
 
 describe("importCards", () => {
-  test("上位の記事を Wikidata の分類をジャンルにして取り込み、除外の条件に当たる記事を外し、上位の一覧全体からレアリティの下限を決める", async () => {
+  test("上位の記事を Wikidata の分類をジャンルにして取り込み、除外の条件に当たる記事を外し、固定の下限でレアリティを決める", async () => {
     const fake = createFakeWikimedia(testWiki());
 
     const result = await importCards({
@@ -97,12 +97,10 @@ describe("importCards", () => {
       now,
     });
 
-    // 15 件の順位で決める。各レアリティに最低1枚入る
     expect(result.createdThresholds).toEqual({
-      legendary: 1200,
-      double_rare: 1000,
-      rare: 800,
-      uncommon: 140,
+      legendary: 100000,
+      super_rare: 50000,
+      rare: 10000,
     });
     expect(
       JSON.parse(await readFile(path.join(dataDir, "rarity-thresholds.json"), "utf8")),
@@ -111,12 +109,12 @@ describe("importCards", () => {
     // page_id 順で、10 万件ごとのファイルに書く
     const cards = await readLines("cards/000.jsonl");
     expect(cards.map((c) => [c.title, c.genre, c.rarity, c.monthlyPageviews])).toEqual([
-      ["太陽", "Q523", "legendary", 1200],
-      ["月", "Q634", "double_rare", 1000],
-      ["火星", "Q634", "rare", 800],
-      ["土星", "Q634", "uncommon", 600],
-      ["金星", "Q99999", "uncommon", 400],
-      ["木星", "Q634", "uncommon", 200],
+      ["太陽", "Q523", "legendary", 100000],
+      ["月", "Q634", "super_rare", 99999],
+      ["火星", "Q634", "super_rare", 50000],
+      ["土星", "Q634", "rare", 49999],
+      ["金星", "Q99999", "rare", 10000],
+      ["木星", "Q634", "common", 9999],
     ]);
     expect(cards[0]).toEqual({
       articleLength: 10000,
@@ -129,7 +127,7 @@ describe("importCards", () => {
       imageUrl: "https://upload.wikimedia.org/thumb/640px-Sun photo.jpg",
       imageCredit: "NASA・CC BY-SA 4.0（Wikimedia Commons）",
       rarity: "legendary",
-      monthlyPageviews: 1200,
+      monthlyPageviews: 100000,
       pageviewsMeasuredAt: now.toISOString(),
       isActive: true,
     });
@@ -185,13 +183,15 @@ describe("importCards", () => {
 
     expect(result.createdThresholds).toBeNull();
     expect(result.inserted).toEqual([
-      { title: "彗星", genre: "彗星", rarity: "rare", monthlyPageviews: 900 },
+      { title: "彗星", genre: "彗星", rarity: "common", monthlyPageviews: 900 },
     ]);
     expect(result.excluded).toEqual([]);
     // カードにした記事も、除外した記事も取り直さない
-    expect(fake.requests.some((r) => r.url.includes("/page/summary/%E5%A4%AA%E9%99%BD"))).toBe(
-      false,
-    );
+    expect(
+      fake.requests.some((r) =>
+        new URL(r.url).searchParams.get("pageids")?.split("|").includes("1"),
+      ),
+    ).toBe(false);
     expect(fake.requests.some((r) => /pageids=[^&]*\b7\b/.test(decodeURIComponent(r.url)))).toBe(
       false,
     );
@@ -208,10 +208,9 @@ describe("importCards", () => {
     ]);
     expect(store.genres.map((g) => g.slug)).toEqual(["Q523", "Q634", "Q3559", "Q99999"]);
     expect(store.thresholds).toEqual({
-      legendary: 1200,
-      double_rare: 1000,
-      rare: 800,
-      uncommon: 140,
+      legendary: 100000,
+      super_rare: 50000,
+      rare: 10000,
     });
   });
 });

@@ -1,4 +1,4 @@
-import { auctionDurationHours } from "@wiki-collection/db/enums";
+import { auctionDurationHours, minimumAuctionPrice } from "@wiki-collection/db/enums";
 import { Text, TextInput } from "@/components/typography";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -20,7 +20,7 @@ export default function NewListing() {
   const create = useMutation(trpc.market.createListing.mutationOptions());
   const action = useAction();
   const amount = Number(price);
-  const valid = Number.isInteger(amount) && amount >= 1;
+  const valid = Number.isInteger(amount) && amount >= minimumAuctionPrice;
   const fee = Math.floor(amount * 0.1);
   const choice = (title: string, selected: boolean, onPress: () => void) => (
     <Pressable
@@ -96,6 +96,7 @@ export default function NewListing() {
             <Text style={[labelStyle, { marginTop: 16, marginBottom: 8 }]}>開始価格（pt）</Text>
             <TextInput
               accessibilityLabel="開始価格（pt）"
+              placeholder={`${minimumAuctionPrice}pt以上`}
               keyboardType="number-pad"
               value={price}
               onChangeText={setPrice}

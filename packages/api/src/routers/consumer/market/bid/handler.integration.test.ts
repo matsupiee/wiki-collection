@@ -50,11 +50,11 @@ describe("market/bid", () => {
       free: 0,
     });
 
-    // 次の最低額は 100 + 5% = 105
-    await expect(handler({ input: { listingId, amount: 104 }, ctx: bob })).rejects.toMatchObject({
+    // 次の最低額は 100 + 10 = 110
+    await expect(handler({ input: { listingId, amount: 109 }, ctx: bob })).rejects.toMatchObject({
       code: "BAD_REQUEST",
     });
-    await handler({ input: { listingId, amount: 105 }, ctx: bob });
+    await handler({ input: { listingId, amount: 110 }, ctx: bob });
 
     expect(await getCoinBalance(db, alice.session.user.id)).toEqual({
       total: 130,
@@ -62,8 +62,8 @@ describe("market/bid", () => {
       free: 50,
     });
     expect(await getCoinBalance(db, bob.session.user.id)).toEqual({
-      total: 395,
-      paid: 395,
+      total: 390,
+      paid: 390,
       free: 0,
     });
     const bids = await db
@@ -76,7 +76,47 @@ describe("market/bid", () => {
       [2, "leading"],
     ]);
     const [listing] = await db.select().from(marketListing).where(eq(marketListing.id, listingId));
-    expect(listing).toMatchObject({ currentPrice: 105, bidCount: 2 });
+    expect(listing).toMatchObject({ currentPrice: 110, bidCount: 2 });
+  });
+
+  test.each([
+    [10, 20],
+    [990, 1000],
+    [991, 1001],
+    [999, 1009],
+    [1000, 1100],
+    [4999, 5099],
+    [5000, 5250],
+    [9999, 10249],
+    [10000, 10500],
+    [49999, 50499],
+    [50000, 51000],
+    [75000, 76000],
+  ])("現在価格%iなら次の最低入札額は%i", async (price, minimum) => {
+    const { listingId } = await setupAuction(10);
+    const first = await createUserContext(db);
+    const next = await createUserContext(db);
+    await grantCoins(db, first.session.user.id, price);
+    await grantCoins(db, next.session.user.id, minimum);
+    await handler({ input: { listingId, amount: price }, ctx: first });
+    await expect(
+      handler({ input: { listingId, amount: minimum - 1 }, ctx: next }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(await handler({ input: { listingId, amount: minimum }, ctx: next })).toEqual({
+      currentPrice: minimum,
+    });
+  });
+
+  test("旧仕様で開始価格が10pt未満の出品も初回入札は10ptから", async () => {
+    const { listingId } = await setupAuction(1);
+    const first = await createUserContext(db);
+    await grantCoins(db, first.session.user.id, 10);
+    await expect(handler({ input: { listingId, amount: 9 }, ctx: first })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    expect(await handler({ input: { listingId, amount: 10 }, ctx: first })).toEqual({
+      currentPrice: 10,
+    });
   });
 
   test("出品者・最高額の入札者・pt が足りない人・終了後は入札できない", async () => {
@@ -99,6 +139,14 @@ describe("market/bid", () => {
     await expect(handler({ input: { listingId, amount: 200 }, ctx: poor })).rejects.toMatchObject({
       code: "PRECONDITION_FAILED",
     });
+
+    expect((await getCoinBalance(db, poor.session.user.id)).total).toBe(50);
+    const remainingBids = await db
+      .select()
+      .from(auctionBid)
+      .where(eq(auctionBid.listingId, listingId));
+    expect(remainingBids).toHaveLength(1);
+    expect(remainingBids[0]).toMatchObject({ bidderId: alice.session.user.id, status: "leading" });
 
     setSystemTime(new Date(Date.now() + 25 * 60 * 60 * 1000));
     const late = await createUserContext(db);

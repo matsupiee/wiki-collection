@@ -27,8 +27,11 @@ try {
       .values({ id, userId, source: "admin_grant", amount: 2000, isPaid: false })
       .onConflictDoNothing();
   }
+  const bidderEmail = `${prefix}-bidder@example.com`;
+  const [bidder] = await db.select({ id: user.id }).from(user).where(eq(user.email, bidderEmail));
+  if (!bidder) await createUser(db, "入札者", bidderEmail);
   console.log(
-    `${prefix}1@example.com / ${prefix}2@example.com、password1234。既存の利用者・所持品は変更しません。`,
+    `${prefix}1@example.com / ${prefix}2@example.com / ${bidderEmail}（初期残高0pt）、password1234。既存の利用者・所持品は変更しません。`,
   );
 } finally {
   await dispose();

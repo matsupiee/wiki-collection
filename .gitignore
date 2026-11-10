@@ -70,3 +70,6 @@ apps/native/android/
 
 /output/native/
 /output/native-parity/
+/packages/wiki-import/data/ja/cards/
+/packages/wiki-import/data/ja/*.jsonl
+/packages/wiki-import/data/ja/rarity-thresholds.json

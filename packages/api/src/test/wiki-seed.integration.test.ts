@@ -5,14 +5,19 @@ import { migrate } from "drizzle-orm/d1/migrator";
 import { createDb } from "@wiki-collection/db";
 import { card, user } from "@wiki-collection/db/schema/index";
 import { seedWiki, selectWikiCards } from "@wiki-collection/db/seed/wiki";
-import { DATA_DIR, readCardStore } from "../../../wiki-import/src/card-store";
+import { readCardStore } from "../../../wiki-import/src/card-store";
+import { cacheCommonImages } from "../shared/card/cache-common-images";
 import { cardImageKey } from "@wiki-collection/db/card-image";
 
 import { handler as getPack } from "../routers/consumer/pack/get/handler";
 import { createUserContext } from "./fixtures";
 
-test("wiki seed resets existing data, creates 100 cards and stores every image in R2 on repeated runs", async () => {
-  const proxy = await getPlatformProxy<{ DB: D1Database; CARD_IMAGES: R2Bucket }>({
+test("wiki seed resets existing data, creates 500 cards and preloads higher-rarity images in R2 on repeated runs", async () => {
+  const proxy = await getPlatformProxy<{
+    DB: D1Database;
+    CARD_IMAGES: R2Bucket;
+    IMAGES: ImagesBinding;
+  }>({
     configPath: path.resolve(import.meta.dirname, "../../../../apps/web/wrangler.local.jsonc"),
     persist: false,
   });
@@ -21,8 +26,10 @@ test("wiki seed resets existing data, creates 100 cards and stores every image i
     await migrate(db, {
       migrationsFolder: path.resolve(import.meta.dirname, "../../../db/src/migrations"),
     });
-    const store = await readCardStore(DATA_DIR);
-    expect(selectWikiCards(store)).toHaveLength(100);
+    const store = await readCardStore(
+      path.resolve(import.meta.dirname, "../../../db/src/seed/fixtures/ja"),
+    );
+    expect(selectWikiCards(store)).toHaveLength(500);
     for (let run = 0; run < 2; run++) {
       await db.insert(user).values({ id: "old-user", name: "old", email: "old@example.com" });
       await proxy.env.CARD_IMAGES.put("old-image", "stale");
@@ -41,16 +48,48 @@ test("wiki seed resets existing data, creates 100 cards and stores every image i
         sleep: async () => {},
       });
       expect(await db.select().from(user)).toHaveLength(0);
-      expect(await proxy.env.CARD_IMAGES.head("old-image")).toBeNull();
+      expect(await proxy.env.CARD_IMAGES.head("old-image")).toBeTruthy();
       const rows = await db.select().from(card);
-      expect(rows).toHaveLength(100);
-      for (const row of rows) {
+      expect(rows).toHaveLength(500);
+      expect(new Set(rows.map((row) => row.rarity))).toEqual(
+        new Set(["common", "rare", "super_rare", "legendary"]),
+      );
+      expect(rows.filter((c) => c.rarity === "legendary")).toHaveLength(25);
+      expect(rows.filter((c) => c.rarity === "super_rare")).toHaveLength(50);
+      for (const row of rows.filter((c) => c.imageUrl)) {
         expect(row.imageCredit).toBeTruthy();
         const image = await proxy.env.CARD_IMAGES.head(await cardImageKey(row.imageUrl!));
+        if (
+          row.rarity === "common" &&
+          !rows.some((c) => c.rarity !== "common" && c.imageUrl === row.imageUrl)
+        ) {
+          expect(image).toBeNull();
+          continue;
+        }
         expect(image?.httpMetadata?.contentType).toBe("image/webp");
         expect(image!.size).toBeLessThanOrEqual(50_000);
       }
     }
+    const common = (await db.select().from(card)).find(
+      (c) => c.rarity === "common" && c.imageCredit && c.imageUrl,
+    )!;
+    const key = await cardImageKey(common.imageUrl!);
+    await proxy.env.CARD_IMAGES.delete(key);
+    let downloads = 0;
+    const fetchImage = async () => {
+      downloads++;
+      return new Response(
+        Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAIAAADZSiLoAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAD0lEQVQImWNgaGCAIiwsAEOeBIE/4ZsuAAAAAElFTkSuQmCC",
+          "base64",
+        ),
+        { headers: { "Content-Type": "image/png" } },
+      );
+    };
+    for (let i = 0; i < 2; i++)
+      await cacheCommonImages(db, [common.id], proxy.env.CARD_IMAGES, proxy.env.IMAGES, fetchImage);
+    expect(downloads).toBe(1);
+    expect((await proxy.env.CARD_IMAGES.head(key))?.httpMetadata?.contentType).toBe("image/webp");
     const ctx = await createUserContext(db);
     const basic = await getPack({ input: { slug: "basic" }, ctx });
     expect(
@@ -60,23 +99,13 @@ test("wiki seed resets existing data, creates 100 cards and stores every image i
           Object.fromEntries(rates.map(({ rarity, percent }) => [rarity, percent])),
         ),
     ).toEqual([
-      { uncommon: 95, rare: 3.5, double_rare: 1, legendary: 0.5 },
-      { uncommon: 86, rare: 10, double_rare: 3, legendary: 1 },
+      { common: 95, rare: 3.5, super_rare: 1, legendary: 0.5 },
+      { common: 86, rare: 10, super_rare: 3, legendary: 1 },
     ]);
     await expect(
       seedWiki({ db, images: proxy.env.CARD_IMAGES, store: { ...store, cards: [] } }),
     ).rejects.toThrow("DBは初期化していません");
     expect(await db.select({ id: user.id }).from(user)).toEqual([{ id: ctx.session.user.id }]);
-    await expect(
-      seedWiki({
-        db,
-        images: proxy.env.CARD_IMAGES,
-        store,
-        fetch: async () => new Response(null, { status: 404 }),
-        sleep: async () => {},
-      }),
-    ).rejects.toThrow("画像保存に失敗");
-    expect(await db.select().from(card)).toHaveLength(0);
   } finally {
     await proxy.dispose();
   }

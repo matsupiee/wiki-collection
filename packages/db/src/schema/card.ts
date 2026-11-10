@@ -42,5 +42,6 @@ export const card = sqliteTable(
   (table) => [
     uniqueIndex("card_wiki_page_uidx").on(table.wikiLang, table.wikiPageId),
     index("card_genre_rarity_idx").on(table.genreId, table.rarity, table.isActive),
+    index("card_active_rarity_id_idx").on(table.isActive, table.rarity, table.id),
   ],
 );

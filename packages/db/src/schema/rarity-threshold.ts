@@ -4,8 +4,7 @@ import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core
 
 import { rarities } from "../enums";
 
-// レアリティごとの月間閲覧数の下限。最初の取り込みで閲覧数の順位から決め、あとから足すカードもこの値で判定する。
-// 取り込むたびに順位で決め直すと、同じ閲覧数でも取り込んだ時期によってレアリティが変わってしまうため
+// レアリティごとの月間閲覧数の下限。レジェンド10万回、SR5万回、R1万回。
 export const rarityThreshold = sqliteTable(
   "rarity_threshold",
   {

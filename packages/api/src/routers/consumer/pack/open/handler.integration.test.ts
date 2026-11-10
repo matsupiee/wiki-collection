@@ -41,7 +41,12 @@ describe("pack/open", () => {
       ],
     });
 
-    const { openingId } = await handler({ input: { packId: p.id }, ctx });
+    const queued: string[][] = [];
+    const { openingId } = await handler({
+      input: { packId: p.id },
+      ctx: { ...ctx, cacheCommonImages: (ids) => queued.push(ids) },
+    });
+    expect(queued).toEqual([[common.id]]);
 
     const cards = await db
       .select()

@@ -1,25 +1,22 @@
+import { useGameSound } from "@/lib/game-sounds";
 import { Text } from "@/components/typography";
 import { useState } from "react";
 import { Pressable, View, ScrollView, Modal, useWindowDimensions } from "react-native";
-import { ChevronDown, Check } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { ArrowUpDown, Check } from "lucide-react-native";
 import { router } from "expo-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/client";
 import { Button, Card, Loading, Screen } from "@/components/ui";
 import { rarities, type Rarity } from "@wiki-collection/db/enums";
-const rarityLabels = {
-  common: "コモン",
-  uncommon: "アンコモン",
-  rare: "レア",
-  double_rare: "ダブルレア",
-  legendary: "レジェンド",
-};
+import { rarityLabels } from "@/lib/rarity";
 const sortOptions = [
   ["acquired", "引いた順"],
   ["monthlyPageviews", "閲覧数順"],
   ["articleLength", "記事サイズ順"],
 ] as const;
 export default function Collection() {
+  const playSound = useGameSound();
   const trpc = useTRPC();
   const { width } = useWindowDimensions();
   const cellWidth = (Math.min(width, 448) - 32 - 24) / 3;
@@ -32,22 +29,16 @@ export default function Collection() {
   });
   return (
     <Screen title="コレクション" contentStyle={{ gap: 0, paddingBottom: 24 }}>
-      <Button
-        title="総合資産ランキング"
-        variant="link"
-        style={{ alignSelf: "flex-end" }}
-        onPress={() => router.push("/asset-ranking")}
-      />
       {!q.data ? (
         <Loading error={q.error} retry={q.refetch} />
       ) : (
         <>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               style={{ flex: 1, minWidth: 0 }}
-              contentContainerStyle={{ gap: 8, paddingVertical: 4 }}
+              contentContainerStyle={{ gap: 8, paddingVertical: 4, paddingRight: 12 }}
             >
               {[undefined, ...rarities].map((r) => (
                 <Button
@@ -60,6 +51,13 @@ export default function Collection() {
                 />
               ))}
             </ScrollView>
+            <LinearGradient
+              pointerEvents="none"
+              colors={["rgba(51,65,85,0)", "rgba(51,65,85,0.12)"]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={{ width: 10, marginLeft: -10, alignSelf: "stretch" }}
+            />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="並び順"
@@ -68,17 +66,17 @@ export default function Collection() {
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 4,
-                borderRadius: 999,
-                backgroundColor: "white",
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                boxShadow: "0 1px 2px #0000000d",
+                alignSelf: "stretch",
+                borderLeftWidth: 1,
+                borderLeftColor: "rgba(51,65,85,0.22)",
+                paddingLeft: 10,
+                paddingRight: 2,
               }}
             >
+              <ArrowUpDown size={14} color="#334155" />
               <Text style={{ fontSize: 12, lineHeight: 16, fontWeight: "700", color: "#334155" }}>
                 {sortOptions.find(([value]) => value === sort)?.[1]}
               </Text>
-              <ChevronDown size={12} color="#334155" />
             </Pressable>
           </View>
           {q.data.cards.length === 0 ? (
@@ -111,7 +109,10 @@ export default function Collection() {
                     card={c}
                     size="sm"
                     ownedCount={c.ownedCount}
-                    onPress={() => router.push(`/cards/${c.id}`)}
+                    onPress={() => {
+                      playSound("card");
+                      router.push(`/cards/${c.id}`);
+                    }}
                   />
                   {c.listedCount > 0 && (
                     <Text

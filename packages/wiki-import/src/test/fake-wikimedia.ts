@@ -74,6 +74,21 @@ export function createFakeWikimedia(wiki: FakeWiki) {
           ...(hasMore && { continue: { clcontinue: String(next), continue: "||" } }),
         });
       }
+      if (p.get("prop") === "extracts|info") {
+        const ids = p.get("pageids")!.split("|").map(Number);
+        return json({
+          query: {
+            pages: wiki.articles
+              .filter((a) => ids.includes(a.pageId))
+              .map((a) => ({
+                title: a.title,
+                pageid: a.pageId,
+                lastrevid: a.revision,
+                extract: a.extract,
+              })),
+          },
+        });
+      }
       if (p.get("prop") === "imageinfo") {
         const titles = p.get("titles")!.split("|");
         const normalized = titles.map((t) => ({

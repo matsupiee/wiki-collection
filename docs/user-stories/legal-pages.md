@@ -8,7 +8,7 @@
 
 ## 動作確認の手順
 
-1. `bun run dev:local` と `bun run dev:native:web` を起動し、`bun run db:seed:native` で確認用利用者を作る。
+1. `bun run dev:local` と `bun run dev:native:web` を起動し、`bun packages/db/src/seed/native-cli.ts` で確認用利用者を作る。
    - Web規約だけの確認にはseedもログインも不要。
 2. Webの `/` を未ログインで開き、4つのリンクを順に開く。
    - 利用規約、プライバシーポリシー、特定商取引法に基づく表記、資金決済法に基づく表示の本文と更新日が読める。

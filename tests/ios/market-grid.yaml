@@ -1,0 +1,14 @@
+appId: com.matsupiee.wikicollection
+---
+# ログイン済みのアプリで、4件以上の出品がある状態で実行する。
+- openLink: wiki-collection://market
+- extendedWaitUntil:
+    visible:
+      text: ".+ 残り .+ [0-9,]+pt"
+      index: 3
+    timeout: 15000
+- assertNotVisible: ".*出品者.*"
+- tapOn:
+    text: ".+ 残り .+ [0-9,]+pt"
+    index: 0
+- assertVisible: ".*出品者.*"

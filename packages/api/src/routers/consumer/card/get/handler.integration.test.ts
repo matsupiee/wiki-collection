@@ -21,7 +21,7 @@ describe("card/get", () => {
     const g = await createGenre(db);
     const c = await createCard(db, {
       genreId: g.id,
-      rarity: "double_rare",
+      rarity: "super_rare",
       wikiRevisionId: 123456,
     });
     const mine = await giveCard(db, ctx.session.user.id, c.id);

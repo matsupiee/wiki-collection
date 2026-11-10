@@ -1,7 +1,8 @@
+import type { DumpArticle } from "./dump-article";
 import {
-  rarityByThresholds,
+  rarityFromPageviews,
   type RarityThresholds,
-  thresholdsFromPageviews,
+  rarityThresholds,
 } from "@wiki-collection/db/rarity";
 
 import {
@@ -17,7 +18,7 @@ import {
 import { fetchImageLicenses } from "./fetch-image-licenses";
 import { fetchInstanceOf } from "./fetch-instance-of";
 import { fetchPageDetails } from "./fetch-page-details";
-import { fetchSummary } from "./fetch-summary";
+import { fetchSummaries } from "./fetch-summary";
 import { genreColor } from "./genre-color";
 import { getExclusionReason } from "./get-exclusion-reason";
 import type { TopPage } from "./top-pages";
@@ -57,11 +58,11 @@ export async function importCards(input: {
   const seen = new Set([...store.cards, ...store.excluded].map((c) => c.wikiPageId));
   const genres = new Map(store.genres.map((g) => [g.slug, g]));
 
-  // 下限は、上位の一覧全体の閲覧数の順位から最初に一度だけ決める。あとから足すカードも同じ下限で判定する
-  const createdThresholds = store.thresholds
+  const createdThresholds = Object.entries(rarityThresholds).every(
+    ([rarity, minimum]) => store.thresholds?.[rarity as keyof RarityThresholds] === minimum,
+  )
     ? null
-    : thresholdsFromPageviews(input.topPages.map((p) => p.monthlyPageviews));
-  const thresholds = store.thresholds ?? createdThresholds!;
+    : rarityThresholds;
   if (createdThresholds) await writeThresholds(dataDir, createdThresholds);
 
   const targets = input.topPages.filter((p) => !seen.has(p.pageId)).slice(0, input.limit);
@@ -71,7 +72,6 @@ export async function importCards(input: {
     const { cards, excluded, newGenres } = await importChunk(client, {
       pages: chunk,
       genres,
-      thresholds,
       now,
     });
     store.cards.push(...cards);
@@ -97,12 +97,11 @@ export async function importCards(input: {
   return result;
 }
 
-async function importChunk(
+export async function importChunk(
   client: WikimediaClient,
   input: {
-    pages: TopPage[];
+    pages: (TopPage | DumpArticle)[];
     genres: Map<string, GenreRecord>;
-    thresholds: RarityThresholds;
     now: Date;
   },
 ) {
@@ -115,21 +114,35 @@ async function importChunk(
 
   const details = await fetchPageDetails(client, {
     lang: LANG,
-    pageIds: input.pages.map((p) => p.pageId),
+    pageIds: input.pages.flatMap((p) => ("metadata" in p && p.metadata ? [] : [p.pageId])),
   });
   // 要約や分類を取る前に、名前空間、カテゴリ、タイトルで外せる記事を外して、リクエストを減らす
   const kept = input.pages.flatMap((p) => {
-    const d = details.get(p.pageId);
+    const metadata = "summary" in p ? p.metadata : undefined;
+    const d =
+      "summary" in p && metadata
+        ? {
+            pageId: p.pageId,
+            title: p.title,
+            ns: 0,
+            categories: metadata.categories,
+            isDisambiguation: metadata.isDisambiguation,
+            articleLength: p.articleLength,
+            wikibaseItem: null,
+            imageFile: null,
+          }
+        : details.get(p.pageId);
     if (!d) {
-      exclude(p.pageId, "", "ページがない");
+      exclude(p.pageId, "summary" in p ? p.title : "", "ページがない");
       return [];
     }
-    const reason = d.ns !== 0 ? "記事ではない" : getExclusionReason(d);
+    const detail = "summary" in p ? { ...d, title: p.title, articleLength: p.articleLength } : d;
+    const reason = d.ns !== 0 ? "記事ではない" : getExclusionReason(detail);
     if (reason) {
-      exclude(p.pageId, d.title, reason);
+      exclude(p.pageId, detail.title, reason);
       return [];
     }
-    return [{ page: p, detail: d }];
+    return [{ page: p, detail, metadata }];
   });
 
   const [classes, images] = await Promise.all([
@@ -146,7 +159,11 @@ async function importChunk(
   ]);
 
   const classified = kept.flatMap((k) => {
-    const instanceOf = k.detail.wikibaseItem ? classes.get(k.detail.wikibaseItem) : undefined;
+    const instanceOf = k.metadata
+      ? k.metadata.instanceOf
+      : k.detail.wikibaseItem
+        ? classes.get(k.detail.wikibaseItem)
+        : undefined;
     if (!instanceOf) {
       exclude(k.page.pageId, k.detail.title, "Wikidata の分類がない");
       return [];
@@ -159,21 +176,21 @@ async function importChunk(
     return [{ ...k, instanceOf }];
   });
 
-  const fetched = await Promise.all(
-    classified.map(async (c) => ({
-      ...c,
-      summary: await fetchSummary(client, { lang: LANG, title: c.detail.title }),
-    })),
+  const summaries = await fetchSummaries(
+    client,
+    LANG,
+    classified.flatMap(({ page }) => ("summary" in page ? [] : [page.pageId])),
   );
-  for (const { page, detail, instanceOf, summary } of fetched) {
+  for (const { page, detail, instanceOf, metadata } of classified) {
+    const summary =
+      "summary" in page
+        ? { extract: page.summary, revisionId: page.revisionId }
+        : summaries.get(page.pageId);
     if (!summary) {
       exclude(page.pageId, detail.title, "要約が取れない");
       continue;
     }
-    const reason =
-      summary.type === "disambiguation"
-        ? "曖昧さ回避"
-        : getExclusionReason({ ...detail, extract: summary.extract });
+    const reason = getExclusionReason({ ...detail, extract: summary.extract });
     if (reason) {
       exclude(page.pageId, detail.title, reason);
       continue;
@@ -186,7 +203,11 @@ async function importChunk(
         colorHex: genreColor(instanceOf.id),
       });
     }
-    const image = detail.imageFile ? images.get(detail.imageFile) : undefined;
+    const image = metadata
+      ? metadata.image
+      : detail.imageFile
+        ? images.get(detail.imageFile)
+        : undefined;
     cards.push({
       wikiPageId: page.pageId,
       title: detail.title,
@@ -196,7 +217,7 @@ async function importChunk(
       summary: summary.extract,
       imageUrl: image?.url ?? null,
       imageCredit: image?.credit ?? null,
-      rarity: rarityByThresholds(page.monthlyPageviews, input.thresholds),
+      rarity: rarityFromPageviews(page.monthlyPageviews),
       articleLength: detail.articleLength,
       monthlyPageviews: page.monthlyPageviews,
       pageviewsMeasuredAt: now,

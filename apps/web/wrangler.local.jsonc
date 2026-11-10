@@ -1,5 +1,5 @@
 // ローカル開発とテスト専用の設定。デプロイは packages/infra/alchemy.run.ts（Alchemy）で行い、このファイルは使わない。
-// 開発サーバーは dev:local に統一し、seed と wiki:load も同じローカル D1 を使う。
+// 開発サーバーは dev:local に統一し、db:seed:local も同じローカル D1 を使う。
 // DOCS: https://developers.cloudflare.com/workers/vite-plugin/
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
@@ -14,6 +14,7 @@
       "database_id": "00000000-0000-0000-0000-000000000000",
     },
   ],
+  "images": { "binding": "IMAGES" },
   "r2_buckets": [{ "binding": "CARD_IMAGES", "bucket_name": "wiki-collection-images-local" }],
   "vars": {
     "BETTER_AUTH_URL": "http://localhost:3001",

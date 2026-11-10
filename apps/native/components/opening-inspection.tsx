@@ -1,3 +1,5 @@
+import { rarityLabels } from "@/lib/rarity";
+import type { Rarity } from "@wiki-collection/db/enums";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,7 +15,7 @@ import { Text } from "./typography";
 
 type InspectionProps = {
   card: CardArtData & {
-    rarity: string;
+    rarity: Rarity;
     genreName: string;
     summary: string | null;
     monthlyPageviews: number;
@@ -125,7 +127,7 @@ export function OpeningInspection({
           {card.title}
         </Text>
         <Text style={styles.caption}>
-          {card.genreName} · {card.rarity.replace("_", " ").toUpperCase()}
+          {card.genreName} · {rarityLabels[card.rarity]}
         </Text>
         {card.summary && (
           <Text numberOfLines={3} style={styles.caption}>

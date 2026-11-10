@@ -20,6 +20,7 @@ export const web = Cloudflare.Website.Vite("web", {
   env: {
     DB: db,
     CARD_IMAGES: cardImages,
+    IMAGES: Cloudflare.Images.Images("IMAGES"),
     BETTER_AUTH_SECRET: Config.Redacted("BETTER_AUTH_SECRET"),
     BETTER_AUTH_URL: Cloudflare.Worker.URL,
   },

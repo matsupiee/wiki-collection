@@ -1,6 +1,6 @@
 appId: com.matsupiee.wikicollection
 ---
-# Run db:seed:opening and sign in as opening-juice1@example.com.
+# Run bun packages/db/src/seed/opening-juice-cli.ts and sign in as opening-juice1@example.com.
 - openLink: wiki-collection://openings/opening-juice-all-rarities
 - tapOn:
     text: "開く"
@@ -10,28 +10,28 @@ appId: com.matsupiee.wikicollection
     timeout: 15000
 - tapOn: "タップで開ける"
 - extendedWaitUntil:
-    visible: ".*、COMMON、めくる"
+    visible: ".*、C、めくる"
     timeout: 12000
-- assertNotVisible: ".*、UNCOMMON、めくる"
+- assertNotVisible: ".*、R、めくる"
 - swipe:
     start: "55%,47%"
     end: "61%,47%"
     duration: 500
-- assertVisible: ".*、COMMON、めくる"
+- assertVisible: ".*、C、めくる"
 - swipe:
     start: "70%,47%"
     end: "28%,47%"
     duration: 500
-- assertVisible: ".*、UNCOMMON、めくる"
+- assertVisible: ".*、R、めくる"
 - tapOn: "写真の詳細を見る"
 - assertVisible: "2 / 2"
 - tapOn: "前のカード詳細"
 - assertVisible: "1 / 2"
 - tapOn: "カードを閉じる"
-- tapOn: ".*、UNCOMMON、めくる"
-- tapOn: ".*、RARE、めくる"
-- tapOn: ".*、DOUBLE RARE、めくる"
-- tapOn: ".*、LEGENDARY、開封結果を見る"
+- tapOn: ".*、R、めくる"
+- tapOn: ".*、R、めくる"
+- tapOn: ".*、SR、めくる"
+- tapOn: ".*、レジェンド、開封結果を見る"
 - assertVisible: "開封結果"
 - openLink: wiki-collection://openings/opening-juice-skip
 - tapOn:

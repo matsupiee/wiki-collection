@@ -9,7 +9,7 @@
 
 ## 動作確認の手順
 
-`bun run db:seed` を実行し、`bun run dev:local` で起動しておく。
+`bun packages/db/src/seed/index.ts` を実行し、`bun run dev:local` で起動しておく。
 
 1. `taro@example.com`（パスワード `password1234`）でログインする。
    - パック選択画面（`/packs`）に移動する。ヘッダーと中央の袋の間には約72pxの余白があり、袋の下には反射が見える。
@@ -61,5 +61,5 @@
 - `packages/api/src/routers/consumer/pack/get/handler.integration.test.ts`
   - API が返す抽選設定と開封可否
 - `packages/api/src/test/wiki-seed.integration.test.ts`
-  - 基本パックの4枠目はアンコモン95%、レア3.5%、ダブルレア1%、レジェンド0.5%。5枠目は同じ順に86%、10%、3%、1%。
+  - 基本パックの4枠目はC95%、R3.5%、SR1%、レジェンド0.5%。5枠目は同じ順に86%、10%、3%、1%。
 - `packages/api/src/routers/consumer/opening/get/handler.integration.test.ts`

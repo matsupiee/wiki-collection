@@ -1,3 +1,4 @@
+import { useGameSound } from "@/lib/game-sounds";
 import { Text, TextInput } from "@/components/typography";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -5,21 +6,15 @@ import { Search } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/client";
-import { Card, Loading, Screen } from "@/components/ui";
+import { CardArt, Loading, Screen } from "@/components/ui";
 import { formatDuration, formatPt } from "@/lib/format";
 const sortOptions = [
   ["ending_soon", "終了が近い順"],
   ["most_bids", "入札が多い順"],
   ["price_asc", "安い順"],
 ] as const;
-const rarityMarks = {
-  common: "◇",
-  uncommon: "◇◇",
-  rare: "◇◇◇",
-  double_rare: "◇◇◇◇",
-  legendary: "☆",
-};
 export default function Market() {
+  const playSound = useGameSound();
   const { cardId } = useLocalSearchParams<{ cardId?: string }>();
   const trpc = useTRPC();
   const [query, setQuery] = useState("");
@@ -114,63 +109,44 @@ export default function Market() {
           </Text>
         </View>
       ) : (
-        <View style={{ gap: 8 }}>
-          {q.data.listings.map((l) => (
-            <Pressable
-              key={l.id}
-              accessibilityRole="button"
-              accessibilityLabel={`${l.card.title} ${formatPt(l.price)}`}
-              onPress={() => router.push(`/market/${l.id}`)}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 12,
-                borderRadius: 16,
-                padding: 8,
-                backgroundColor: "rgba(255,255,255,.9)",
-                boxShadow: "0 1px 2px #0000000d",
-              }}
-            >
-              <View style={{ width: 64 }}>
-                <Card card={l.card} size="xs" />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text
-                  numberOfLines={1}
-                  style={{ fontSize: 14, lineHeight: 20, fontWeight: "800", color: "#1e293b" }}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 12, marginHorizontal: -4 }}>
+          {q.data.listings.map((listing) => {
+            const remaining = listing.endsAt
+              ? `残り ${formatDuration(new Date(listing.endsAt).getTime() - now)}`
+              : "";
+            const price = formatPt(listing.price);
+            return (
+              <View key={listing.id} style={{ width: "33.333333%", paddingHorizontal: 4 }}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`${listing.card.title} ${remaining} ${price}`}
+                  onPress={() => {
+                    playSound("card");
+                    router.push(`/market/${listing.id}`);
+                  }}
+                  style={{ gap: 2 }}
                 >
-                  {l.card.title}{" "}
+                  <CardArt card={listing.card} effectiveSize="sm" />
                   <Text
-                    style={{
-                      fontSize: 12,
-                      color: l.card.rarity === "legendary" ? "#f59e0b" : "#64748b",
-                    }}
+                    numberOfLines={1}
+                    style={{ fontSize: 14, lineHeight: 20, fontWeight: "800", color: "#1e293b" }}
                   >
-                    {rarityMarks[l.card.rarity]}
+                    {listing.card.title}
                   </Text>
-                </Text>
-                <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>
-                  出品者 {l.sellerName}
-                  {l.isMine && (
-                    <Text style={{ fontWeight: "700", color: "#d97706" }}> 自分の出品</Text>
+                  {!!remaining && (
+                    <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>
+                      {remaining}
+                    </Text>
                   )}
-                </Text>
-                {l.format === "auction" && l.endsAt && (
-                  <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>
-                    入札 {l.bidCount}件・残り {formatDuration(new Date(l.endsAt).getTime() - now)}
+                  <Text
+                    style={{ fontSize: 14, lineHeight: 20, fontWeight: "900", color: "#1e293b" }}
+                  >
+                    {price}
                   </Text>
-                )}
+                </Pressable>
               </View>
-              <View style={{ alignItems: "flex-end" }}>
-                {l.format === "auction" && (
-                  <Text style={{ fontSize: 10, lineHeight: 15, color: "#94a3b8" }}>現在</Text>
-                )}
-                <Text style={{ fontSize: 16, lineHeight: 24, fontWeight: "900", color: "#1e293b" }}>
-                  {formatPt(l.price)}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
+            );
+          })}
         </View>
       )}
     </Screen>

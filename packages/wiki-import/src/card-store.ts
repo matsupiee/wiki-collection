@@ -2,15 +2,14 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { rarities } from "@wiki-collection/db/enums";
-import type { RarityThresholds } from "@wiki-collection/db/rarity";
+import { rarityFromPageviews, type RarityThresholds } from "@wiki-collection/db/rarity";
 import { z } from "zod";
 
-// 取り込んだカードは git で管理する。D1 へは load-cards.ts で入れる。
+// 開発用のサンプルを JSONL から読み取る。D1 へは load-cards.ts で入れる。
 // - cards/{page_id を 10 万で割った数}.jsonl: 1行1カード。1ファイルが大きくなりすぎないよう、page_id で分ける
 // - genres.jsonl: ジャンル（Wikidata の分類）
 // - excluded.jsonl: カードにしなかった記事と理由。次の取り込みで取り直さないため
 // - rarity-thresholds.json: レアリティの下限
-export const DATA_DIR = path.resolve(import.meta.dirname, "../data/ja");
 
 const CARDS_DIR = "cards";
 const GENRES_FILE = "genres.jsonl";
@@ -20,26 +19,28 @@ const PAGES_PER_SHARD = 100_000;
 
 const date = z.iso.datetime().transform((s) => new Date(s));
 
-const cardRecordSchema = z.object({
-  wikiPageId: z.number().int(),
-  title: z.string(),
-  // ジャンルの slug（Wikidata の ID）
-  genre: z.string(),
-  wikiRevisionId: z.number().int(),
-  wikiFetchedAt: date,
-  summary: z.string(),
-  imageUrl: z.string().nullable(),
-  imageCredit: z.string().nullable(),
-  rarity: z.enum(rarities),
-  articleLength: z.number().int().nonnegative().nullable().optional(),
-  monthlyPageviews: z.number().int(),
-  pageviewsMeasuredAt: date,
-  // 排出を止めるときは false に書き換えて、wiki:load で D1 に反映する
-  isActive: z.boolean(),
-});
+export const cardRecordSchema = z
+  .object({
+    wikiPageId: z.number().int(),
+    title: z.string(),
+    // ジャンルの slug（Wikidata の ID）
+    genre: z.string(),
+    wikiRevisionId: z.number().int(),
+    wikiFetchedAt: date,
+    summary: z.string(),
+    imageUrl: z.string().nullable(),
+    imageCredit: z.string().nullable(),
+    rarity: z.enum([...rarities, "uncommon", "double_rare"]),
+    articleLength: z.number().int().nonnegative().nullable().optional(),
+    monthlyPageviews: z.number().int(),
+    pageviewsMeasuredAt: date,
+    // 排出を止めるときは false に書き換えて、wiki:load で D1 に反映する
+    isActive: z.boolean(),
+  })
+  .transform((card) => ({ ...card, rarity: rarityFromPageviews(card.monthlyPageviews) }));
 export type CardRecord = z.output<typeof cardRecordSchema>;
 
-const genreRecordSchema = z.object({
+export const genreRecordSchema = z.object({
   slug: z.string(),
   name: z.string(),
   colorHex: z.string().regex(/^#[0-9a-f]{6}$/),
@@ -53,12 +54,22 @@ const excludedRecordSchema = z.object({
 });
 export type ExcludedRecord = z.output<typeof excludedRecordSchema>;
 
-const thresholdsSchema = z.object({
-  legendary: z.number().int(),
-  double_rare: z.number().int(),
-  rare: z.number().int(),
-  uncommon: z.number().int(),
-});
+const thresholdsSchema = z
+  .object({
+    legendary: z.number().int(),
+    super_rare: z.number().int(),
+    rare: z.number().int(),
+  })
+  .or(
+    z
+      .object({
+        legendary: z.number().int(),
+        double_rare: z.number().int(),
+        rare: z.number().int(),
+        uncommon: z.number().int(),
+      })
+      .transform(() => null),
+  );
 
 export type CardStore = {
   cards: CardRecord[];
@@ -154,9 +165,8 @@ export async function writeThresholds(dir: string, thresholds: RarityThresholds)
   await mkdir(dir, { recursive: true });
   const ordered = {
     legendary: thresholds.legendary,
-    double_rare: thresholds.double_rare,
+    super_rare: thresholds.super_rare,
     rare: thresholds.rare,
-    uncommon: thresholds.uncommon,
   };
   await writeFile(path.join(dir, THRESHOLDS_FILE), `${JSON.stringify(ordered, null, 2)}\n`);
 }

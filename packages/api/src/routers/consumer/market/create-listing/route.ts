@@ -1,4 +1,4 @@
-import { auctionDurationHours } from "@wiki-collection/db/enums";
+import { auctionDurationHours, minimumAuctionPrice } from "@wiki-collection/db/enums";
 import z from "zod";
 
 import { protectedProcedure } from "../../../../index";
@@ -9,7 +9,7 @@ const MAX_PRICE = 1_000_000;
 export const marketCreateListingInputSchema = z.object({
   format: z.literal("auction"),
   userCardId: z.string(),
-  startPrice: z.number().int().min(1).max(MAX_PRICE),
+  startPrice: z.number().int().min(minimumAuctionPrice).max(MAX_PRICE),
   durationHours: z.literal(auctionDurationHours),
 });
 

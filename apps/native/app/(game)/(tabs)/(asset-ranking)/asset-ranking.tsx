@@ -15,7 +15,7 @@ export default function AssetRanking() {
   });
   const data = ranking.data;
   return (
-    <Screen title="総合資産ランキング" back>
+    <Screen title="総合資産ランキング">
       {!data ? (
         <Loading error={ranking.error} retry={ranking.refetch} />
       ) : (

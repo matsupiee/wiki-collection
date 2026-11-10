@@ -2,6 +2,7 @@ import type { Database } from "@wiki-collection/db";
 import { card, genre, rarityThreshold } from "@wiki-collection/db/schema/index";
 import { inArray, sql } from "drizzle-orm";
 
+import { rarityThresholds } from "@wiki-collection/db/rarity";
 import { readCardStore } from "./card-store";
 
 // いまは日本語版だけを扱う
@@ -15,12 +16,16 @@ const STATEMENTS_PER_BATCH = 500;
 
 export type LoadResult = { genres: number; cards: number; thresholds: boolean };
 
-// git で管理しているジャンル、カード、レアリティの下限を D1 に入れる。何度実行しても同じ状態になる。
-// すでにある記事は isActive だけを揃える。要約、ジャンル、レアリティは作った時点で固定するため
+// ジャンル、カード、レアリティの下限を D1 に入れる。何度実行しても同じ状態になる。
+// 排出停止を保持する。要約、ジャンル、レアリティは作った時点で固定するため
 export async function loadCards(input: { db: Database; dataDir: string }): Promise<LoadResult> {
-  const { db } = input;
-  const store = await readCardStore(input.dataDir);
+  return loadRecords(input.db, await readCardStore(input.dataDir));
+}
 
+export async function loadRecords(
+  db: Database,
+  store: Pick<Awaited<ReturnType<typeof readCardStore>>, "cards" | "genres" | "thresholds">,
+): Promise<LoadResult> {
   const known = new Set(store.genres.map((g) => g.slug));
   const unknown = [...new Set(store.cards.map((c) => c.genre))].filter((s) => !known.has(s));
   if (unknown.length > 0) {
@@ -42,14 +47,7 @@ export async function loadCards(input: { db: Database; dataDir: string }): Promi
       db
         .insert(genre)
         .values(genreValues.slice(i, i + GENRE_CHUNK))
-        .onConflictDoUpdate({
-          target: genre.slug,
-          set: {
-            name: sql`excluded.name`,
-            colorHex: sql`excluded.color_hex`,
-            sortOrder: sql`excluded.sort_order`,
-          },
-        }),
+        .onConflictDoNothing({ target: genre.slug }),
     );
   }
   await runBatches(db, genreStatements);
@@ -70,9 +68,9 @@ export async function loadCards(input: { db: Database; dataDir: string }): Promi
       db
         .insert(rarityThreshold)
         .values(
-          Object.entries(store.thresholds).map(([rarity, minMonthlyPageviews]) => ({
+          Object.entries(rarityThresholds).map(([rarity, minMonthlyPageviews]) => ({
             wikiLang: LANG,
-            rarity: rarity as keyof typeof store.thresholds,
+            rarity: rarity as keyof typeof rarityThresholds,
             minMonthlyPageviews,
           })),
         )
@@ -95,7 +93,7 @@ export async function loadCards(input: { db: Database; dataDir: string }): Promi
         .onConflictDoUpdate({
           target: [card.wikiLang, card.wikiPageId],
           set: {
-            isActive: sql`excluded.is_active`,
+            isActive: sql`min(${card.isActive}, excluded.is_active)`,
             articleLength: sql`coalesce(${card.articleLength}, excluded.article_length)`,
           },
         }),

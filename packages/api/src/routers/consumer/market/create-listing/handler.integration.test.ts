@@ -16,6 +16,16 @@ afterAll(() => dispose());
 afterEach(() => setSystemTime());
 
 describe("market/create-listing", () => {
+  test("開始価格は10ptから受け付ける", () => {
+    const listing = { format: "auction", userCardId: "owned", durationHours: 24 };
+    expect(marketCreateListingInputSchema.safeParse({ ...listing, startPrice: 9 }).success).toBe(
+      false,
+    );
+    expect(marketCreateListingInputSchema.safeParse({ ...listing, startPrice: 10 }).success).toBe(
+      true,
+    );
+  });
+
   test("固定価格での出品を受け付けない", () => {
     expect(
       marketCreateListingInputSchema.safeParse({

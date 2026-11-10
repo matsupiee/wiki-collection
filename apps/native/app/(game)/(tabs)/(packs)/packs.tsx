@@ -1,5 +1,6 @@
+import { useGameSound } from "@/lib/game-sounds";
 import { Text } from "@/components/typography";
-import { useState, useMemo, useEffect, type ComponentProps } from "react";
+import { useState, useRef, useMemo, useEffect, type ComponentProps } from "react";
 import { Pressable, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -81,10 +82,16 @@ function CarouselItem({
 }
 
 export default function Packs() {
+  const playSound = useGameSound();
   const trpc = useTRPC();
   const packs = useQuery(trpc.pack.list.queryOptions());
   const [requiredPoints, setRequiredPoints] = useState<number | null>(null);
   const [index, setIndex] = useState(0);
+  const previousIndex = useRef(index);
+  useEffect(() => {
+    if (index !== previousIndex.current) playSound("scroll");
+    previousIndex.current = index;
+  }, [index, playSound]);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);

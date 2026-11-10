@@ -8,10 +8,7 @@
   "scripts": {
     "check-types": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:deploy": "drizzle-kit migrate",
-    "seed": "bun src/seed/index.ts",
-    "seed:images": "bun src/seed/images.ts",
-    "seed:wiki": "bun src/seed/wiki-cli.ts"
+    "db:migrate:deploy": "drizzle-kit migrate"
   },
   "dependencies": {
     "@libsql/client": "catalog:",
@@ -26,6 +23,7 @@
     "drizzle-kit": "1.0.0-rc.5",
     "typescript": "catalog:",
     "varlock": "catalog:",
-    "wrangler": "4.148.0"
+    "wrangler": "4.148.0",
+    "@types/bun": "1.4.2"
   }
 }

@@ -31,24 +31,15 @@
     "env:generate": "varlock codegen --path ./apps/web/ && varlock codegen --path ./packages/db/",
     "postinstall": "varlock codegen --path ./apps/web/ && varlock codegen --path ./packages/db/",
     "check": "oxlint && oxfmt --write",
-    "db:seed": "bun run --cwd packages/db seed",
     "dev:local": "bun run --cwd apps/web dev:local",
     "test": "bun run --cwd packages/api test && bun run --cwd packages/wiki-import test && bun run --cwd apps/web test && bun run --cwd apps/native test",
-    "wiki:import": "bun run --cwd packages/wiki-import import",
-    "wiki:load": "bun run --cwd packages/wiki-import load",
-    "wiki:top": "bun run --cwd packages/wiki-import top",
-    "wiki:images": "bun run --cwd packages/wiki-import images",
-    "db:seed:images": "bun run --cwd packages/db seed:images",
-    "db:seed:packs": "bun packages/db/src/seed/packs-cli.ts",
-    "db:seed:wiki": "bun run --cwd packages/db seed:wiki",
-    "wiki:lengths": "bun run --cwd packages/wiki-import lengths",
-    "db:seed:asset-ranking": "bun packages/db/src/seed/asset-ranking-cli.ts",
-    "db:seed:collection": "bun run packages/db/src/seed/collection-sort-cli.ts",
     "dev:native": "bun run --cwd apps/native start",
     "dev:native:web": "bun run --cwd apps/native web",
-    "db:seed:native": "bun packages/db/src/seed/native-cli.ts",
     "test:native:e2e": "playwright test --config playwright.native.config.ts",
-    "db:seed:opening": "bun packages/db/src/seed/opening-juice-cli.ts"
+    "wiki:dump": "bun packages/wiki-import/src/dump-cli.ts",
+    "wiki:upload-r2": "bun packages/wiki-import/src/upload-cli.ts",
+    "db:seed:local": "bun packages/db/src/seed/wiki-cli.ts",
+    "db:seed:prod": "bun packages/db/src/seed/prod-cli.ts"
   },
   "dependencies": {
     "zod": "catalog:"

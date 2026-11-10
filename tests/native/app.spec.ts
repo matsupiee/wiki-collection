@@ -94,7 +94,9 @@ test("ログイン・開封再開・カード・履歴・ログアウト", async
   await page.getByRole("button", { name: "閲覧数順", exact: true }).click();
   await page.getByRole("button", { name: "並び順", exact: true }).click();
   await page.getByRole("button", { name: "記事サイズ順", exact: true }).click();
-  await expect(page.getByRole("tab")).toHaveCount(4);
+  await expect(page.getByRole("tab")).toHaveCount(5);
+  await page.getByRole("tab", { name: "ランキング", exact: true }).click();
+  await expect(page.getByText("あなたのカード資産", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: /マイページ/ }).click();
   await page.getByRole("button", { name: "開封履歴", exact: true }).click();
   await expect(page.getByRole("button", { name: /結果を見る/ }).first()).toBeVisible();
@@ -136,7 +138,7 @@ test("2人でオークション出品・入札・ポイント購入", async ({ b
     await expect(p.getByRole("tab", { name: /マーケット/ })).toBeVisible();
   };
   await login(seller, `${prefix}2@example.com`);
-  await login(buyer, `${prefix}1@example.com`);
+  await login(buyer, `${prefix}-bidder@example.com`);
   await seller.goto("http://localhost:8082/collection");
   await seller
     .getByRole("button", { name: /の詳細を見る/ })
@@ -145,11 +147,26 @@ test("2人でオークション出品・入札・ポイント購入", async ({ b
   await seller.getByRole("button", { name: "出品する", exact: true }).click();
   await seller.getByRole("button", { name: "1時間", exact: true }).click();
   await seller.getByRole("button", { name: "12時間", exact: true }).click();
-  await seller.getByRole("textbox", { name: "開始価格（pt）", exact: true }).fill("100");
+  const startPrice = seller.getByRole("textbox", { name: "開始価格（pt）", exact: true });
+  const submitListing = seller.getByRole("button", { name: "出品する", exact: true });
+  await startPrice.fill("9");
+  await expect(submitListing).toBeDisabled();
+  await startPrice.fill("10");
+  await expect(submitListing).toBeEnabled();
+  await startPrice.fill("100");
   await seller.getByRole("button", { name: "出品する", exact: true }).click();
   await expect(seller).toHaveURL(/\/market\/(?!new)[^/]+$/);
   await expect(seller.getByText(/残り (11時間59分|12時間0分)/)).toBeVisible();
   await buyer.goto(seller.url());
+  await buyer.getByRole("textbox", { name: /入札額/ }).fill("150");
+  await buyer.getByRole("button", { name: "入札", exact: true }).click();
+  await expect(buyer.getByText(/あと 150pt 必要です/)).toBeVisible();
+  await buyer.getByRole("button", { name: "pt を購入", exact: true }).click();
+  await buyer.getByRole("button", { name: /500pt/ }).first().click();
+  await buyer.getByRole("button", { name: "購入する", exact: true }).click();
+  await expect(buyer.getByText("pt を購入します", { exact: true })).not.toBeVisible();
+  await buyer.goto(seller.url());
+  await expect(buyer.getByText("まだ入札はありません")).toBeVisible();
   await buyer.getByRole("textbox", { name: /入札額/ }).fill("100");
   await buyer.getByRole("button", { name: "入札", exact: true }).click();
   await buyer.getByRole("button", { name: "入札する", exact: true }).click();
@@ -200,7 +217,7 @@ test("新規登録と未ログイン時の保護、Webとアプリの規約", as
     .click({ position: { x: 8, y: 200 } });
   await expect(page.getByText("10分ごとに無料パックが1つ引けるようになる")).toHaveCount(0);
   await expect(freePacks).toBeVisible();
-  await page.getByRole("button", { name: "ダブルレア確定ガチャへ", exact: true }).click();
+  await page.getByRole("button", { name: "SR1枚確定ガチャへ", exact: true }).click();
   await expect(page.getByText("100pt", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "100pt で開封する", exact: true }).click();
   await expect(page.getByText("ポイントが不足しています", { exact: true })).toBeVisible();

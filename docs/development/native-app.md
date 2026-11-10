@@ -16,13 +16,13 @@ bun run dev:local
 別のターミナルで実行する。
 
 ```sh
-bun run db:seed:native
+bun packages/db/src/seed/native-cli.ts
 bun run dev:native:web
 ```
 
 Expo Webは `http://localhost:8082`。既存のmeigen-widgetの8081と競合しないようにする。APIは `http://localhost:3001`。ポートが使用中の場合は、既存のこのリポジトリのサーバーを利用するか、API URLを変更する。
 
-seedは既存のマスターカードを使い、`native1@example.com` と `native2@example.com` を追加する。パスワードは `password1234`。カードと2,000無償ptがあり、再実行で重複付与しない。マスターが空の場合は先に `bun run db:seed` または `bun run wiki:load` を行う。`db:seed` はローカルデータをリセットするため、既存データを残したい環境では実行しない。
+seedは既存のマスターカードを使い、`native1@example.com` と `native2@example.com` を追加する。パスワードは `password1234`。カードと2,000無償ptがあり、再実行で重複付与しない。マスターが空の場合は先に `bun run db:seed:local` を行う。`db:seed:local` はローカルデータをリセットするため、既存データを残したい環境では実行しない。
 
 ## iOS・Android
 

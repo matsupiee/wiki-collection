@@ -1,0 +1,19 @@
+appId: com.matsupiee.wikicollection
+---
+# 入札可能な出品ID、残高を超える入札額と表示用の不足額を -e で渡す。
+- launchApp:
+    stopApp: true
+- openLink: wiki-collection://market/${LISTING_ID}
+- tapOn:
+    id: "bid-amount"
+- inputText: "${BID_AMOUNT}"
+- tapOn: "入札"
+- assertVisible: ".*あと ${SHORTFALL}pt 必要です。"
+- tapOn: "やめる"
+- tapOn: "入札"
+- tapOn: "pt を購入"
+- assertVisible: "ポイント購入"
+- tapOn: "マーケット"
+- tapOn: "入札"
+- assertVisible: ".*あと ${SHORTFALL}pt 必要です。"
+- tapOn: "やめる"

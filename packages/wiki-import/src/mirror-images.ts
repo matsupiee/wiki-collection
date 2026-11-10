@@ -1,14 +1,13 @@
-import { cardImageKey, cardImageTypes, commonsImageUrl } from "@wiki-collection/db/card-image";
+import { cardImageKey, commonsImageUrl } from "@wiki-collection/db/card-image";
 import { encodeCardWebp } from "./card-webp";
 import type { CardRecord } from "./card-store";
-import { USER_AGENT } from "./wikimedia-client";
+import { downloadImage, UnusableImage, type ImageFetch } from "@wiki-collection/db/download-image";
+export {
+  downloadImage,
+  MAX_IMAGE_BYTES,
+  type ImageFetch,
+} from "@wiki-collection/db/download-image";
 
-export type ImageFetch = (
-  url: string,
-  init: { headers: Record<string, string>; redirect: "manual"; signal: AbortSignal },
-) => Promise<Response>;
-
-export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 export type ImageStorage = {
   exists(key: string): Promise<boolean>;
   put(key: string, bytes: Uint8Array, contentType: string): Promise<void>;
@@ -16,6 +15,7 @@ export type ImageStorage = {
 
 // 各ワーカーは転送完了後に1秒空ける。同時に保持する画像数も制限する。
 export async function mirrorImages(input: {
+  onUnavailable?: (url: string) => void;
   cards: Pick<CardRecord, "imageUrl" | "imageCredit">[];
   storage: ImageStorage;
   limit?: number;
@@ -67,12 +67,19 @@ export async function mirrorImages(input: {
         attempted++;
         try {
           const { bytes } = await downloadImage(source, doFetch, sleep);
-          const webp = await encodeCardWebp(bytes);
+          const webp = await encodeCardWebp(bytes).catch((error) => {
+            throw new UnusableImage(String(error));
+          });
           await input.storage.put(key, webp, "image/webp");
           result.uploaded++;
           log(`保存: ${key}`);
         } catch (error) {
-          result.failed++;
+          if (error instanceof UnusableImage && input.onUnavailable) {
+            input.onUnavailable(source);
+            result.skipped++;
+          } else {
+            result.failed++;
+          }
           log(`失敗: ${source} (${error instanceof Error ? error.message : String(error)})`);
         }
         await sleep(1000);
@@ -88,73 +95,4 @@ export async function mirrorImages(input: {
   const failure = workers.find((worker) => worker.status === "rejected");
   if (failure?.status === "rejected") throw failure.reason;
   return result;
-}
-
-export async function downloadImage(
-  source: string,
-  doFetch: ImageFetch,
-  sleep: (ms: number) => Promise<void>,
-) {
-  const initialUrl = commonsImageUrl(source);
-  if (!initialUrl) throw new Error("取得を許可していない URL です");
-  let url: string = initialUrl;
-  let redirects = 0;
-  let retries = 0;
-  for (;;) {
-    const res = await doFetch(url, {
-      headers: { "User-Agent": USER_AGENT },
-      redirect: "manual",
-      signal: AbortSignal.timeout(30_000),
-    });
-    if ([301, 302, 303, 307, 308].includes(res.status)) {
-      await res.body?.cancel();
-      const location = res.headers.get("location");
-      const next = location ? commonsImageUrl(new URL(location, url).href) : null;
-      if (!next || ++redirects > 5) throw new Error("不正なリダイレクトです");
-      url = next;
-      continue;
-    }
-    if ((res.status === 429 || res.status >= 500) && retries < 3) {
-      await res.body?.cancel();
-      const retryAfter = res.headers.get("retry-after");
-      const seconds = retryAfter === null ? NaN : Number(retryAfter);
-      const wait = Number.isFinite(seconds)
-        ? seconds * 1000
-        : Date.parse(retryAfter ?? "") - Date.now();
-      await sleep(Math.max(1000 * 2 ** retries++, Number.isFinite(wait) ? wait : 0));
-      continue;
-    }
-    const contentType = res.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ?? "";
-    if (
-      !res.ok ||
-      !res.body ||
-      !cardImageTypes.has(contentType) ||
-      Number(res.headers.get("content-length")) > MAX_IMAGE_BYTES
-    ) {
-      await res.body?.cancel();
-      throw new Error(`画像を取得できません (HTTP ${res.status}, ${contentType}, 上限10MiB)`);
-    }
-    const reader = res.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    try {
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        size += value.byteLength;
-        if (size > MAX_IMAGE_BYTES) throw new Error("画像が10MiBを超えています");
-        chunks.push(value);
-      }
-    } finally {
-      await reader.cancel();
-    }
-    if (size === 0) throw new Error("空の画像です");
-    const bytes = new Uint8Array(size);
-    let offset = 0;
-    for (const chunk of chunks) {
-      bytes.set(chunk, offset);
-      offset += chunk.byteLength;
-    }
-    return { bytes, contentType };
-  }
 }

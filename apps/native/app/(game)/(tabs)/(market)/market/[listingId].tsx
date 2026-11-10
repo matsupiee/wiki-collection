@@ -21,7 +21,7 @@ export default function Listing() {
   const bid = useMutation(trpc.market.bid.mutationOptions());
   const cancel = useMutation(trpc.market.cancelListing.mutationOptions());
   const action = useAction();
-  const [confirm, setConfirm] = useState<"bid" | "cancel" | null>(null);
+  const [confirm, setConfirm] = useState<"bid" | "cancel" | "purchase" | null>(null);
   const [input, setInput] = useState("");
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -116,6 +116,7 @@ export default function Listing() {
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   <TextInput
                     accessibilityLabel={`入札額（${formatPt(d.minNextBid ?? 0)} 以上）`}
+                    testID="bid-amount"
                     keyboardType="number-pad"
                     placeholder={String(d.minNextBid ?? "")}
                     value={input}
@@ -132,21 +133,22 @@ export default function Listing() {
                       color: "#1e293b",
                     }}
                   />
-                  {d.balance >= amount ? (
-                    <Button
-                      title="入札"
-                      style={{ height: 44, paddingHorizontal: 24 }}
-                      textStyle={{ fontWeight: "800" }}
-                      disabled={!d.minNextBid || amount < d.minNextBid || !Number.isInteger(amount)}
-                      onPress={() => setConfirm("bid")}
-                    />
-                  ) : (
-                    <Button
-                      title="pt を購入"
-                      style={{ height: 44, backgroundColor: "#fbbf24" }}
-                      onPress={() => router.push("/point")}
-                    />
-                  )}
+                  <Button
+                    title="入札"
+                    style={{ height: 44, paddingHorizontal: 24 }}
+                    textStyle={{ fontWeight: "800" }}
+                    disabled={
+                      !d.minNextBid ||
+                      amount < d.minNextBid ||
+                      !Number.isInteger(amount) ||
+                      amount > 10_000_000
+                    }
+                    onPress={() => {
+                      setInput(String(amount));
+                      action.clearError();
+                      setConfirm(d.balance < amount ? "purchase" : "bid");
+                    }}
+                  />
                 </View>
               </View>
             )}
@@ -203,7 +205,23 @@ export default function Listing() {
               )}
             </View>
           )}
-          {confirm && (
+          {confirm === "purchase" && (
+            <Confirm
+              title="pt が足りません"
+              confirmLabel="pt を購入"
+              onCancel={() => setConfirm(null)}
+              onConfirm={() => {
+                setConfirm(null);
+                router.push("/point");
+              }}
+            >
+              <Text style={{ textAlign: "center" }}>
+                {formatPt(amount)} で入札するには、あと {formatPt(Math.max(0, amount - d.balance))}{" "}
+                必要です。
+              </Text>
+            </Confirm>
+          )}
+          {(confirm === "cancel" || confirm === "bid") && (
             <Confirm
               title={confirm === "cancel" ? "出品を取り下げます" : "入札します"}
               confirmLabel={confirm === "cancel" ? "取り下げる" : "入札する"}

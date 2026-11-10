@@ -9,7 +9,7 @@
 
 ## 動作確認の手順
 
-`bun run db:seed` を実行し、`bun run dev:local` で起動しておく。ローカルでは `PAYMENT_MODE=mock` なので、支払いなしで購入が完了する。
+`bun packages/db/src/seed/index.ts` を実行し、`bun run dev:local` で起動しておく。ローカルでは `PAYMENT_MODE=mock` なので、支払いなしで購入が完了する。
 
 1. `taro@example.com` でログインし、ヘッダーの pt 残高を押してポイント購入を開く。
    - ヘッダーのコインアイコンは、淡いゴールド、控えめな厚みと内側のリングで表現し、文字や刻印を表示しない。隣の残高には pt の単位が付く。

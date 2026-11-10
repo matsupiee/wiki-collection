@@ -1,3 +1,4 @@
+import { useGameSound } from "@/lib/game-sounds";
 import { Text } from "@/components/typography";
 import { useEffect } from "react";
 import { Platform, ScrollView, View } from "react-native";
@@ -10,6 +11,7 @@ import { Button, Card, Loading } from "@/components/ui";
 import { AppBackground } from "@/components/app-background";
 import { SafeAreaView } from "react-native-screens/experimental";
 export default function Result() {
+  const playSound = useGameSound();
   const { openingId } = useLocalSearchParams<{ openingId: string }>();
   const trpc = useTRPC();
   const q = useQuery(trpc.opening.get.queryOptions({ openingId }));
@@ -106,7 +108,10 @@ export default function Result() {
                       <Card
                         card={c.card}
                         small
-                        onPress={() => router.push(`/cards/${c.card.id}`)}
+                        onPress={() => {
+                          playSound("card");
+                          router.push(`/cards/${c.card.id}`);
+                        }}
                       />
                     </View>
                   ))}

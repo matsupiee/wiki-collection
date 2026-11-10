@@ -98,5 +98,7 @@ export async function handler({
     throw error;
   }
 
+  const commonIds = [...new Set(drawn.filter((c) => c.rarity === "common").map((c) => c.cardId))];
+  if (commonIds.length) ctx.cacheCommonImages?.(commonIds);
   return { openingId };
 }

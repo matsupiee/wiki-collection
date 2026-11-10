@@ -1,4 +1,4 @@
-export const rarities = ["common", "uncommon", "rare", "double_rare", "legendary"] as const;
+export const rarities = ["common", "rare", "super_rare", "legendary"] as const;
 export type Rarity = (typeof rarities)[number];
 
 export const packTypes = ["free_basic", "premium"] as const;
@@ -13,6 +13,7 @@ export type UserCardStatus = (typeof userCardStatuses)[number];
 export const listingFormats = ["fixed_price", "auction"] as const;
 export type ListingFormat = (typeof listingFormats)[number];
 
+export const minimumAuctionPrice = 10;
 export const auctionDurationHours = [1, 12, 24, 72, 168] as const;
 
 export const listingStatuses = ["active", "sold", "cancelled", "expired"] as const;

@@ -6,17 +6,13 @@
   },
   "scripts": {
     "check-types": "tsc --noEmit",
-    "import": "bun src/cli.ts",
-    "load": "bun src/load-cli.ts",
-    "top": "bun src/top-cli.ts",
-    "test": "bun test",
-    "images": "bun src/images-cli.ts",
-    "lengths": "bun src/backfill-lengths-cli.ts"
+    "test": "bun test"
   },
   "dependencies": {
     "@wiki-collection/db": "workspace:*",
     "drizzle-orm": "catalog:",
     "sharp": "0.35.5",
+    "wtf_wikipedia": "10.4.2",
     "zod": "catalog:"
   },
   "devDependencies": {

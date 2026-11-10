@@ -34,7 +34,7 @@ describe("market/get", () => {
     await bidHandler({ input: { listingId, amount: 100 }, ctx: alice });
 
     const forAlice = await handler({ input: { listingId }, ctx: alice });
-    expect(forAlice).toMatchObject({ minNextBid: 105, isLeading: true, balance: 900 });
+    expect(forAlice).toMatchObject({ minNextBid: 110, isLeading: true, balance: 900 });
     expect(forAlice.bids).toEqual([
       expect.objectContaining({ amount: 100, bidderName: "alice", isMine: true }),
     ]);

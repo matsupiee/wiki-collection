@@ -8,7 +8,7 @@
 
 ## 動作確認の手順
 
-1. `bun run db:seed` 後、`taro@example.com` でログインする。
+1. `bun packages/db/src/seed/index.ts` 後、`taro@example.com` でログインする。
    - ヘッダーのプレゼントボックスと数字を押すと「10分ごとに無料パックが1つ引けるようになる」という吹き出しがアイコンの下に表示される。アイコンをもう一度押すか、吹き出しの外を押すと閉じる。
    - 初期残数は10。1パック開けると残り9になり、「無料で開封する」から続けて開封できる。カウントダウンは表示されない。
 2. `shiro@example.com` でログインし、`bun packages/db/src/seed/free-pack-cli.ts` を実行してパック画面を開き直す。

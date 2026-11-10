@@ -1,14 +1,17 @@
+import { useGameSound } from "@/lib/game-sounds";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
-import { Gift, BookOpen, Store, User } from "lucide-react-native";
+import { Gift, BookOpen, Store, Trophy, User } from "lucide-react-native";
 import { Text } from "./typography";
 export const tabs = [
   ["packs", "パック", Gift],
   ["collection", "コレクション", BookOpen],
+  ["asset-ranking", "ランキング", Trophy],
   ["market", "マーケット", Store],
   ["me", "マイページ", User],
 ] as const;
 export function BottomNav({ activeTab }: { activeTab: string }) {
+  const playSound = useGameSound();
   return (
     <View
       style={{
@@ -34,7 +37,10 @@ export function BottomNav({ activeTab }: { activeTab: string }) {
               accessibilityLabel={label}
               accessibilityState={{ selected: active }}
               key={route}
-              onPress={() => router.replace(`/${route}`)}
+              onPress={() => {
+                playSound("tab");
+                router.replace(`/${route}`);
+              }}
               style={{
                 flex: 1,
                 alignItems: "center",

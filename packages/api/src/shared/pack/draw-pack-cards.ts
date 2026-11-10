@@ -2,7 +2,7 @@ import type { Database } from "@wiki-collection/db";
 import type { Rarity } from "@wiki-collection/db/enums";
 import { card, packSlotRate } from "@wiki-collection/db/schema/index";
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, count, eq } from "drizzle-orm";
 
 import { compareRarity } from "../card/compare-rarity";
 
@@ -40,27 +40,24 @@ export async function drawPackCards(
   },
   random: Random = secureRandom,
 ): Promise<DrawnCard[]> {
-  const [rates, candidates] = await Promise.all([
+  const eligible = and(
+    eq(card.isActive, true),
+    pack.genreId ? eq(card.genreId, pack.genreId) : undefined,
+  );
+  const [rates, counts] = await Promise.all([
     db
       .select()
       .from(packSlotRate)
       .where(eq(packSlotRate.packId, pack.id))
       .orderBy(asc(packSlotRate.slot)),
     db
-      .select({ id: card.id, rarity: card.rarity })
+      .select({ rarity: card.rarity, size: count() })
       .from(card)
-      .where(
-        and(eq(card.isActive, true), pack.genreId ? eq(card.genreId, pack.genreId) : undefined),
-      ),
+      .where(eligible)
+      .groupBy(card.rarity),
   ]);
-
-  const candidatesByRarity = new Map<Rarity, DrawnCard[]>();
-  for (const c of candidates) {
-    const list = candidatesByRarity.get(c.rarity) ?? [];
-    list.push({ cardId: c.id, rarity: c.rarity });
-    candidatesByRarity.set(c.rarity, list);
-  }
-  if (candidatesByRarity.size === 0) {
+  const candidatesByRarity = new Map(counts.map((c) => [c.rarity, c.size]));
+  if (!candidatesByRarity.size) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
       message: "このパックに入るカードがありません",
@@ -72,7 +69,8 @@ export async function drawPackCards(
     // 候補カードのないレアリティは抽選から外す。無料パックですべて外れたら、候補のあるレアリティから等確率で選ぶ
     const slotRates = rates
       .filter((r) => r.slot === slot && r.weight > 0 && candidatesByRarity.has(r.rarity))
-      .map((r) => ({ item: r.rarity, weight: r.weight }));
+      .map((r) => ({ item: r.rarity, weight: r.weight }))
+      .sort((a, b) => compareRarity(a.item, b.item));
     if (slotRates.length === 0 && pack.type === "premium") {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
@@ -86,8 +84,15 @@ export async function drawPackCards(
             [...candidatesByRarity.keys()].map((r) => ({ item: r, weight: 1 })),
             random,
           );
-    const pool = candidatesByRarity.get(rarity)!;
-    drawn.push(pool[Math.floor(random() * pool.length)]!);
+    const offset = Math.floor(random() * candidatesByRarity.get(rarity)!);
+    const [chosen] = await db
+      .select({ cardId: card.id, rarity: card.rarity })
+      .from(card)
+      .where(and(eligible, eq(card.rarity, rarity)))
+      .limit(1)
+      .offset(offset);
+    if (!chosen) throw new TRPCError({ code: "CONFLICT", message: "排出対象が更新されました" });
+    drawn.push(chosen);
   }
 
   return drawn

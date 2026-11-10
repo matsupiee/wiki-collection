@@ -4,15 +4,9 @@ import { ExternalLink } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/client";
-import { Button, Card, Loading, Panel, Screen, marks } from "@/components/ui";
+import { Button, Card, Loading, Panel, Screen } from "@/components/ui";
 import { formatPt } from "@/lib/format";
-const labels: Record<string, string> = {
-  common: "コモン",
-  uncommon: "アンコモン",
-  rare: "レア",
-  double_rare: "ダブルレア",
-  legendary: "レジェンド",
-};
+import { rarityLabels } from "@/lib/rarity";
 export default function Detail() {
   const { cardId } = useLocalSearchParams<{ cardId: string }>();
   const trpc = useTRPC();
@@ -61,15 +55,13 @@ export default function Detail() {
                 </Pressable>
               </View>
               <Text style={{ fontSize: 12, fontWeight: "700", color: "#64748b" }}>
-                {marks[d.card.rarity]} {labels[d.card.rarity]}
+                {d.card.rarity === "super_rare"
+                  ? "SR（スーパーレア）"
+                  : rarityLabels[d.card.rarity]}
               </Text>
             </View>
             <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>
-              月間{" "}
-              {d.card.monthlyPageviews >= 10000
-                ? `${(d.card.monthlyPageviews / 10000).toLocaleString("ja-JP", { maximumFractionDigits: 1 })}万`
-                : d.card.monthlyPageviews.toLocaleString("ja-JP")}{" "}
-              閲覧
+              月間 {d.card.monthlyPageviews.toLocaleString("ja-JP")} 閲覧
             </Text>
             <Text style={{ fontSize: 14, lineHeight: 22.75, color: "#334155" }}>
               {d.card.summary}
@@ -99,9 +91,7 @@ export default function Detail() {
                 title={`マーケットの最安値 ${formatPt(d.lowestMarketPrice)} ›`}
                 style={{ marginTop: 12 }}
                 textStyle={{ fontSize: 12, color: "#64748b" }}
-                onPress={() =>
-                  router.push({ pathname: "/market", params: { cardId } })
-                }
+                onPress={() => router.push({ pathname: "/market", params: { cardId } })}
               />
             )}
           </Panel>

@@ -1,0 +1,1 @@
+CREATE INDEX `card_active_rarity_id_idx` ON `card` (`is_active`,`rarity`,`id`);

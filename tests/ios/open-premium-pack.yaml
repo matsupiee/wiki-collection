@@ -1,0 +1,21 @@
+appId: com.matsupiee.wikicollection
+---
+# 600pt以上の確認用アカウントでログインしてから実行する。
+- openLink: wiki-collection://packs
+- tapOn: "SR1枚確定ガチャへ"
+- assertVisible: "5枚のうち1枚はSR確定。"
+- tapOn: "100pt で開封する"
+- extendedWaitUntil:
+    visible: "スキップ"
+    timeout: 15000
+- tapOn: "スキップ"
+- assertVisible: "開封結果"
+- tapOn: "パック選択にもどる"
+- tapOn: "レジェンド1枚確定ガチャへ"
+- assertVisible: "5枚のうち1枚はレジェンド確定。"
+- tapOn: "500pt で開封する"
+- extendedWaitUntil:
+    visible: "スキップ"
+    timeout: 15000
+- tapOn: "スキップ"
+- assertVisible: "開封結果"

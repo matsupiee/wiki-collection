@@ -1,3 +1,5 @@
+import { rarityLabels } from "@/lib/rarity";
+import type { Rarity } from "@wiki-collection/db/enums";
 import { cardImageDisplayUrl } from "@wiki-collection/db/card-image";
 import { Text, TextInput } from "./typography";
 import { AppBackground } from "./app-background";
@@ -347,13 +349,7 @@ export function Loading({
     />
   );
 }
-export const marks: Record<string, string> = {
-  common: "◇",
-  uncommon: "◇◇",
-  rare: "◇◇◇",
-  double_rare: "◇◇◇◇",
-  legendary: "☆",
-};
+export { rarityLabels as marks } from "@/lib/rarity";
 export type CardArtData = { title: string; imageUrl: string | null; genreColorHex?: string };
 export function CardArt({
   card,
@@ -429,7 +425,7 @@ export function Card({
     title: string;
     imageUrl: string | null;
     genreColorHex?: string;
-    rarity?: string;
+    rarity?: Rarity;
   };
   small?: boolean;
   size?: "xs" | "sm" | "md" | "lg";
@@ -497,7 +493,7 @@ export function Card({
                 fontWeight: "700",
               }}
             >
-              {marks[card.rarity]}
+              {rarityLabels[card.rarity]}
             </Text>
           )}
         </View>

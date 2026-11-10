@@ -1,3 +1,5 @@
+import { rarityLabels } from "@/lib/rarity";
+import type { Rarity } from "@wiki-collection/db/enums";
 import { Pressable } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -24,7 +26,7 @@ export function OpeningPhoto({
   last,
   onTurn,
 }: {
-  card: CardArtData & { rarity: string };
+  card: CardArtData & { rarity: Rarity };
   depth: number;
   width: number;
   height: number;
@@ -108,7 +110,7 @@ export function OpeningPhoto({
             disabled={!active}
             accessible={active}
             accessibilityRole="button"
-            accessibilityLabel={`${card.title}、${card.rarity.replace("_", " ").toUpperCase()}、${last ? "開封結果を見る" : "めくる"}`}
+            accessibilityLabel={`${card.title}、${rarityLabels[card.rarity]}、${last ? "開封結果を見る" : "めくる"}`}
             onPress={() => turn(-1)}
           >
             <CardArt card={card} />

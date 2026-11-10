@@ -8,8 +8,8 @@
 
 ## 動作確認の手順
 
-1. `bun run db:seed:asset-ranking` を実行し、iOSアプリで `asset-ranking2@example.com` にパスワード `password1234` でログインする。
-2. コレクションの「総合資産ランキング」を開く。
+1. `bun packages/db/src/seed/asset-ranking-cli.ts` を実行し、iOSアプリで `asset-ranking2@example.com` にパスワード `password1234` でログインする。
+2. ボトムタブの「ランキング」をタップする。
    - 新しく作った確認アカウントには337点のカードが2枚あり、あなたのカード資産は674点になる。
    - 上位50人を合計点順に表示する。同点は同順位とし、50人の範囲外でも自分の順位を確認できる。
 3. 1枚を出品してランキングを開き直す。

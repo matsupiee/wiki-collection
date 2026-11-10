@@ -1,3 +1,4 @@
+import { useGameSound } from "@/lib/game-sounds";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
@@ -24,6 +25,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { cardImageDisplayUrl } from "@wiki-collection/db/card-image";
 import { apiUrl, useTRPC } from "../../../../lib/client";
+import { highestOpeningRarity } from "../../../../lib/rarity";
 import { useAction } from "../../../../lib/mutation";
 import { Loading } from "../../../../components/ui";
 import { Text } from "../../../../components/typography";
@@ -49,6 +51,7 @@ export default function Opening() {
   return <OpeningScene key={openingId} openingId={openingId} />;
 }
 function OpeningScene({ openingId }: { openingId: string }) {
+  const playSound = useGameSound();
   const trpc = useTRPC();
   const query = useQuery(trpc.opening.get.queryOptions({ openingId }));
   const reveal = useMutation(trpc.opening.reveal.mutationOptions());
@@ -134,6 +137,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
     }
     if (busy.current || !query.data) return;
     busy.current = true;
+    playSound("open");
     cancelIntroFrame();
     const pickup =
       drag.get() + (reduce ? side * carouselPitch : carouselOffset(arrival.get(), side)) * w;
@@ -145,7 +149,15 @@ function OpeningScene({ openingId }: { openingId: string }) {
     );
     committed.set(true);
     const end = stackReadyAt;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    const rarity = highestOpeningRarity(cards);
+    const impactStyles = {
+      rare: Haptics.ImpactFeedbackStyle.Light,
+      super_rare: Haptics.ImpactFeedbackStyle.Medium,
+      legendary: Haptics.ImpactFeedbackStyle.Heavy,
+    };
+    const feedback =
+      rarity === "common" ? Haptics.selectionAsync() : Haptics.impactAsync(impactStyles[rarity]);
+    void feedback.catch(() => {});
     if (reduce) {
       time.set(end);
       revealed();
@@ -158,6 +170,10 @@ function OpeningScene({ openingId }: { openingId: string }) {
         if (finished) scheduleOnRN(revealed);
       }),
     );
+  }
+  function selectDetail(index: number) {
+    playSound("card");
+    setDetail(index);
   }
   function finish() {
     if (leaving.current) return;
@@ -224,6 +240,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
         Math.abs(e.translationX) > pitch * 0.4 || Math.abs(e.velocityX) > 500
           ? Math.sign(e.translationX) * pitch
           : 0;
+      if (snap !== 0) scheduleOnRN(playSound, "scroll");
       drag.set(
         withSpring(
           snap,
@@ -297,6 +314,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
                   last={front + depth === cards.length - 1}
                   onTurn={() => {
                     if (!mounted.current) return;
+                    playSound("card");
                     if (front === cards.length - 1) finish();
                     else setFront(front + 1);
                   }}
@@ -408,7 +426,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="写真の詳細を見る"
-                  onPress={() => setDetail(front)}
+                  onPress={() => selectDetail(front)}
                   disabled={action.pending}
                   style={styles.next}
                 >
@@ -429,7 +447,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
               <OpeningInspection
                 index={detail}
                 count={front + 1}
-                select={setDetail}
+                select={selectDetail}
                 card={cards[detail].card}
                 isNew={cards[detail].isNew}
                 width={w}

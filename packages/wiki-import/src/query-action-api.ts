@@ -11,6 +11,8 @@ export type ActionPage = {
   title: string;
   missing?: boolean;
   length?: number;
+  extract?: string;
+  lastrevid?: number;
   revisions?: { revid: number; size: number }[];
   categories?: { ns: number; title: string }[];
   pageimage?: string;
