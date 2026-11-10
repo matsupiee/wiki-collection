@@ -33,9 +33,7 @@ export default function Layout() {
             edges={nativeTabs ? ["top"] : ["top", "bottom"]}
           >
             <StatusBar style={opening ? "light" : "dark"} />
-            <Stack
-              screenOptions={{ headerShown: false, statusBarStyle: opening ? "light" : "dark" }}
-            />
+            <Stack screenOptions={{ headerShown: false }} />
           </SafeAreaView>
         </Providers>
       </SafeAreaProvider>
