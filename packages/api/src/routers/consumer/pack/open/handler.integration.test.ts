@@ -102,7 +102,7 @@ describe("pack/open", () => {
     expect(new Set(cards.map((c) => c.cardId))).toEqual(new Set([spaceCard.id]));
   });
 
-  test("無料パックは登録日から毎日 10 を開けられ、毎日の枠は持ち越せない", async () => {
+  test("初期枠10を使い切ると10分ごとに1つ回復し、100分で満杯になる", async () => {
     setSystemTime(new Date("2026-10-25T03:00:00Z")); // 日本時間 12:00
     const ctx = await createUserContext(db);
     const userId = ctx.session.user.id;
@@ -118,7 +118,16 @@ describe("pack/open", () => {
       code: "PRECONDITION_FAILED",
     });
 
-    // 3日後でも、使えるのはその日の 10 パックだけ
+    for (const [elapsed, remaining] of [
+      [599999, 0],
+      [600000, 1],
+      [5999999, 9],
+      [6000000, 10],
+    ] as const) {
+      const time = new Date(Date.parse("2026-10-25T03:00:00Z") + elapsed);
+      expect((await getFreePackStatus(db, userId, time)).remaining).toBe(remaining);
+    }
+    // 長時間満杯でも、再び開けるとその時点から10分待つ。
     setSystemTime(new Date("2026-10-28T03:00:00Z"));
     expect((await getFreePackStatus(db, userId, new Date())).remaining).toBe(10);
     for (let i = 0; i < 10; i++) await handler({ input: { packId: p.id }, ctx });
@@ -127,7 +136,7 @@ describe("pack/open", () => {
     });
   });
 
-  test("旧登録特典が残っていても使えず、日本時間0時に毎日の枠だけ戻る", async () => {
+  test("残り1つの同時開封は1件だけ成功し、日付をまたいでも回復途中の時間を保持する", async () => {
     setSystemTime(new Date("2026-10-25T14:59:59Z"));
     const ctx = await createUserContext(db);
     const userId = ctx.session.user.id;
@@ -136,7 +145,7 @@ describe("pack/open", () => {
     const p = await createPack(db, { genreId: g.id });
     await db
       .insert(freePackAllowance)
-      .values({ userId, initialRemaining: 20, dailyUsedDate: "2026-10-25", dailyUsedCount: 9 });
+      .values({ userId, initialRemaining: 20, fullAt: Date.now() + 85 * 60_000 });
     expect(await getFreePackStatus(db, userId, new Date())).toMatchObject({ remaining: 1 });
     const results = await Promise.allSettled([
       handler({ input: { packId: p.id }, ctx }),
@@ -148,9 +157,16 @@ describe("pack/open", () => {
       code: "PRECONDITION_FAILED",
     });
     setSystemTime(new Date("2026-10-25T15:00:00Z"));
-    expect(await getFreePackStatus(db, userId, new Date())).toMatchObject({ remaining: 10 });
+    expect(await getFreePackStatus(db, userId, new Date())).toMatchObject({
+      remaining: 0,
+      nextRefillAt: "2026-10-25T15:04:59.000Z",
+    });
+    setSystemTime(new Date("2026-10-25T15:04:59Z"));
     await handler({ input: { packId: p.id }, ctx });
-    expect(await getFreePackStatus(db, userId, new Date())).toMatchObject({ remaining: 9 });
+    expect(await getFreePackStatus(db, userId, new Date())).toMatchObject({
+      remaining: 0,
+      nextRefillAt: "2026-10-25T15:14:59.000Z",
+    });
   });
 
   test("有料パックは価格分の pt を消費し、無償 pt から先に使う", async () => {

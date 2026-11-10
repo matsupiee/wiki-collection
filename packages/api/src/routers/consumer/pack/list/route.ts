@@ -21,9 +21,8 @@ export const packListOutputSchema = z.object({
   ),
   freePack: z.object({
     remaining: z.number(),
-    dailyRemaining: z.number(),
-    dailyLimit: z.number(),
-    dailyResetsAt: z.string(),
+    limit: z.number(),
+    nextRefillAt: z.string().nullable(),
   }),
 });
 

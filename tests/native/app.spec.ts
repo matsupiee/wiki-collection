@@ -17,6 +17,18 @@ test("ログイン・開封再開・カード・対戦・履歴・ログアウ�
   await page.getByRole("textbox", { name: "パスワード" }).fill("password1234");
   await page.getByRole("button", { name: "ログイン", exact: true }).click();
   await expect(page.getByRole("button", { name: "基本パックを選ぶ", exact: true })).toBeVisible();
+  // 指を離す前から袋が移動し、そのまま引き戻しても開封しない。
+  const basicPack = page.getByRole("button", { name: "基本パックを選ぶ", exact: true });
+  const initial = (await basicPack.boundingBox())!;
+  const centerX = initial.x + initial.width / 2;
+  const centerY = initial.y + initial.height / 2;
+  await page.mouse.move(centerX, centerY);
+  await page.mouse.down();
+  await page.mouse.move(centerX - 55, centerY, { steps: 10 });
+  await expect.poll(async () => (await basicPack.boundingBox())?.x).toBeLessThan(initial.x - 25);
+  await page.mouse.move(centerX, centerY, { steps: 10 });
+  await page.mouse.up();
+  await expect.poll(async () => (await basicPack.boundingBox())?.x).toBeCloseTo(initial.x, 0);
   await page.getByRole("button", { name: "基本パックを選ぶ", exact: true }).click();
   await expect(page.getByRole("button", { name: "タップで開ける", exact: true })).toBeVisible();
   const opening = page.url();

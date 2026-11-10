@@ -28,7 +28,11 @@ export const packGetOutputSchema = z.object({
   canOpen: z.boolean(),
   // 開封できないときの理由
   blockedReason: z.enum(["no_free_pack", "insufficient_coins"]).nullable(),
-  freePack: z.object({ remaining: z.number(), dailyResetsAt: z.string() }),
+  freePack: z.object({
+    remaining: z.number(),
+    limit: z.number(),
+    nextRefillAt: z.string().nullable(),
+  }),
   balance: z.number(),
 });
 

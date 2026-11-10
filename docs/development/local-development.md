@@ -35,7 +35,7 @@ bun run dev:local  # http://localhost:3001 で起動する
 | taro@example.com   | 登録したばかり。無料パックが 10 開けられる                                              |
 | hanako@example.com | カードを集めている。フリマとオークションに出品中、演出を見ていない開封がある、pt がある |
 | jiro@example.com   | hanako のオークションに入札中。終了済みのオークションで落札待ち                         |
-| shiro@example.com  | 今日の 10 パックを使い切った                                                            |
+| shiro@example.com  | 無料枠を使い切った（10分で1回分回復）                                                            |
 
 ## Wikipedia からカードを取り込む
 

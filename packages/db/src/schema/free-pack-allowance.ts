@@ -22,7 +22,8 @@ export const freePackAllowance = sqliteTable("free_pack_allowance", {
     .references(() => user.id, { onDelete: "cascade" }),
   // 廃止した登録特典の旧残高。互換性のため保持し、新規作成は 0。無料枠には算入しない
   initialRemaining: integer("initial_remaining").notNull(),
-  // 毎日の無料枠を使った日（日本時間の YYYY-MM-DD）と、その日に使った数。日をまたぐと 0 から数え直す
+  // 旧日次枠。回復制への移行に使用。
   dailyUsedDate: text("daily_used_date"),
   dailyUsedCount: integer("daily_used_count").notNull().default(0),
+  fullAt: integer("full_at").notNull().default(0),
 });

@@ -64,10 +64,7 @@ export async function handler({
     slotRates,
     canOpen: blockedReason === null,
     blockedReason,
-    freePack: {
-      remaining: freePack.remaining,
-      dailyResetsAt: freePack.dailyResetsAt.toISOString(),
-    },
+    freePack,
     balance: balance.total,
   };
 }

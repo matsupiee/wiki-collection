@@ -2,42 +2,21 @@ import type { Database } from "@wiki-collection/db";
 import { freePackAllowance } from "@wiki-collection/db/schema/index";
 import { eq } from "drizzle-orm";
 
-import { toJstDate } from "./to-jst-date";
+export const FREE_PACK_LIMIT = 10;
+export const FREE_PACK_INTERVAL_MS = 10 * 60 * 1000;
 
-export const DAILY_FREE_PACKS = 10;
-
-const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
-
-function nextJstMidnight(now: Date): Date {
-  const jst = new Date(now.getTime() + JST_OFFSET_MS);
-  jst.setUTCHours(24, 0, 0, 0);
-  return new Date(jst.getTime() - JST_OFFSET_MS);
-}
-
-export type FreePackStatus = {
-  dailyRemaining: number;
-  dailyLimit: number;
-  remaining: number;
-  // 毎日の無料枠が次に 10 に戻る日時（日本時間の 0 時）
-  dailyResetsAt: Date;
-};
-
-// 無料パックの残り枠。日本時間の日ごとに 10 パック（貯まらない）
-export async function getFreePackStatus(
-  db: Database,
-  userId: string,
-  now: Date,
-): Promise<FreePackStatus> {
+export async function getFreePackStatus(db: Database, userId: string, now: Date) {
   const [row] = await db
-    .select()
+    .select({ fullAt: freePackAllowance.fullAt })
     .from(freePackAllowance)
     .where(eq(freePackAllowance.userId, userId));
-  const usedToday = row && row.dailyUsedDate === toJstDate(now) ? row.dailyUsedCount : 0;
-  const dailyRemaining = Math.max(DAILY_FREE_PACKS - usedToday, 0);
+  const fullAt = row?.fullAt ?? 0;
+  const missing = Math.max(0, Math.ceil((fullAt - now.getTime()) / FREE_PACK_INTERVAL_MS));
   return {
-    dailyRemaining,
-    dailyLimit: DAILY_FREE_PACKS,
-    remaining: dailyRemaining,
-    dailyResetsAt: nextJstMidnight(now),
+    remaining: Math.max(0, FREE_PACK_LIMIT - missing),
+    limit: FREE_PACK_LIMIT,
+    nextRefillAt: missing
+      ? new Date(fullAt - (missing - 1) * FREE_PACK_INTERVAL_MS).toISOString()
+      : null,
   };
 }

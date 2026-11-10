@@ -33,6 +33,6 @@ export async function handler({ ctx }: { ctx: ProtectedContext }): Promise<PackL
   ]);
   return {
     packs,
-    freePack: { ...freePack, dailyResetsAt: freePack.dailyResetsAt.toISOString() },
+    freePack,
   };
 }

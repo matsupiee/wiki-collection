@@ -4,13 +4,12 @@
 // - taro@example.com: 登録したばかり。無料パックが 10 開けられる
 // - hanako@example.com: カードを集めている。出品中のカード、未確認の開封、pt がある
 // - jiro@example.com: hanako のオークションに入札している
-// - shiro@example.com: 今日の無料パックを使い切った
-import { hashPassword } from "better-auth/crypto";
+// - shiro@example.com: 無料枠を使い切った
+import { createUser } from "./create-user";
 import { and, asc, eq, sql } from "drizzle-orm";
 
 import type { Database } from "../index";
 import {
-  account,
   auctionBid,
   card,
   cardDiscovery,
@@ -24,7 +23,6 @@ import {
   marketListing,
   packOpening,
   rarityThreshold,
-  user,
   userCard,
 } from "../schema";
 import { seedPacks } from "./packs";
@@ -33,7 +31,6 @@ import { openLocalDb } from "./local-db";
 import { rarityByRank, thresholdsFromPageviews } from "../rarity";
 import { cards, coinProducts, genres } from "./master-data";
 
-const PASSWORD = "password1234";
 const HOUR = 60 * 60 * 1000;
 
 async function seedMaster(db: Database) {
@@ -92,20 +89,6 @@ async function seedMaster(db: Database) {
   const packRows = await seedPacks(db);
   const productRows = await db.insert(coinProduct).values(coinProducts).returning();
   return { cardByTitle, packBySlug: new Map(packRows.map((p) => [p.slug, p])), productRows };
-}
-
-async function createUser(db: Database, name: string, email: string) {
-  const id = crypto.randomUUID().replaceAll("-", "");
-  await db.insert(user).values({ id, name, email, emailVerified: true });
-  await db.insert(account).values({
-    id: crypto.randomUUID().replaceAll("-", ""),
-    accountId: id,
-    providerId: "credential",
-    userId: id,
-    password: await hashPassword(PASSWORD),
-    updatedAt: new Date(),
-  });
-  return id;
 }
 
 async function deposit(db: Database, values: typeof coinDeposit.$inferInsert) {
@@ -238,8 +221,7 @@ async function main() {
     await db.insert(freePackAllowance).values({
       userId: hanako,
       initialRemaining: 0,
-      dailyUsedDate: new Date(now + 9 * HOUR).toISOString().slice(0, 10),
-      dailyUsedCount: 3,
+      fullAt: now + 30 * 60_000,
     });
     const guaranteedCards = [...cardByTitle.values()].filter(
       (c) => c.rarity === "double_rare" || c.rarity === "legendary",
@@ -378,12 +360,11 @@ async function main() {
       auctionBidId: endedBid!.id,
     });
 
-    // shiro: 今日の 10 パックを使い切った
+    // shiro: 10 パックを使い切った
     const shiro = await createUser(db, "しろう", "shiro@example.com");
-    const todayJst = new Date(now + 9 * HOUR).toISOString().slice(0, 10);
     await db
       .insert(freePackAllowance)
-      .values({ userId: shiro, initialRemaining: 0, dailyUsedDate: todayJst, dailyUsedCount: 10 });
+      .values({ userId: shiro, initialRemaining: 0, fullAt: Date.now() + 100 * 60_000 });
 
     console.log(
       `seed: カード ${cardByTitle.size} 枚、パック ${packBySlug.size} 種類、ユーザー 4 人を作りました`,

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, describe, expect, setSystemTime, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { Database } from "@wiki-collection/db";
 import { pack } from "@wiki-collection/db/schema/index";
 import { eq } from "drizzle-orm";
@@ -11,7 +11,6 @@ let db: Database;
 let dispose: () => Promise<void>;
 beforeAll(async () => ({ db, dispose } = await createTestDb()));
 afterAll(() => dispose());
-afterEach(() => setSystemTime());
 
 describe("pack/list", () => {
   test("販売中のパックと、まだ1つも開けていないユーザーの無料枠（10）を返す", async () => {
@@ -33,15 +32,9 @@ describe("pack/list", () => {
     expect(ids).not.toContain(ended.id);
     expect(result.packs.find((p) => p.id === premium.id)?.genreName).toBe("宇宙");
     expect(result.freePack).toMatchObject({
-      dailyRemaining: 10,
+      limit: 10,
+      nextRefillAt: null,
       remaining: 10,
     });
-  });
-
-  test("毎日の無料枠は日本時間の 0 時に切り替わる", async () => {
-    setSystemTime(new Date("2026-10-25T14:59:00Z")); // 日本時間 23:59
-    const ctx = await createUserContext(db);
-    const result = await handler({ ctx });
-    expect(result.freePack.dailyResetsAt).toBe("2026-10-25T15:00:00.000Z");
   });
 });
