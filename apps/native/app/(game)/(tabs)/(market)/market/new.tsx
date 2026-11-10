@@ -1,3 +1,4 @@
+import { auctionDurationHours } from "@wiki-collection/db/enums";
 import { Text, TextInput } from "@/components/typography";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -14,9 +15,8 @@ export default function NewListing() {
   const detail = useQuery(
     trpc.card.get.queryOptions({ cardId: cardId ?? "" }, { enabled: !!cardId }),
   );
-  const [format, setFormat] = useState<"fixed_price" | "auction">("fixed_price");
   const [price, setPrice] = useState("");
-  const [hours, setHours] = useState<24 | 72 | 168>(72);
+  const [hours, setHours] = useState<(typeof auctionDurationHours)[number]>(72);
   const create = useMutation(trpc.market.createListing.mutationOptions());
   const action = useAction();
   const amount = Number(price);
@@ -26,6 +26,7 @@ export default function NewListing() {
     <Pressable
       key={title}
       accessibilityRole="button"
+      accessibilityState={{ selected }}
       onPress={onPress}
       style={{
         flex: 1,
@@ -50,7 +51,7 @@ export default function NewListing() {
     </Pressable>
   );
   return (
-    <Screen title="出品" back>
+    <Screen title="オークション出品" back>
       {!cardId || !userCardId ? (
         <Text style={{ fontSize: 14, color: "#64748b" }}>
           コレクションから出品するカードを選んでください。
@@ -92,16 +93,9 @@ export default function NewListing() {
               boxShadow: "0 1px 2px #0000000d",
             }}
           >
-            <Text style={[labelStyle, { marginBottom: 8 }]}>形式</Text>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              {choice("フリマ", format === "fixed_price", () => setFormat("fixed_price"))}
-              {choice("オークション", format === "auction", () => setFormat("auction"))}
-            </View>
-            <Text style={[labelStyle, { marginTop: 16, marginBottom: 8 }]}>
-              {format === "fixed_price" ? "価格" : "開始価格"}（pt）
-            </Text>
+            <Text style={[labelStyle, { marginTop: 16, marginBottom: 8 }]}>開始価格（pt）</Text>
             <TextInput
-              accessibilityLabel={format === "fixed_price" ? "価格（pt）" : "開始価格（pt）"}
+              accessibilityLabel="開始価格（pt）"
               keyboardType="number-pad"
               value={price}
               onChangeText={setPrice}
@@ -115,16 +109,14 @@ export default function NewListing() {
                 color: "#1e293b",
               }}
             />
-            {format === "auction" && (
-              <>
-                <Text style={[labelStyle, { marginTop: 16, marginBottom: 8 }]}>期間</Text>
-                <View style={{ flexDirection: "row", gap: 8 }}>
-                  {([24, 72, 168] as const).map((h) =>
-                    choice(`${h / 24}日`, hours === h, () => setHours(h)),
-                  )}
-                </View>
-              </>
-            )}
+
+            <Text style={[labelStyle, { marginTop: 16, marginBottom: 8 }]}>期間</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {auctionDurationHours.map((h) =>
+                choice(h < 24 ? `${h}時間` : `${h / 24}日`, hours === h, () => setHours(h)),
+              )}
+            </View>
+
             <View style={{ marginTop: 16, gap: 4 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 <Text style={{ fontSize: 14, lineHeight: 20, color: "#64748b" }}>
@@ -136,7 +128,7 @@ export default function NewListing() {
               </View>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 <Text style={{ fontSize: 14, lineHeight: 20, fontWeight: "800", color: "#1e293b" }}>
-                  {format === "fixed_price" ? "受け取り" : "受け取り（開始価格で落札のとき）"}
+                  受け取り（開始価格で落札のとき）
                 </Text>
                 <Text style={{ fontSize: 14, lineHeight: 20, fontWeight: "800", color: "#1e293b" }}>
                   {formatPt(valid ? amount - fee : 0)}
@@ -154,11 +146,12 @@ export default function NewListing() {
             disabled={!valid || action.pending}
             onPress={() =>
               void action.run(async () => {
-                const result = await create.mutateAsync(
-                  format === "fixed_price"
-                    ? { format, userCardId, price: amount }
-                    : { format, userCardId, startPrice: amount, durationHours: hours },
-                );
+                const result = await create.mutateAsync({
+                  format: "auction",
+                  userCardId,
+                  startPrice: amount,
+                  durationHours: hours,
+                });
                 router.replace(`/market/${result.listingId}`);
               })
             }

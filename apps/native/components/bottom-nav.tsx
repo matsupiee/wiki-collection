@@ -1,11 +1,10 @@
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
-import { Gift, BookOpen, Swords, Store, User } from "lucide-react-native";
+import { Gift, BookOpen, Store, User } from "lucide-react-native";
 import { Text } from "./typography";
 export const tabs = [
   ["packs", "パック", Gift],
   ["collection", "コレクション", BookOpen],
-  ["battle", "対戦", Swords],
   ["market", "マーケット", Store],
   ["me", "マイページ", User],
 ] as const;

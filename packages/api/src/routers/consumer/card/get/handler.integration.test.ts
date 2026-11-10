@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { appRouter } from "../../../index";
 import type { Database } from "@wiki-collection/db";
 
 import { cardDiscovery } from "@wiki-collection/db/schema/index";
@@ -30,7 +31,7 @@ describe("card/get", () => {
     for (const price of [120, 80]) {
       const copy = await giveCard(db, seller.session.user.id, c.id);
       await createListingHandler({
-        input: { format: "fixed_price", userCardId: copy.id, price },
+        input: { format: "auction", userCardId: copy.id, startPrice: price, durationHours: 24 },
         ctx: seller,
       });
     }
@@ -53,4 +54,10 @@ describe("card/get", () => {
       code: "NOT_FOUND",
     });
   });
+});
+
+test("対戦・チーム・合成の手続きを公開しない", () => {
+  expect(
+    Object.keys(appRouter._def.procedures).filter((name) => name.startsWith("battle.")),
+  ).toEqual([]);
 });

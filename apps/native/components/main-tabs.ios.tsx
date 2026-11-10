@@ -5,7 +5,6 @@ import { tabs } from "./bottom-nav";
 const icons = {
   packs: { default: "gift", selected: "gift.fill" },
   collection: { default: "book", selected: "book.fill" },
-  battle: { default: "shield", selected: "shield.fill" },
   market: { default: "storefront", selected: "storefront.fill" },
   me: { default: "person.crop.circle", selected: "person.crop.circle.fill" },
 } as const;

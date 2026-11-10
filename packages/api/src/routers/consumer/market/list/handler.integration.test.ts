@@ -24,7 +24,7 @@ afterAll(() => dispose());
 afterEach(() => setSystemTime());
 
 describe("market/list", () => {
-  test("形式ごとに出品中のものを返し、カード名と価格順で絞り込める", async () => {
+  test("オークションで出品中のものを返し、カード名と価格順で絞り込める", async () => {
     const seller = await createUserContext(db, "出品者");
     const viewer = await createUserContext(db);
     const g = await createGenre(db);
@@ -41,23 +41,20 @@ describe("market/list", () => {
     ] as const) {
       const copy = await giveCard(db, seller.session.user.id, cardId);
       await createListingHandler({
-        input: { format: "fixed_price", userCardId: copy.id, price },
+        input: { format: "auction", userCardId: copy.id, startPrice: price, durationHours: 24 },
         ctx: seller,
       });
     }
 
-    const all = await handler({ input: { format: "fixed_price", sort: "price_asc" }, ctx: viewer });
+    const all = await handler({ input: { format: "auction", sort: "price_asc" }, ctx: viewer });
     expect(all.listings.map((l) => l.price)).toEqual([20, 120, 300]);
     expect(all.listings[0]).toMatchObject({ sellerName: "出品者", isMine: false });
 
     const searched = await handler({
-      input: { format: "fixed_price", query: "ブラック", sort: "price_asc" },
+      input: { format: "auction", query: "ブラック", sort: "price_asc" },
       ctx: viewer,
     });
     expect(searched.listings.map((l) => l.price)).toEqual([120, 300]);
-
-    const auctions = await handler({ input: { format: "auction" }, ctx: viewer });
-    expect(auctions.listings).toHaveLength(0);
   });
 
   test("終了したオークションを締める。入札があれば落札者にカードが移り、出品者に売上が入る", async () => {
@@ -81,7 +78,9 @@ describe("market/list", () => {
 
     setSystemTime(new Date("2026-10-26T00:00:01Z"));
     const result = await handler({ input: { format: "auction" }, ctx: bidder });
-    expect(result.listings).toHaveLength(0);
+    expect(
+      result.listings.some((l) => [soldListing.listingId, unsoldListing.listingId].includes(l.id)),
+    ).toBe(false);
 
     const [soldAfter] = await db
       .select()

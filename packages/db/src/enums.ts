@@ -7,11 +7,13 @@ export type PackType = (typeof packTypes)[number];
 export const packPayments = ["free_initial", "free_daily", "coin"] as const;
 export type PackPayment = (typeof packPayments)[number];
 
-export const userCardStatuses = ["owned", "listed", "fused"] as const;
+export const userCardStatuses = ["owned", "listed", "archived"] as const;
 export type UserCardStatus = (typeof userCardStatuses)[number];
 
 export const listingFormats = ["fixed_price", "auction"] as const;
 export type ListingFormat = (typeof listingFormats)[number];
+
+export const auctionDurationHours = [1, 12, 24, 72, 168] as const;
 
 export const listingStatuses = ["active", "sold", "cancelled", "expired"] as const;
 export type ListingStatus = (typeof listingStatuses)[number];

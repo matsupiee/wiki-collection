@@ -14,13 +14,13 @@ export async function handler({
 }): Promise<MarketListOutput> {
   await settleEndedAuctions(ctx.db, new Date());
 
-  const displayPrice = sql<number>`coalesce(${marketListing.price}, ${marketListing.currentPrice}, ${marketListing.startPrice})`;
+  const displayPrice = sql<number>`coalesce(${marketListing.currentPrice}, ${marketListing.startPrice})`;
   const orderBy = {
     newest: [desc(marketListing.createdAt)],
     price_asc: [asc(displayPrice), desc(marketListing.createdAt)],
     ending_soon: [asc(marketListing.endsAt)],
     most_bids: [desc(marketListing.bidCount), asc(marketListing.endsAt)],
-  }[input.sort ?? "newest"];
+  }[input.sort ?? "ending_soon"];
 
   const rows = await ctx.db
     .select({
@@ -47,7 +47,7 @@ export async function handler({
     .where(
       and(
         eq(marketListing.status, "active"),
-        eq(marketListing.format, input.format),
+        eq(marketListing.format, "auction"),
         input.cardId ? eq(marketListing.cardId, input.cardId) : undefined,
         input.rarity ? eq(card.rarity, input.rarity) : undefined,
         input.query ? like(card.title, `%${input.query.replace(/[%_]/g, "")}%`) : undefined,

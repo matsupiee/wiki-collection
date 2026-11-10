@@ -1,12 +1,4 @@
-import {
-  auctionBid,
-  card,
-  genre,
-  marketListing,
-  user,
-  userCard,
-} from "@wiki-collection/db/schema/index";
-import { elementOf } from "@wiki-collection/db/battle";
+import { auctionBid, card, genre, marketListing, user } from "@wiki-collection/db/schema/index";
 import { TRPCError } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 
@@ -29,8 +21,6 @@ export async function handler({
   const [found] = await ctx.db
     .select({
       listing: marketListing,
-      genreSlug: genre.slug,
-      copy: userCard,
       sellerName: user.name,
       card: {
         id: card.id,
@@ -45,7 +35,6 @@ export async function handler({
       },
     })
     .from(marketListing)
-    .innerJoin(userCard, eq(userCard.id, marketListing.userCardId))
     .innerJoin(card, eq(card.id, marketListing.cardId))
     .innerJoin(genre, eq(genre.id, card.genreId))
     .innerJoin(user, eq(user.id, marketListing.sellerId))
@@ -87,15 +76,7 @@ export async function handler({
       isMine: listing.sellerId === userId,
       isBuyer: listing.buyerId === userId,
     },
-    card: {
-      ...found.card,
-      attack: found.card.monthlyPageviews + found.copy.attackBonus,
-      defense:
-        found.card.articleLength === null
-          ? null
-          : found.card.articleLength + found.copy.defenseBonus,
-      element: elementOf(found.genreSlug),
-    },
+    card: found.card,
     bids: bids.map((b) => ({
       id: b.id,
       amount: b.amount,

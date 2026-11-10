@@ -2,7 +2,6 @@ import { marketListing, userCard } from "@wiki-collection/db/schema/index";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 
-import { notInTeam } from "../../../../shared/card/not-in-team";
 import type { ProtectedContext } from "../../../../context";
 import type { MarketCreateListingInput, MarketCreateListingOutput } from "./route";
 
@@ -23,7 +22,6 @@ export async function handler({
         eq(userCard.id, input.userCardId),
         eq(userCard.userId, userId),
         eq(userCard.status, "owned"),
-        notInTeam(),
       ),
     )
     .returning({ id: userCard.id, cardId: userCard.cardId });
@@ -33,24 +31,14 @@ export async function handler({
   try {
     const [created] = await ctx.db
       .insert(marketListing)
-      .values(
-        input.format === "fixed_price"
-          ? {
-              sellerId: userId,
-              userCardId: listed.id,
-              cardId: listed.cardId,
-              format: "fixed_price",
-              price: input.price,
-            }
-          : {
-              sellerId: userId,
-              userCardId: listed.id,
-              cardId: listed.cardId,
-              format: "auction",
-              startPrice: input.startPrice,
-              endsAt: new Date(Date.now() + input.durationHours * 60 * 60 * 1000),
-            },
-      )
+      .values({
+        sellerId: userId,
+        userCardId: listed.id,
+        cardId: listed.cardId,
+        format: "auction",
+        startPrice: input.startPrice,
+        endsAt: new Date(Date.now() + input.durationHours * 60 * 60 * 1000),
+      })
       .returning({ id: marketListing.id });
     return { listingId: created!.id };
   } catch (error) {

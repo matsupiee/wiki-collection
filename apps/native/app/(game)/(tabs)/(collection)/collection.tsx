@@ -1,4 +1,3 @@
-import { ElementBadge } from "@/components/element";
 import { Text } from "@/components/typography";
 import { useState } from "react";
 import { Pressable, View, ScrollView, Modal, useWindowDimensions } from "react-native";
@@ -6,7 +5,7 @@ import { ChevronDown, Check } from "lucide-react-native";
 import { router } from "expo-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/client";
-import { Button, Card, Loading, Screen, Stats } from "@/components/ui";
+import { Button, Card, Loading, Screen } from "@/components/ui";
 import { rarities, type Rarity } from "@wiki-collection/db/enums";
 const rarityLabels = {
   common: "コモン",
@@ -17,15 +16,15 @@ const rarityLabels = {
 };
 const sortOptions = [
   ["acquired", "引いた順"],
-  ["attack", "攻撃力順"],
-  ["defense", "防御力順"],
+  ["monthlyPageviews", "閲覧数順"],
+  ["articleLength", "記事サイズ順"],
 ] as const;
 export default function Collection() {
   const trpc = useTRPC();
   const { width } = useWindowDimensions();
   const cellWidth = (Math.min(width, 448) - 32 - 24) / 3;
   const [rarity, setRarity] = useState<Rarity>();
-  const [sort, setSort] = useState<"acquired" | "attack" | "defense">("acquired");
+  const [sort, setSort] = useState<"acquired" | "monthlyPageviews" | "articleLength">("acquired");
   const [sortOpen, setSortOpen] = useState(false);
   const q = useQuery({
     ...trpc.card.listOwned.queryOptions({ sort, rarity }),
@@ -112,12 +111,8 @@ export default function Collection() {
                     card={c}
                     size="sm"
                     ownedCount={c.ownedCount}
-                    elementBadge={<ElementBadge element={c.element} />}
                     onPress={() => router.push(`/cards/${c.id}`)}
                   />
-                  <View style={{ marginTop: 4, width: "100%", minWidth: 0 }}>
-                    <Stats compact attack={c.monthlyPageviews} defense={c.articleLength} />
-                  </View>
                   {c.listedCount > 0 && (
                     <Text
                       style={{
@@ -140,6 +135,7 @@ export default function Collection() {
       {sortOpen && (
         <Modal transparent visible onRequestClose={() => setSortOpen(false)} animationType="fade">
           <Pressable
+            accessible={false}
             onPress={() => setSortOpen(false)}
             style={{
               flex: 1,

@@ -7,7 +7,7 @@ import { user } from "./auth";
 import { card } from "./card";
 import { userCard } from "./user-card";
 
-// カード1枚の出品。フリマとオークションを1つのテーブルで持つ
+// カード1枚の出品。過去の固定価格取引も履歴として保持する
 export const marketListing = sqliteTable(
   "market_listing",
   {

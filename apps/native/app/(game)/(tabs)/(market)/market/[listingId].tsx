@@ -5,8 +5,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/client";
 import { useAction } from "@/lib/mutation";
-import { Button, Card, Confirm, Loading, Screen, Stats } from "@/components/ui";
-import { ElementBadge } from "@/components/element";
+import { Button, Card, Confirm, Loading, Screen } from "@/components/ui";
 import { formatDateTime, formatDuration, formatPt } from "@/lib/format";
 const muted = { fontSize: 12, lineHeight: 16, color: "#64748b" };
 const panel = {
@@ -19,11 +18,10 @@ export default function Listing() {
   const { listingId } = useLocalSearchParams<{ listingId: string }>();
   const trpc = useTRPC();
   const q = useQuery(trpc.market.get.queryOptions({ listingId }, { refetchInterval: 15000 }));
-  const buy = useMutation(trpc.market.buy.mutationOptions());
   const bid = useMutation(trpc.market.bid.mutationOptions());
   const cancel = useMutation(trpc.market.cancelListing.mutationOptions());
   const action = useAction();
-  const [confirm, setConfirm] = useState<"buy" | "bid" | "cancel" | null>(null);
+  const [confirm, setConfirm] = useState<"bid" | "cancel" | null>(null);
   const [input, setInput] = useState("");
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -40,14 +38,7 @@ export default function Listing() {
       ) : (
         <>
           <View style={{ width: 256, alignSelf: "center" }}>
-            <Card
-              card={d.card}
-              size="md"
-              elementBadge={<ElementBadge element={d.card.element} />}
-            />
-            <View style={{ marginTop: 12 }}>
-              <Stats attack={d.card.attack} defense={d.card.defense} />
-            </View>
+            <Card card={d.card} size="md" />
           </View>
           <View style={[panel, { marginTop: 20, gap: 12 }]}>
             <View
@@ -59,7 +50,7 @@ export default function Listing() {
               }}
             >
               <Text style={[muted, { fontWeight: "700" }]}>
-                {d.listing.format === "auction" ? "オークション" : "フリマ"}・出品者{" "}
+                {d.listing.format === "auction" ? "オークション" : "過去の取引"}・出品者{" "}
                 {d.listing.sellerName}
               </Text>
               {!active && (
@@ -117,24 +108,6 @@ export default function Listing() {
                 onPress={() => setConfirm("cancel")}
               />
             )}
-            {active &&
-              !d.listing.isMine &&
-              d.listing.format === "fixed_price" &&
-              (d.balance >= (d.listing.price ?? 0) ? (
-                <Button
-                  title="購入する"
-                  style={{ height: 44 }}
-                  textStyle={{ fontWeight: "800" }}
-                  onPress={() => setConfirm("buy")}
-                />
-              ) : (
-                <Button
-                  title="pt を購入する"
-                  style={{ height: 44, backgroundColor: "#fbbf24" }}
-                  textStyle={{ fontWeight: "800" }}
-                  onPress={() => router.push("/point")}
-                />
-              ))}
             {active && !d.listing.isMine && d.listing.format === "auction" && !d.isLeading && (
               <View style={{ gap: 8 }}>
                 <Text style={[muted, { fontWeight: "700" }]}>
@@ -232,16 +205,8 @@ export default function Listing() {
           )}
           {confirm && (
             <Confirm
-              title={
-                confirm === "cancel"
-                  ? "出品を取り下げます"
-                  : confirm === "bid"
-                    ? "入札します"
-                    : "購入します"
-              }
-              confirmLabel={
-                confirm === "cancel" ? "取り下げる" : confirm === "bid" ? "入札する" : "購入する"
-              }
+              title={confirm === "cancel" ? "出品を取り下げます" : "入札します"}
+              confirmLabel={confirm === "cancel" ? "取り下げる" : "入札する"}
               pending={action.pending}
               onCancel={() => setConfirm(null)}
               onConfirm={() =>
@@ -249,9 +214,7 @@ export default function Listing() {
                   () =>
                     confirm === "cancel"
                       ? cancel.mutateAsync({ listingId })
-                      : confirm === "bid"
-                        ? bid.mutateAsync({ listingId, amount })
-                        : buy.mutateAsync({ listingId }),
+                      : bid.mutateAsync({ listingId, amount }),
                   () => setConfirm(null),
                 )
               }
@@ -259,9 +222,7 @@ export default function Listing() {
               <Text style={{ fontSize: 14, lineHeight: 20, color: "#475569", textAlign: "center" }}>
                 {confirm === "cancel"
                   ? "カードは所持中に戻ります。"
-                  : confirm === "bid"
-                    ? `${formatPt(amount)} で入札します。入札額はすぐに残高から支払われ、ほかの人に抜かれたら戻ります。`
-                    : `「${d.card.title}」を ${formatPt(d.listing.price ?? 0)} で購入します。\n購入後の残高 ${formatPt(d.balance - (d.listing.price ?? 0))}`}
+                  : `${formatPt(amount)} で入札します。入札額はすぐに残高から支払われ、ほかの人に抜かれたら戻ります。`}
               </Text>
               {!!action.error && <Text accessibilityRole="alert">{action.error}</Text>}
             </Confirm>

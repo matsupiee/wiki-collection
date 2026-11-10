@@ -8,7 +8,7 @@ test.beforeAll(() => {
   });
 });
 
-test("ログイン・開封再開・カード・対戦・履歴・ログアウト", async ({ page }) => {
+test("ログイン・開封再開・カード・履歴・ログアウト", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
@@ -91,36 +91,10 @@ test("ログイン・開封再開・カード・対戦・履歴・ログアウ�
   await expect(page.getByText("開封結果", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "コレクションへ", exact: true }).click();
   await page.getByRole("button", { name: "並び順", exact: true }).click();
-  await page.getByRole("button", { name: "攻撃力順", exact: true }).click();
+  await page.getByRole("button", { name: "閲覧数順", exact: true }).click();
   await page.getByRole("button", { name: "並び順", exact: true }).click();
-  await page.getByRole("button", { name: "防御力順", exact: true }).click();
-  await page.getByRole("tab", { name: /対戦/ }).click();
-  await page.getByRole("button", { name: "練習対戦", exact: true }).first().click();
-  await page.getByRole("button", { name: "このチームで試す", exact: true }).click();
-  await expect(page.getByText(/チームの結果：/)).toBeVisible();
-  await page.getByRole("button", { name: "閉じる", exact: true }).click();
-  await page.getByRole("button", { name: "編集", exact: true }).first().click();
-  await page.getByRole("textbox", { name: "チーム名", exact: true }).fill("ネイティブ確認チーム");
-  await page.getByRole("button", { name: "変更を保存", exact: true }).click();
-  await expect(page.getByText(/ネイティブ確認チーム/).first()).toBeVisible();
-  await page.getByRole("button", { name: "編集", exact: true }).first().click();
-  await page.getByRole("textbox", { name: "チーム名", exact: true }).fill("破棄する変更");
-  await page.getByRole("button", { name: "閉じる", exact: true }).click();
-  await page.getByRole("button", { name: "変更を破棄", exact: true }).click();
-  await expect(page.getByText(/ネイティブ確認チーム/).first()).toBeVisible();
-  await page.getByRole("button", { name: "所持カードを強化", exact: true }).click();
-  await page
-    .getByRole("button", { name: /、攻撃 .*を選ぶ$/ })
-    .first()
-    .click();
-  await page.getByRole("button", { name: "未強化をまとめて選択", exact: true }).click();
-  await page.getByRole("button", { name: /選択した.*枚を確認/ }).click();
-  await expect(page.getByText("強化内容を確認", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: /枚を消費して強化/ }).click();
-  await expect(page.getByText(/枚を素材にして強化しました/)).toBeVisible();
-  // 成功表示は再取得の完了より先に出る。閉じる操作が有効になるまで待つ。
-  await expect(page.getByRole("button", { name: "選択した0枚を確認", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "閉じる", exact: true }).click();
+  await page.getByRole("button", { name: "記事サイズ順", exact: true }).click();
+  await expect(page.getByRole("tab")).toHaveCount(4);
   await page.getByRole("tab", { name: /マイページ/ }).click();
   await page.getByRole("button", { name: "開封履歴", exact: true }).click();
   await expect(page.getByRole("button", { name: /結果を見る/ }).first()).toBeVisible();
@@ -148,7 +122,7 @@ test("ログイン・開封再開・カード・対戦・履歴・ログアウ�
   expect(errors).toEqual([]);
 });
 
-test("2人でフリマ購入・オークション入札・ポイント購入", async ({ browser }) => {
+test("2人でオークション出品・入札・ポイント購入", async ({ browser }) => {
   const sellerContext = await browser.newContext();
   const buyerContext = await browser.newContext();
   const seller = await sellerContext.newPage();
@@ -163,51 +137,27 @@ test("2人でフリマ購入・オークション入札・ポイント購入", a
   };
   await login(seller, `${prefix}2@example.com`);
   await login(buyer, `${prefix}1@example.com`);
-  const inventoryResponse = await sellerContext.request.get(
-    "http://localhost:3001/api/trpc/battle.inventory",
-  );
-  const inventory = (await inventoryResponse.json()).result.data as {
-    id: string;
-    cardId: string;
-    inTeam: boolean;
-  }[];
-  const free = inventory.filter((c) => !c.inTeam);
-  for (const [index, format] of ["fixed_price", "auction"].entries()) {
-    await seller.goto(
-      `http://localhost:8082/market/new?userCardId=${free[index]!.id}&cardId=${free[index]!.cardId}`,
-    );
-    if (format === "auction")
-      await seller.getByRole("button", { name: "オークション", exact: true }).click();
-    await seller
-      .getByRole("textbox", {
-        name: format === "auction" ? "開始価格（pt）" : "価格（pt）",
-        exact: true,
-      })
-      .fill("100");
-    await seller.getByRole("button", { name: "出品する", exact: true }).click();
-    await expect(seller).toHaveURL(/\/market\/(?!new)[^/]+$/);
-    const listing = seller.url();
-    await buyer.goto(listing);
-    if (format === "auction") await buyer.getByRole("textbox", { name: /入札額/ }).fill("100");
-    await buyer
-      .getByRole("button", { name: format === "auction" ? "入札" : "購入する", exact: true })
-      .click();
-    await buyer
-      .getByRole("button", { name: format === "auction" ? "入札する" : "購入する", exact: true })
-      .last()
-      .click();
-    await expect(
-      buyer.getByText(format === "auction" ? "あなたが最高額です" : "あなたが購入しました", {
-        exact: true,
-      }),
-    ).toBeVisible();
-    await seller.reload();
-    if (format === "auction")
-      await expect(
-        seller.getByRole("button", { name: "入札があるため取り下げられません", exact: true }),
-      ).toBeDisabled();
-    else await expect(seller.getByText("売り切れ", { exact: true })).toBeVisible();
-  }
+  await seller.goto("http://localhost:8082/collection");
+  await seller
+    .getByRole("button", { name: /の詳細を見る/ })
+    .first()
+    .click();
+  await seller.getByRole("button", { name: "出品する", exact: true }).click();
+  await seller.getByRole("button", { name: "1時間", exact: true }).click();
+  await seller.getByRole("button", { name: "12時間", exact: true }).click();
+  await seller.getByRole("textbox", { name: "開始価格（pt）", exact: true }).fill("100");
+  await seller.getByRole("button", { name: "出品する", exact: true }).click();
+  await expect(seller).toHaveURL(/\/market\/(?!new)[^/]+$/);
+  await expect(seller.getByText(/残り (11時間59分|12時間0分)/)).toBeVisible();
+  await buyer.goto(seller.url());
+  await buyer.getByRole("textbox", { name: /入札額/ }).fill("100");
+  await buyer.getByRole("button", { name: "入札", exact: true }).click();
+  await buyer.getByRole("button", { name: "入札する", exact: true }).click();
+  await expect(buyer.getByText("あなたが最高額です", { exact: true })).toBeVisible();
+  await seller.reload();
+  await expect(
+    seller.getByRole("button", { name: "入札があるため取り下げられません", exact: true }),
+  ).toBeDisabled();
   await buyer.goto("http://localhost:8082/point");
   for (const label of ["特定商取引法に基づく表記", "資金決済法に基づく表示"]) {
     const popupPromise = buyer.waitForEvent("popup");

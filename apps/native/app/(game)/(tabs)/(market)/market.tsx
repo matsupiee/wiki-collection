@@ -7,17 +7,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/client";
 import { Card, Loading, Screen } from "@/components/ui";
 import { formatDuration, formatPt } from "@/lib/format";
-const sortOptions = {
-  fixed_price: [
-    ["newest", "新着順"],
-    ["price_asc", "安い順"],
-  ],
-  auction: [
-    ["ending_soon", "終了が近い順"],
-    ["most_bids", "入札が多い順"],
-    ["price_asc", "安い順"],
-  ],
-} as const;
+const sortOptions = [
+  ["ending_soon", "終了が近い順"],
+  ["most_bids", "入札が多い順"],
+  ["price_asc", "安い順"],
+] as const;
 const rarityMarks = {
   common: "◇",
   uncommon: "◇◇",
@@ -26,67 +20,25 @@ const rarityMarks = {
   legendary: "☆",
 };
 export default function Market() {
-  const { cardId, format: paramFormat } = useLocalSearchParams<{
-    cardId?: string;
-    format?: string;
-  }>();
-  const format = paramFormat === "auction" ? "auction" : "fixed_price";
+  const { cardId } = useLocalSearchParams<{ cardId?: string }>();
   const trpc = useTRPC();
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<"newest" | "price_asc" | "ending_soon" | "most_bids">("newest");
+  const [sort, setSort] = useState<"price_asc" | "ending_soon" | "most_bids">("ending_soon");
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
-  const effectiveSort = sortOptions[format].some(([key]) => key === sort)
-    ? sort
-    : sortOptions[format][0][0];
   const q = useQuery(
     trpc.market.list.queryOptions({
-      format,
+      format: "auction",
       query: query || undefined,
-      sort: effectiveSort,
+      sort,
       cardId,
     }),
   );
   return (
-    <Screen title="マーケット" contentStyle={{ gap: 12, paddingBottom: 24 }}>
-      <View
-        style={{
-          flexDirection: "row",
-          backgroundColor: "rgba(255,255,255,.8)",
-          padding: 4,
-          borderRadius: 999,
-          boxShadow: "0 1px 2px #0000000d",
-        }}
-      >
-        {(["fixed_price", "auction"] as const).map((f) => (
-          <Pressable
-            key={f}
-            accessibilityRole="button"
-            onPress={() => router.setParams({ format: f, cardId: undefined })}
-            style={{
-              flex: 1,
-              borderRadius: 999,
-              paddingVertical: 8,
-              alignItems: "center",
-              backgroundColor: format === f ? "#0ea5e9" : "transparent",
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 14,
-                lineHeight: 20,
-                fontWeight: "700",
-                color: format === f ? "white" : "#64748b",
-              }}
-            >
-              {f === "fixed_price" ? "フリマ" : "オークション"}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+    <Screen title="オークション" contentStyle={{ gap: 12, paddingBottom: 24 }}>
       <View
         style={{
           flexDirection: "row",
@@ -117,7 +69,7 @@ export default function Market() {
         />
       </View>
       <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-        {sortOptions[format].map(([key, label]) => (
+        {sortOptions.map(([key, label]) => (
           <Pressable
             key={key}
             accessibilityRole="button"
@@ -126,7 +78,7 @@ export default function Market() {
               borderRadius: 999,
               paddingHorizontal: 12,
               paddingVertical: 4,
-              backgroundColor: effectiveSort === key ? "#1e293b" : "white",
+              backgroundColor: sort === key ? "#1e293b" : "white",
             }}
           >
             <Text
@@ -134,7 +86,7 @@ export default function Market() {
                 fontSize: 12,
                 lineHeight: 16,
                 fontWeight: "700",
-                color: effectiveSort === key ? "white" : "#64748b",
+                color: sort === key ? "white" : "#64748b",
               }}
             >
               {label}

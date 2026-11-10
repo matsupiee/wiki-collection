@@ -1,6 +1,6 @@
 import { createId } from "@paralleldrive/cuid2";
 import { sql } from "drizzle-orm";
-import { index, integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 import { userCardStatuses } from "../enums";
 import { user } from "./auth";
@@ -33,8 +33,6 @@ export const userCard = sqliteTable(
     // 開封演出でめくる順番。レアリティの低い順に並べてある
     slot: integer("slot"),
     isNewOnAcquire: integer("is_new_on_acquire", { mode: "boolean" }).notNull().default(false),
-    attackBonus: real("attack_bonus").notNull().default(0),
-    defenseBonus: real("defense_bonus").notNull().default(0),
   },
   (table) => [
     index("user_card_user_status_card_idx").on(table.userId, table.status, table.cardId),

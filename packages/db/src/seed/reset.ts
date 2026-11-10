@@ -1,8 +1,5 @@
 import type { Database } from "../index";
 import {
-  battleTeam,
-  battleDay,
-  cardFusion,
   account,
   auctionBid,
   card,
@@ -28,9 +25,6 @@ import {
 export async function reset(db: Database) {
   // 外部キーの参照先より先に参照元を消す
   for (const table of [
-    battleDay,
-    battleTeam,
-    cardFusion,
     coinDepositWithdraw,
     coinWithdraw,
     coinDeposit,
@@ -48,9 +42,6 @@ export async function reset(db: Database) {
     genre,
     coinProduct,
     session,
-    battleTeam,
-    battleDay,
-    cardFusion,
     account,
     verification,
     user,

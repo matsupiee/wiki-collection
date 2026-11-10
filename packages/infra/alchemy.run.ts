@@ -13,7 +13,6 @@ export const cardImages = Cloudflare.R2.Bucket("card-images", {});
 export const web = Cloudflare.Website.Vite("web", {
   rootDir: "../../apps/web",
   main: "src/server.ts",
-  crons: ["0 15 * * *"],
   observability: { enabled: true, traces: { enabled: true } },
   compatibility: {
     flags: ["nodejs_compat", "global_fetch_strictly_public"],

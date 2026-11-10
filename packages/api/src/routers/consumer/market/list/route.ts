@@ -5,11 +5,11 @@ import { protectedProcedure } from "../../../../index";
 import { handler } from "./handler";
 
 export const marketListInputSchema = z.object({
-  format: z.enum(listingFormats),
+  format: z.literal("auction"),
   query: z.string().max(100).optional(),
   cardId: z.string().optional(),
   rarity: z.enum(rarities).optional(),
-  sort: z.enum(["newest", "price_asc", "ending_soon", "most_bids"]).default("newest"),
+  sort: z.enum(["newest", "price_asc", "ending_soon", "most_bids"]).default("ending_soon"),
 });
 
 export const marketListOutputSchema = z.object({

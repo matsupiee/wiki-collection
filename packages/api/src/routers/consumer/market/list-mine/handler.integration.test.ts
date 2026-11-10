@@ -10,7 +10,7 @@ import {
   grantCoins,
 } from "../../../../test/fixtures";
 import { handler as bidHandler } from "../bid/handler";
-import { handler as buyHandler } from "../buy/handler";
+
 import { handler as createListingHandler } from "../create-listing/handler";
 import { handler } from "./handler";
 
@@ -31,15 +31,16 @@ describe("market/list-mine", () => {
 
     const mine = await giveCard(db, me.session.user.id, c.id);
     const selling = await createListingHandler({
-      input: { format: "fixed_price", userCardId: mine.id, price: 70 },
+      input: { format: "auction", userCardId: mine.id, startPrice: 70, durationHours: 72 },
       ctx: me,
     });
     const forSale = await giveCard(db, other.session.user.id, c.id);
-    const fixed = await createListingHandler({
-      input: { format: "fixed_price", userCardId: forSale.id, price: 40 },
+    const sold = await createListingHandler({
+      input: { format: "auction", userCardId: forSale.id, startPrice: 40, durationHours: 24 },
       ctx: other,
     });
-    await buyHandler({ input: { listingId: fixed.listingId }, ctx: me });
+    await bidHandler({ input: { listingId: sold.listingId, amount: 40 }, ctx: me });
+    setSystemTime(new Date(Date.now() + 25 * 3600000));
     const forAuction = await giveCard(db, other.session.user.id, c.id);
     const auction = await createListingHandler({
       input: { format: "auction", userCardId: forAuction.id, startPrice: 30, durationHours: 24 },
@@ -50,7 +51,7 @@ describe("market/list-mine", () => {
     const result = await handler({ ctx: me });
 
     expect(result.selling.map((l) => l.id)).toEqual([selling.listingId]);
-    expect(result.bought.map((l) => [l.id, l.price])).toEqual([[fixed.listingId, 40]]);
+    expect(result.bought.map((l) => [l.id, l.price])).toEqual([[sold.listingId, 40]]);
     expect(result.bidding).toEqual([
       expect.objectContaining({ id: auction.listingId, myBid: 30, isLeading: true }),
     ]);

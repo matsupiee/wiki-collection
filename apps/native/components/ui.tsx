@@ -2,9 +2,7 @@ import { cardImageDisplayUrl } from "@wiki-collection/db/card-image";
 import { Text, TextInput } from "./typography";
 import { AppBackground } from "./app-background";
 import { Brand, CoinIcon } from "./brand";
-import { ChevronLeft, Gift, Swords, Shield } from "lucide-react-native";
-import type { HistoricalElement } from "@wiki-collection/db/battle";
-import { ElementSymbol } from "./element-symbol";
+import { ChevronLeft, Gift } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import type { PropsWithChildren, ReactNode } from "react";
 import {
@@ -426,20 +424,17 @@ export function Card({
   size,
   onPress,
   ownedCount,
-  elementBadge,
 }: {
   card: {
     title: string;
     imageUrl: string | null;
     genreColorHex?: string;
     rarity?: string;
-    element?: HistoricalElement;
   };
   small?: boolean;
   size?: "xs" | "sm" | "md" | "lg";
   onPress?: () => void;
   ownedCount?: number;
-  elementBadge?: ReactNode;
 }) {
   const effectiveSize = size ?? (small ? "sm" : "md");
   const showText = effectiveSize !== "xs";
@@ -479,7 +474,6 @@ export function Card({
       {showText && (
         <View style={{ marginTop: 8 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            {card.element && (elementBadge ?? <ElementSymbol element={card.element} compact />)}
             {onPress ? (
               <Pressable
                 accessibilityRole="button"
@@ -509,67 +503,6 @@ export function Card({
         </View>
       )}
     </View>
-  );
-}
-export function Stats({
-  attack,
-  defense,
-  compact = false,
-  prominent = false,
-}: {
-  attack: number;
-  defense: number | null;
-  compact?: boolean;
-  prominent?: boolean;
-}) {
-  const { width } = useWindowDimensions();
-  const fontSize = prominent ? 20 : compact ? Math.max(7, Math.min(9, width * 0.021)) : 12;
-  const iconSize = prominent ? 20 : compact ? fontSize : 14;
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={{ maxWidth: "100%" }}
-      contentContainerStyle={{
-        flexDirection: "row",
-        alignItems: "center",
-        gap: prominent ? 24 : compact ? 4 : 16,
-        paddingVertical: prominent ? 8 : 0,
-      }}
-    >
-      {(
-        [
-          { value: attack, name: "攻撃", Icon: Swords, color: "#ea580c" },
-          { value: defense, name: "防御", Icon: Shield, color: "#0284c7" },
-        ] as const
-      ).map(({ value, name, Icon, color }) => (
-        <View
-          key={name}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: compact ? 2 : 8,
-            flexShrink: 0,
-          }}
-        >
-          <Icon size={iconSize} color={color} />
-          <Text
-            accessibilityLabel={`${name}力 ${value ?? "未計測"}`}
-            style={{
-              fontSize,
-              lineHeight: prominent ? 28 : compact ? fontSize * 1.5 : 16,
-              fontWeight: compact && !prominent ? "400" : "700",
-              color: prominent ? "#1e293b" : "#475569",
-              fontVariant: ["tabular-nums"],
-            }}
-          >
-            {value === null
-              ? "未計測"
-              : value.toLocaleString("ja-JP", { maximumFractionDigits: 2 })}
-          </Text>
-        </View>
-      ))}
-    </ScrollView>
   );
 }
 export function Sheet({

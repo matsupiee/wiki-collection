@@ -285,17 +285,6 @@ async function main() {
     const pick = (index: number, title: string) =>
       opened[index]!.userCards.find((u) => u.cardId === cardByTitle.get(title)!.id)!;
 
-    // フリマ: ブラックホール 1枚を 90pt で出品中
-    const blackHole = pick(0, "ブラックホール");
-    await db.update(userCard).set({ status: "listed" }).where(eq(userCard.id, blackHole.id));
-    await db.insert(marketListing).values({
-      sellerId: hanako,
-      userCardId: blackHole.id,
-      cardId: blackHole.cardId,
-      format: "fixed_price",
-      price: 90,
-    });
-
     // オークション: 徳川家康を開始 50pt で出品し、jiro が 50pt で入札している（残り2日）
     const jiro = await createUser(db, "じろう", "jiro@example.com");
     await purchase(db, jiro, productRows[1]!);

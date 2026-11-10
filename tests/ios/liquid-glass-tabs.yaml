@@ -8,7 +8,7 @@ appId: com.matsupiee.wikicollection
 - assertVisible: "開封履歴"
 - assertVisible: "タブバー"
 - tapOn: "マーケット"
-- tapOn: "対戦"
+- assertNotVisible: "対戦"
 - tapOn: "コレクション"
 - tapOn: "ポイント購入"
 - assertVisible: "タブバー"

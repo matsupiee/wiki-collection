@@ -5,10 +5,8 @@ import {
   marketListing,
   userCard,
 } from "@wiki-collection/db/schema/index";
-import { elementOf } from "@wiki-collection/db/battle";
-import { notInTeam } from "../../../../shared/card/not-in-team";
 import { TRPCError } from "@trpc/server";
-import { and, asc, eq, min } from "drizzle-orm";
+import { and, asc, eq, gt, sql } from "drizzle-orm";
 
 import type { ProtectedContext } from "../../../../context";
 import type { CardGetInput, CardGetOutput } from "./route";
@@ -22,7 +20,7 @@ export async function handler({
 }): Promise<CardGetOutput> {
   const userId = ctx.session.user.id;
   const [found] = await ctx.db
-    .select({ card, genreSlug: genre.slug, genreName: genre.name, genreColorHex: genre.colorHex })
+    .select({ card, genreName: genre.name, genreColorHex: genre.colorHex })
     .from(card)
     .innerJoin(genre, eq(genre.id, card.genreId))
     .where(eq(card.id, input.cardId));
@@ -33,9 +31,6 @@ export async function handler({
       .select({
         id: userCard.id,
         status: userCard.status,
-        attackBonus: userCard.attackBonus,
-        defenseBonus: userCard.defenseBonus,
-        available: notInTeam().mapWith(Boolean),
       })
       .from(userCard)
       .where(and(eq(userCard.userId, userId), eq(userCard.cardId, found.card.id)))
@@ -45,13 +40,14 @@ export async function handler({
       .from(cardDiscovery)
       .where(and(eq(cardDiscovery.userId, userId), eq(cardDiscovery.cardId, found.card.id))),
     ctx.db
-      .select({ price: min(marketListing.price) })
+      .select({ price: sql<number | null>`min(coalesce(${marketListing.currentPrice}, ${marketListing.startPrice}))` })
       .from(marketListing)
       .where(
         and(
           eq(marketListing.cardId, found.card.id),
           eq(marketListing.status, "active"),
-          eq(marketListing.format, "fixed_price"),
+          eq(marketListing.format, "auction"),
+          gt(marketListing.endsAt, new Date()),
         ),
       ),
   ]);
@@ -71,7 +67,6 @@ export async function handler({
       rarity: c.rarity,
       monthlyPageviews: c.monthlyPageviews,
       articleLength: c.articleLength,
-      element: elementOf(found.genreSlug),
       // 改名されても Wikipedia 側のリダイレクトで記事にたどり着ける
       wikiUrl: `https://${c.wikiLang}.wikipedia.org/wiki/${encodeURIComponent(c.title)}`,
       // CC BY-SA の帰属表示として、要約を取った時点の版を示す
@@ -82,14 +77,6 @@ export async function handler({
       genreColorHex: found.genreColorHex,
     },
     discovered: true,
-    ownedCopies: copies
-      .filter((u) => u.status === "owned")
-      .map((u) => ({
-        id: u.id,
-        attackBonus: u.attackBonus,
-        defenseBonus: u.defenseBonus,
-        inTeam: !u.available,
-      })),
     ownedUserCardIds: copies.filter((u) => u.status === "owned").map((u) => u.id),
     listedCount: copies.filter((u) => u.status === "listed").length,
     lowestMarketPrice: lowest?.price ?? null,

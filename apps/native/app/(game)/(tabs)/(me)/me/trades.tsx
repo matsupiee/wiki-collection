@@ -92,7 +92,7 @@ export default function Trades() {
                         </Text>
                       </Text>
                       <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>
-                        {l.format === "auction" ? "オークション" : "フリマ"}・{labels[l.status]}
+                        {l.format === "auction" ? "オークション" : "過去の取引"}・{labels[l.status]}
                         {l.status === "active" && l.endsAt
                           ? `・残り ${formatDuration(new Date(l.endsAt).getTime() - now)}`
                           : ""}

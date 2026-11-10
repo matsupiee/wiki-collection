@@ -30,10 +30,20 @@ try {
     .values({ id: userId, slug: userId, name: "並び替え確認", colorHex: "#6366f1" })
     .onConflictDoNothing();
   const specs = [
-    { title: "攻撃トップ", attack: 900, defense: 100, rarity: "rare" as const },
-    { title: "防御トップ", attack: 500, defense: 900, rarity: "rare" as const },
-    { title: "新しいカード", attack: 300, defense: 500, rarity: "common" as const },
-    { title: "防御未計測", attack: 100, defense: null, rarity: "common" as const },
+    { title: "閲覧数トップ", monthlyPageviews: 900, articleLength: 100, rarity: "rare" as const },
+    {
+      title: "記事サイズトップ",
+      monthlyPageviews: 500,
+      articleLength: 900,
+      rarity: "rare" as const,
+    },
+    { title: "新しいカード", monthlyPageviews: 300, articleLength: 500, rarity: "common" as const },
+    {
+      title: "記事サイズ未計測",
+      monthlyPageviews: 100,
+      articleLength: null,
+      rarity: "common" as const,
+    },
   ];
   for (const [i, spec] of specs.entries()) {
     const id = `${userId}-${i}`;
@@ -48,12 +58,12 @@ try {
         summary: "並び替え動作確認用のサンプルカード",
         genreId: userId,
         rarity: spec.rarity,
-        monthlyPageviews: spec.attack,
-        articleLength: spec.defense,
+        monthlyPageviews: spec.monthlyPageviews,
+        articleLength: spec.articleLength,
         pageviewsMeasuredAt: createdAt,
         isActive: false,
       })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({ target: card.id, set: { title: spec.title } });
     await db.insert(userCard).values({ id, userId, cardId: id, createdAt }).onConflictDoNothing();
     await db
       .insert(cardDiscovery)

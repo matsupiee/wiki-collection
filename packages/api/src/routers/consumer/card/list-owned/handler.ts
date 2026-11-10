@@ -1,4 +1,3 @@
-import { elementOf } from "@wiki-collection/db/battle";
 import { card, genre, userCard } from "@wiki-collection/db/schema/index";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
@@ -15,7 +14,6 @@ export async function handler({
   const rows = await ctx.db
     .select({
       id: card.id,
-      genreSlug: genre.slug,
       monthlyPageviews: card.monthlyPageviews,
       articleLength: card.articleLength,
       title: card.title,
@@ -39,9 +37,9 @@ export async function handler({
     )
     .groupBy(card.id)
     .orderBy(
-      ...(input.sort === "attack"
+      ...(input.sort === "monthlyPageviews"
         ? [desc(card.monthlyPageviews)]
-        : input.sort === "defense"
+        : input.sort === "articleLength"
           ? [desc(card.articleLength)]
           : []),
       desc(sql`max(${userCard.createdAt})`),
@@ -50,7 +48,6 @@ export async function handler({
 
   const cards = rows.map((r) => ({
     ...r,
-    element: elementOf(r.genreSlug),
     ownedCount: Number(r.ownedCount),
     listedCount: Number(r.listedCount),
   }));

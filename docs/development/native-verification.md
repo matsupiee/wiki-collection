@@ -6,7 +6,7 @@
 
 - `bun run test`: API 86件、Wikipedia取り込み29件、Webロジック9件、ネイティブ共通ロジック2件。
 - `bun run check-types`: 全8パッケージの型チェック。Webビルドを含む。
-- `bun run test:native:e2e`: 独立したChromiumで認証、開封・再開、並べ替え、編成・破棄、練習、強化、2利用者間の売買・入札、pt購入、履歴、規約、ログアウトを操作する。
+- `bun run test:native:e2e`: 独立したChromiumで認証、開封・再開、並べ替え、2利用者間の売買・入札、pt購入、履歴、規約、ログアウトを操作する。
 - Expo Webの書き出し、iOS・Android向けHermesバンドルの書き出し。
 - iOSシミュレーター向けXcodeビルドと、アプリのログイン画面表示。
 
@@ -23,19 +23,10 @@ iOS実機とAndroid実機での一連の操作、ストア配信、実課金は�
 | [有料開封](../user-stories/open-premium-pack.md)                    | pack/open、残高不足と無償pt優先消費                                                                 |
 | [開封再開](../user-stories/resume-opening.md)                       | opening/get、opening/reveal、opening/list、ブラウザーでリロード後に同一開封を再開                   |
 | [コレクション](../user-stories/collection.md)                       | card/list-owned、card/get、ブラウザーで一覧                                                         |
-| [並べ替え](../user-stories/sort-collection.md)                      | card/list-owned、ブラウザーで攻撃力順・防御力順                                                     |
-| [フリマ](../user-stories/market-fixed-price.md)                     | market/create-listing、buy、cancel-listing、list、get、list-mine、2利用者のブラウザー操作           |
+| [並べ替え](../user-stories/sort-collection.md)                      | card/list-owned、ブラウザーで閲覧数順・記事サイズ順                                                 |
 | [オークション](../user-stories/market-auction.md)                   | market/bid、get、list-mine、入札後の取り下げ不可をブラウザー確認                                    |
 | [pt購入](../user-stories/buy-coins.md)                              | shop/purchase、shop/list-products、ブラウザーで開発用購入                                           |
 | [pt履歴](../user-stories/coin-history.md)                           | coin/list-history、coin/get-balance、ブラウザーで履歴表示                                           |
-| [能力値](../user-stories/card-battle-stats.md)                      | card/get、battle/inventory、Webのcard-statsテスト                                                   |
-| [編成](../user-stories/build-battle-team.md)                        | battle/save-team、teams、delete-team、選択ロジック、ブラウザーで保存・破棄                          |
-| [強化](../user-stories/fuse-cards.md)                               | battle/fuse、編成中カードなどの制約                                                                 |
-| [一括強化](../user-stories/bulk-fuse-cards.md)                      | battle/fuse、素材グループ化、ブラウザーで素材の選択・消費                                           |
-| [練習](../user-stories/practice-battle.md)                          | shared/battle/battle-details.test.ts、ブラウザーで対戦結果                                          |
-| [順位](../user-stories/daily-battle-ranking.md)                     | battle/ranking、過去のスナップショット・旧ルールの計算                                              |
-| [対戦ヘルプ](../user-stories/battle-help.md)                        | 対戦式・相性の共通テスト。ネイティブにもヘルプを実装                                                |
-| [属性相性](../user-stories/element-affinity-icons.md)               | Webのcard-stats、shared/battle/battle-details.test.tsで新旧ルール                                   |
 | [Wikipedia取り込み](../user-stories/import-cards-from-wikipedia.md) | wiki-importの全29件とtest/wiki-seed.integration.test.ts                                             |
 | [画像保存](../user-stories/store-card-images.md)                    | wiki-import/mirror-images.test.ts、shared/card/serve-image.integration.test.ts                      |
 | [規約](../user-stories/legal-pages.md)                              | 4文書をWeb・ネイティブで表示。本文は共有データから描画                                              |
@@ -43,7 +34,7 @@ iOS実機とAndroid実機での一連の操作、ストア配信、実課金は�
 
 ## 見た目を合わせた後の確認
 
-[比較レビュー記録](./native-parity-review.md) に15回の指摘と修正、表示幅ごとの確認を記録した。`tests/native/app.spec.ts` はWebと同じ初期登録画面、選択メニュー、編成・強化の操作名、出品の直接送信に追随し、3シナリオすべて成功した。
+[比較レビュー記録](./native-parity-review.md) に15回の指摘と修正、表示幅ごとの確認を記録した。`tests/native/app.spec.ts` はWebと同じ初期登録画面、選択メニュー、出品の直接送信に追随し、3シナリオすべて成功した。
 
 ## iOS Liquid Glassタブの確認
 
@@ -53,7 +44,7 @@ iOS実機とAndroid実機での一連の操作、ストア配信、実課金は�
 - `bun run --cwd apps/native check-types`: 成功。
 - `bun run test:native:e2e`: Chromiumの3シナリオが成功。
 - iOS向けHermesバンドルの書き出し: 成功。
-- iPhone 18 Pro / iOS 27.0シミュレーター: Liquid Glass描画、5タブの遷移、パック画面下部の重なり解消、対戦ヘルプの表示を確認。
+- iPhone 18 Pro / iOS 27.0シミュレーター: Liquid Glass描画、5タブの遷移、パック画面下部の重なり解消を確認。
 
 iOS 26実機・旧iOS・Android実機の描画は未確認。この時点では詳細画面にカスタムタブを使用していた。API・課金・個人情報の取り扱いは変わらないため、利用規約・プライバシーポリシー・特定商取引法等の表記の更新は不要と判断した。
 

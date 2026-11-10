@@ -11,7 +11,7 @@ let dispose: () => Promise<void>;
 beforeEach(async () => ({ db, dispose } = await createTestDb()));
 afterEach(() => dispose());
 
-test("各コピーを四捨五入し、出品・譲渡・合成後も現在の所持分だけを数える", async () => {
+test("各コピーを四捨五入し、出品・譲渡後も現在の所持分だけを数える", async () => {
   const a = await createUserContext(db, "青");
   const b = await createUserContext(db, "赤");
   const api = appRouter.createCaller(a).card;
@@ -29,8 +29,8 @@ test("各コピーを四捨五入し、出品・譲渡・合成後も現在の�
     .insert(userCard)
     .values([
       { userId: a.session.user.id, cardId: c.id, status: "listed" },
-      { userId: a.session.user.id, cardId: c.id, attackBonus: 500 },
-      { userId: a.session.user.id, cardId: c.id, status: "fused" },
+      { userId: a.session.user.id, cardId: c.id },
+      { userId: a.session.user.id, cardId: c.id, status: "archived" },
       { userId: b.session.user.id, cardId: c.id },
     ])
     .returning();

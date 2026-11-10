@@ -11,11 +11,7 @@
     "db:migrate:deploy": "drizzle-kit migrate",
     "seed": "bun src/seed/index.ts",
     "seed:images": "bun src/seed/images.ts",
-    "seed:wiki": "bun src/seed/wiki-cli.ts",
-    "seed:battle": "bun src/seed/battle-cli.ts",
-    "battle:run": "bun src/seed/run-battles.ts",
-    "seed:battle:ux": "bun src/seed/battle-ux-cli.ts",
-    "seed:fusion": "bun src/seed/fusion-bulk-cli.ts"
+    "seed:wiki": "bun src/seed/wiki-cli.ts"
   },
   "dependencies": {
     "@libsql/client": "catalog:",

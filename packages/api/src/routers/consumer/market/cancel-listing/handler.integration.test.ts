@@ -29,7 +29,7 @@ describe("market/cancel-listing", () => {
     const c = await createCard(db, { genreId: g.id, rarity: "rare" });
     const owned = await giveCard(db, ctx.session.user.id, c.id);
     const { listingId } = await createListingHandler({
-      input: { format: "fixed_price", userCardId: owned.id, price: 90 },
+      input: { format: "auction", userCardId: owned.id, startPrice: 90, durationHours: 24 },
       ctx,
     });
 

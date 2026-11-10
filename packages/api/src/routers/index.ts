@@ -5,7 +5,6 @@ import { cardListOwnedRoute } from "./consumer/card/list-owned/route";
 import { coinGetBalanceRoute } from "./consumer/coin/get-balance/route";
 import { coinListHistoryRoute } from "./consumer/coin/list-history/route";
 import { marketBidRoute } from "./consumer/market/bid/route";
-import { marketBuyRoute } from "./consumer/market/buy/route";
 import { marketCancelListingRoute } from "./consumer/market/cancel-listing/route";
 import { marketCreateListingRoute } from "./consumer/market/create-listing/route";
 import { marketGetRoute } from "./consumer/market/get/route";
@@ -20,22 +19,7 @@ import { packOpenRoute } from "./consumer/pack/open/route";
 import { shopListProductsRoute } from "./consumer/shop/list-products/route";
 import { shopPurchaseRoute } from "./consumer/shop/purchase/route";
 
-import { battleInventoryRoute } from "./consumer/battle/inventory/route";
-import { battleTeamsRoute } from "./consumer/battle/teams/route";
-import { battleSaveTeamRoute } from "./consumer/battle/save-team/route";
-import { battleDeleteTeamRoute } from "./consumer/battle/delete-team/route";
-import { battleFuseRoute } from "./consumer/battle/fuse/route";
-import { battleRankingRoute } from "./consumer/battle/ranking/route";
-
 export const appRouter = router({
-  battle: router({
-    inventory: battleInventoryRoute,
-    teams: battleTeamsRoute,
-    saveTeam: battleSaveTeamRoute,
-    deleteTeam: battleDeleteTeamRoute,
-    fuse: battleFuseRoute,
-    ranking: battleRankingRoute,
-  }),
   healthCheck: publicProcedure.query(() => {
     return "OK";
   }),
@@ -50,7 +34,6 @@ export const appRouter = router({
   }),
   market: router({
     bid: marketBidRoute,
-    buy: marketBuyRoute,
     cancelListing: marketCancelListingRoute,
     createListing: marketCreateListingRoute,
     get: marketGetRoute,

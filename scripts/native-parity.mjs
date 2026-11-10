@@ -1,7 +1,7 @@
 import { chromium } from '@playwright/test';
 import fs from 'node:fs/promises';
 const round=process.argv[2]??'00';
-const paths=(process.argv[3]??'packs,collection,battle,market,me,point,me/wallet,me/trades,me/openings').split(',');
+const paths=(process.argv[3]??'packs,collection,market,me,point,me/wallet,me/trades,me/openings').split(',');
 const browser=await chromium.launch();
 const context=await browser.newContext({viewport:{width:Number(process.env.PARITY_WIDTH??390),height:Number(process.env.PARITY_HEIGHT??844)},reducedMotion:'reduce',deviceScaleFactor:1});
 const auth=await context.request.post('http://localhost:3001/api/auth/sign-in/email',{data:{email:'native-parity1@example.com',password:'password1234'},headers:{Origin:'http://localhost:3001'}});

@@ -15,18 +15,18 @@ beforeAll(async () => ({ db, dispose } = await createTestDb()));
 afterAll(() => dispose());
 
 describe("card/list-owned", () => {
-  test("同じカードをまとめて所持数と出品数を返す。合成素材は数えない", async () => {
+  test("同じカードをまとめて所持数と出品数を返す。履歴用のコピーは数えない", async () => {
     const ctx = await createUserContext(db);
     const userId = ctx.session.user.id;
     const g = await createGenre(db);
     const common = await createCard(db, { genreId: g.id, rarity: "common" });
     const rare = await createCard(db, { genreId: g.id, rarity: "rare" });
-    await db.insert(userCard).values({ userId, cardId: common.id, status: "fused" });
+    await db.insert(userCard).values({ userId, cardId: common.id, status: "archived" });
     const c2 = await giveCard(db, userId, common.id);
     await giveCard(db, userId, common.id);
     await giveCard(db, userId, rare.id);
     await createListingHandler({
-      input: { format: "fixed_price", userCardId: c2.id, price: 10 },
+      input: { format: "auction", userCardId: c2.id, startPrice: 10, durationHours: 24 },
       ctx,
     });
 
@@ -38,15 +38,15 @@ describe("card/list-owned", () => {
     ]);
   });
 
-  test("引いた順・攻撃力順・防御力順と絞り込みを併用でき、集約結果は変わらない", async () => {
+  test("引いた順・閲覧数順・記事サイズ順と絞り込みを併用でき、集約結果は変わらない", async () => {
     const ctx = await createUserContext(db);
     const other = await createUserContext(db);
     const g = await createGenre(db);
     const specs = [
-      { rarity: "rare" as const, attack: 900, defense: 100, time: 1000 },
-      { rarity: "rare" as const, attack: 500, defense: 900, time: 2000 },
-      { rarity: "common" as const, attack: 500, defense: 500, time: 3000 },
-      { rarity: "common" as const, attack: 0, defense: null, time: 4000 },
+      { rarity: "rare" as const, monthlyPageviews: 900, articleLength: 100, time: 1000 },
+      { rarity: "rare" as const, monthlyPageviews: 500, articleLength: 900, time: 2000 },
+      { rarity: "common" as const, monthlyPageviews: 500, articleLength: 500, time: 3000 },
+      { rarity: "common" as const, monthlyPageviews: 0, articleLength: null, time: 4000 },
     ];
     const ids: string[] = [];
     for (const spec of specs) {
@@ -54,19 +54,19 @@ describe("card/list-owned", () => {
       ids.push(c.id);
       await db
         .update(card)
-        .set({ monthlyPageviews: spec.attack, articleLength: spec.defense })
+        .set({ monthlyPageviews: spec.monthlyPageviews, articleLength: spec.articleLength })
         .where(eq(card.id, c.id));
       await db
         .insert(userCard)
         .values({ userId: ctx.session.user.id, cardId: c.id, createdAt: new Date(spec.time) });
     }
-    // 他人のコピー・合成済みのコピーは取得順に影響しない。
+    // 他人のコピー・履歴用のコピーは取得順に影響しない。
     await db.insert(userCard).values([
       { userId: other.session.user.id, cardId: ids[0]!, createdAt: new Date(9000) },
       {
         userId: ctx.session.user.id,
         cardId: ids[0]!,
-        status: "fused",
+        status: "archived",
         createdAt: new Date(9000),
       },
       { userId: ctx.session.user.id, cardId: ids[1]!, status: "listed", createdAt: new Date(5000) },
@@ -76,8 +76,8 @@ describe("card/list-owned", () => {
     expect(acquired.cards.map((c) => c.id)).toEqual([ids[1]!, ids[3]!, ids[2]!, ids[0]!]);
     for (const [sort, expected] of [
       ["acquired", [ids[1]!, ids[3]!, ids[2]!, ids[0]!]],
-      ["attack", [ids[0]!, ids[1]!, ids[2]!, ids[3]!]],
-      ["defense", [ids[1]!, ids[2]!, ids[0]!, ids[3]!]],
+      ["monthlyPageviews", [ids[0]!, ids[1]!, ids[2]!, ids[3]!]],
+      ["articleLength", [ids[1]!, ids[2]!, ids[0]!, ids[3]!]],
     ] as const) {
       const result = await api.listOwned({ sort });
       expect(result.cards.map((c) => c.id)).toEqual([...expected]);
@@ -90,12 +90,12 @@ describe("card/list-owned", () => {
         expected.filter((id) => id === ids[0] || id === ids[1]),
       );
     }
-    await expect(api.listOwned({ sort: "invalid" as "attack" })).rejects.toMatchObject({
+    await expect(api.listOwned({ sort: "invalid" as "monthlyPageviews" })).rejects.toMatchObject({
       code: "BAD_REQUEST",
     });
   });
 
-  test("日時と能力値が同じでもカード ID 順で安定する", async () => {
+  test("日時と記事データが同じでもカード ID 順で安定する", async () => {
     const ctx = await createUserContext(db);
     const g = await createGenre(db);
     const ids: string[] = [];
@@ -106,7 +106,7 @@ describe("card/list-owned", () => {
         .insert(userCard)
         .values({ userId: ctx.session.user.id, cardId: c.id, createdAt: new Date(1000) });
     }
-    for (const sort of ["acquired", "attack", "defense"] as const) {
+    for (const sort of ["acquired", "monthlyPageviews", "articleLength"] as const) {
       expect((await handler({ ctx, input: { sort } })).cards.map((c) => c.id)).toEqual(
         [...ids].sort(),
       );

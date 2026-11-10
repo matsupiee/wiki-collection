@@ -185,13 +185,13 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 
 パックを1回開けた記録。抽選結果はここに紐づく `user_card` として残る。
 
-| 列         | 型             | 説明                                              |
-| ---------- | -------------- | ------------------------------------------------- |
-| userId     | text → user    |                                                   |
-| packId     | text → pack    |                                                   |
-| payment    | pack_payment   | 無料枠か、pt か（旧履歴には登録特典も残る） |
-| coinsSpent | integer        | 無料なら 0                                        |
-| revealedAt | timestamp null | 開封演出を最後まで見た（結果画面に到達した）日時  |
+| 列         | 型             | 説明                                             |
+| ---------- | -------------- | ------------------------------------------------ |
+| userId     | text → user    |                                                  |
+| packId     | text → pack    |                                                  |
+| payment    | pack_payment   | 無料枠か、pt か（旧履歴には登録特典も残る）      |
+| coinsSpent | integer        | 無料なら 0                                       |
+| revealedAt | timestamp null | 開封演出を最後まで見た（結果画面に到達した）日時 |
 
 - 抽選は「これにする」を押した時点でサーバーが行い、結果を保存してから演出を始める。演出中にリロードしても引き直しにはならず、`revealedAt` が null の開封は開封履歴から演出を再開できる。
 - `(userId, createdAt)` に index をつける。開封履歴を新しい順に出すため。
@@ -200,12 +200,12 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 
 無料パックの残り枠。ユーザー1人につき1行。
 
-| 列               | 型                 | 説明                                                  |
-| ---------------- | ------------------ | ----------------------------------------------------- |
-| userId           | text unique → user |                                                       |
-| initialRemaining | integer            | 廃止した登録特典の旧残高。新規作成は 0。利用対象外    |
-| dailyUsedDate / dailyUsedCount | text null / integer | 移行前の日次枠の利用記録 |
-| fullAt | integer | 10回分まで回復する時刻（Unixミリ秒） |
+| 列                             | 型                  | 説明                                               |
+| ------------------------------ | ------------------- | -------------------------------------------------- |
+| userId                         | text unique → user  |                                                    |
+| initialRemaining               | integer             | 廃止した登録特典の旧残高。新規作成は 0。利用対象外 |
+| dailyUsedDate / dailyUsedCount | text null / integer | 移行前の日次枠の利用記録                           |
+| fullAt                         | integer             | 10回分まで回復する時刻（Unixミリ秒）               |
 
 - 行がないユーザーは満杯。開封時は現在時刻と満杯になる時刻の遅い方に10分を足す。
 - 満杯までの残り時間を10分単位で切り上げた数が、消費済みの枠数になる。
@@ -216,14 +216,14 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 ユーザーが持っている1枚1枚のカード。同じカードを3枚持っていれば3行ある。
 マーケットに1枚単位で出品するため、枚数のカウンターではなく1枚ごとに行を持つ。
 
-| 列             | 型                       | 説明                                                            |
-| -------------- | ------------------------ | --------------------------------------------------------------- |
-| userId         | text → user              | いまの持ち主。マーケットで売れたら買った人に書き換える          |
-| cardId         | text → card              |                                                                 |
-| status         | user_card_status         | `owned` 所持中、`listed` 出品中、`fused` 合成素材として消費済み |
-| packOpeningId  | text null → pack_opening | どの開封で出たか                                                |
-| slot           | integer null             | 開封演出でめくる順番。抽選後にレアリティの低い順に並べてある    |
-| isNewOnAcquire | boolean                  | 手に入れた時点で初めてのカードだったか。NEW バッジに使う        |
+| 列             | 型                       | 説明                                                         |
+| -------------- | ------------------------ | ------------------------------------------------------------ |
+| userId         | text → user              | いまの持ち主。マーケットで売れたら買った人に書き換える       |
+| cardId         | text → card              |                                                              |
+| status         | user_card_status         | `owned` 所持中、`listed` 出品中、`archived` 履歴のみ         |
+| packOpeningId  | text null → pack_opening | どの開封で出たか                                             |
+| slot           | integer null             | 開封演出でめくる順番。抽選後にレアリティの低い順に並べてある |
+| isNewOnAcquire | boolean                  | 手に入れた時点で初めてのカードだったか。NEW バッジに使う     |
 
 - `(userId, status, cardId)` に index をつける。コレクション画面で所持中のカードをまとめて数えるため。
 - 同じパックで同じカードが2枚出たときは、1枚目だけを NEW にする。
@@ -239,7 +239,7 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 | firstAcquiredAt | timestamp   |      |
 
 - `(userId, cardId)` に unique 制約をつける。
-- 合成や売却で手放しても消さない。再取得したカードを初獲得として扱わないため。
+- 売却で手放しても消さない。再取得したカードを初獲得として扱わないため。
 - 手に入れたことのないカードは、カード詳細を開けない。
 
 ## 通貨
@@ -328,7 +328,7 @@ pt を消費した記録。
 
 ### market_listing
 
-カード1枚の出品。フリマとオークションを1つのテーブルで持ち、形式ごとに使う列が変わる。
+カード1枚の出品。新規出品はオークション形式。過去の固定価格取引は履歴として保持する。
 
 | 列           | 型               | 説明                           |
 | ------------ | ---------------- | ------------------------------ |
@@ -337,7 +337,7 @@ pt を消費した記録。
 | cardId       | text → card      | 検索用に複製する               |
 | format       | listing_format   |                                |
 | status       | listing_status   |                                |
-| price        | integer null     | フリマの価格                   |
+| price        | integer null     | 過去の固定価格                   |
 | startPrice   | integer null     | オークションの開始価格         |
 | currentPrice | integer null     | オークションのいまの最高入札額 |
 | bidCount     | integer          |                                |
@@ -389,13 +389,6 @@ D1 はアプリから任意のトランザクションを張れないため、�
 4. `pack_opening` を作る。
 5. batch で `user_card` 5行、`card_discovery`（新規分）、有料なら `coin_withdraw` と `coin_deposit_withdraw` を書く。
 6. batch が失敗したら、`pack_opening` を消し、無料枠を戻す。
-
-### フリマ購入
-
-1. 買い手の残高を確かめる。
-2. `market_listing` を `status = 'active'` の条件で `sold` に更新する。更新できなければ売り切れ。
-3. batch で買い手の `coin_withdraw`（`market_buy`）と割り当て、出品者の無償 `coin_deposit`（`market_sale`、価格 − 手数料）、`user_card` の持ち主の変更、買い手の `card_discovery` を書く。
-4. batch が失敗したら出品を `active` に戻す。
 
 ### オークションの入札
 
