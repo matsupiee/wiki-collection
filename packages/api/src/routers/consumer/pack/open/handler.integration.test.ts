@@ -198,12 +198,14 @@ describe("pack/open", () => {
 
     await expect(handler({ input: { packId: p.id }, ctx })).rejects.toMatchObject({
       code: "PRECONDITION_FAILED",
+      message: "pt が足りません",
     });
     const openings = await db
       .select()
       .from(packOpening)
       .where(and(eq(packOpening.userId, userId)));
     expect(openings).toHaveLength(0);
+    expect((await getCoinBalance(db, userId)).total).toBe(149);
   });
 
   test("同時に有料パックを開けても、残高を超えて消費されない", async () => {

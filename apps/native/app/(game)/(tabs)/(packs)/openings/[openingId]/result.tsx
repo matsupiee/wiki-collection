@@ -1,14 +1,14 @@
-import { Text } from "../../../../components/typography";
+import { Text } from "@/components/typography";
 import { useEffect } from "react";
-import { ScrollView, View } from "react-native";
+import { Platform, ScrollView, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useTRPC } from "../../../../lib/client";
-import { useAction } from "../../../../lib/mutation";
-import { Button, Card, Loading } from "../../../../components/ui";
-import { AppBackground } from "../../../../components/app-background";
-import { BottomNav } from "../../../../components/bottom-nav";
+import { useTRPC } from "@/lib/client";
+import { useAction } from "@/lib/mutation";
+import { Button, Card, Loading } from "@/components/ui";
+import { AppBackground } from "@/components/app-background";
+import { SafeAreaView } from "react-native-screens/experimental";
 export default function Result() {
   const { openingId } = useLocalSearchParams<{ openingId: string }>();
   const trpc = useTRPC();
@@ -20,7 +20,7 @@ export default function Result() {
     if (q.data && !q.data.opening.revealedAt) reveal.mutate({ openingId });
   }, [q.data?.opening.id]);
   return (
-    <View style={{ flex: 1 }}>
+    <SafeAreaView edges={{ bottom: Platform.OS === "ios" }} style={{ flex: 1 }}>
       <AppBackground />
       <ScrollView
         contentContainerStyle={{
@@ -69,7 +69,12 @@ export default function Result() {
               {[q.data.cards.slice(0, 3), q.data.cards.slice(3)].map((row, i) => (
                 <View
                   key={i}
-                  style={{ flexDirection: "row", justifyContent: "center", gap: 12, width: "100%" }}
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 12,
+                    width: "100%",
+                  }}
                 >
                   {row.map((c) => (
                     <View key={c.userCardId} style={{ width: 112, maxWidth: "31.3%" }}>
@@ -120,7 +125,11 @@ export default function Result() {
                     title={action.pending ? "準備中…" : "もう1パック"}
                     textStyle={{ fontSize: 12, fontWeight: "800" }}
                     disabled={action.pending}
-                    style={{ backgroundColor: "transparent", height: 48, justifyContent: "center" }}
+                    style={{
+                      backgroundColor: "transparent",
+                      height: 48,
+                      justifyContent: "center",
+                    }}
                     onPress={() =>
                       void action.run(async () => {
                         const result = await open.mutateAsync({ packId: q.data!.pack.id });
@@ -158,7 +167,6 @@ export default function Result() {
           </>
         )}
       </ScrollView>
-      <BottomNav pathname="/openings" />
-    </View>
+    </SafeAreaView>
   );
 }

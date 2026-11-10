@@ -1,0 +1,12 @@
+appId: com.matsupiee.wikicollection
+---
+# ログイン済みのiOSアプリで実行する。
+- openLink: wiki-collection://collection
+- tapOn:
+    text: "開く"
+    optional: true
+- tapOn: "総合資産ランキング"
+- assertVisible: "あなたのカード資産"
+- assertVisible: "上位50人"
+- tapOn: "もどる"
+- assertVisible: "総合資産ランキング"

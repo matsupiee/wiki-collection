@@ -1,0 +1,16 @@
+appId: com.matsupiee.wikicollection
+---
+# ログイン済みのiOSアプリで実行する。
+- openLink: wiki-collection://me/openings
+- tapOn:
+    text: "開く"
+    optional: true
+- assertVisible: "開封履歴"
+- assertVisible: "タブバー"
+- tapOn: "マーケット"
+- tapOn: "対戦"
+- tapOn: "コレクション"
+- tapOn: "ポイント購入"
+- assertVisible: "タブバー"
+- tapOn: "パック"
+- assertVisible: "開封する"

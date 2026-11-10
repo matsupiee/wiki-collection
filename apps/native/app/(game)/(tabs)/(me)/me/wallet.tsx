@@ -1,9 +1,9 @@
-import { Text } from "../../../components/typography";
+import { Text } from "@/components/typography";
 import { View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "../../../lib/client";
-import { Loading, Screen } from "../../../components/ui";
-import { formatDateTime, formatPt } from "../../../lib/format";
+import { useTRPC } from "@/lib/client";
+import { Loading, Screen } from "@/components/ui";
+import { formatDateTime, formatPt } from "@/lib/format";
 const labels: Record<string, string> = {
   purchase: "購入",
   market_sale: "マーケットの売上",

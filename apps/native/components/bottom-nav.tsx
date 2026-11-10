@@ -9,7 +9,7 @@ export const tabs = [
   ["market", "マーケット", Store],
   ["me", "マイページ", User],
 ] as const;
-export function BottomNav({ pathname }: { pathname: string }) {
+export function BottomNav({ activeTab }: { activeTab: string }) {
   return (
     <View
       style={{
@@ -28,7 +28,7 @@ export function BottomNav({ pathname }: { pathname: string }) {
         }}
       >
         {tabs.map(([route, label, Icon]) => {
-          const active = pathname.startsWith(`/${route}`);
+          const active = activeTab === `(${route})`;
           return (
             <Pressable
               accessibilityRole="tab"

@@ -1,12 +1,12 @@
-import { ElementBadge } from "../../../components/element";
-import { Text } from "../../../components/typography";
+import { ElementBadge } from "@/components/element";
+import { Text } from "@/components/typography";
 import { useState } from "react";
 import { Pressable, View, ScrollView, Modal, useWindowDimensions } from "react-native";
 import { ChevronDown, Check } from "lucide-react-native";
 import { router } from "expo-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
-import { useTRPC } from "../../../lib/client";
-import { Button, Card, Loading, Screen, Stats } from "../../../components/ui";
+import { useTRPC } from "@/lib/client";
+import { Button, Card, Loading, Screen, Stats } from "@/components/ui";
 import { rarities, type Rarity } from "@wiki-collection/db/enums";
 const rarityLabels = {
   common: "コモン",
@@ -33,6 +33,12 @@ export default function Collection() {
   });
   return (
     <Screen title="コレクション" contentStyle={{ gap: 0, paddingBottom: 24 }}>
+      <Button
+        title="総合資産ランキング"
+        variant="link"
+        style={{ alignSelf: "flex-end" }}
+        onPress={() => router.push("/asset-ranking")}
+      />
       {!q.data ? (
         <Loading error={q.error} retry={q.refetch} />
       ) : (

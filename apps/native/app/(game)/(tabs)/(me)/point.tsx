@@ -1,13 +1,13 @@
-import { Text } from "../../components/typography";
+import { Text } from "@/components/typography";
 import { useState } from "react";
 import { View, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { openLegalPage } from "../../lib/legal-browser";
+import { openLegalPage } from "@/lib/legal-browser";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useTRPC } from "../../lib/client";
-import { useAction } from "../../lib/mutation";
-import { Confirm, Loading, Screen } from "../../components/ui";
-import { formatPt, formatPrice } from "../../lib/format";
+import { useTRPC } from "@/lib/client";
+import { useAction } from "@/lib/mutation";
+import { Confirm, Loading, Screen } from "@/components/ui";
+import { formatPt, formatPrice } from "@/lib/format";
 const note = { fontSize: 11, lineHeight: 17.875, color: "#64748b" };
 export default function Point() {
   const trpc = useTRPC();

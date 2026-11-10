@@ -17,7 +17,7 @@ export default function MainTabs() {
       labelStyle={{ color: DynamicColorIOS({ light: "#475569", dark: "#cbd5e1" }) }}
     >
       {tabs.map(([name, title]) => (
-        <NativeTabs.Trigger key={name} name={name} disableAutomaticContentInsets>
+        <NativeTabs.Trigger key={name} name={`(${name})`} disableAutomaticContentInsets>
           <NativeTabs.Trigger.Icon sf={icons[name]} />
           <NativeTabs.Trigger.Label>{title}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>

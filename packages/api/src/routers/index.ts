@@ -1,3 +1,4 @@
+import { cardAssetRankingRoute } from "./consumer/card/asset-ranking/route";
 import { publicProcedure, router } from "../index";
 import { cardGetRoute } from "./consumer/card/get/route";
 import { cardListOwnedRoute } from "./consumer/card/list-owned/route";
@@ -39,6 +40,7 @@ export const appRouter = router({
     return "OK";
   }),
   card: router({
+    assetRanking: cardAssetRankingRoute,
     get: cardGetRoute,
     listOwned: cardListOwnedRoute,
   }),

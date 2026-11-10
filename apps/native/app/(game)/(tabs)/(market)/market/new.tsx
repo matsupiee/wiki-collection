@@ -1,12 +1,12 @@
-import { Text, TextInput } from "../../../components/typography";
+import { Text, TextInput } from "@/components/typography";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useTRPC } from "../../../lib/client";
-import { useAction } from "../../../lib/mutation";
-import { Button, Card, Loading, Screen } from "../../../components/ui";
-import { formatPt } from "../../../lib/format";
+import { useTRPC } from "@/lib/client";
+import { useAction } from "@/lib/mutation";
+import { Button, Card, Loading, Screen } from "@/components/ui";
+import { formatPt } from "@/lib/format";
 const labelStyle = { fontSize: 12, lineHeight: 16, fontWeight: "700" as const, color: "#64748b" };
 export default function NewListing() {
   const { userCardId, cardId } = useLocalSearchParams<{ userCardId?: string; cardId?: string }>();

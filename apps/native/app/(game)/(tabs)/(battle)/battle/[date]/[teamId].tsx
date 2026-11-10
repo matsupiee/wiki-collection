@@ -1,13 +1,13 @@
-import { Text } from "../../../../components/typography";
+import { Text } from "@/components/typography";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { fight } from "@wiki-collection/db/battle";
-import { useTRPC } from "../../../../lib/client";
-import { Button, Screen, Stats } from "../../../../components/ui";
-import { ElementBadge } from "../../../../components/element";
-import { Match, outcome } from "../../../../components/match";
+import { useTRPC } from "@/lib/client";
+import { Button, Screen, Stats } from "@/components/ui";
+import { ElementBadge } from "@/components/element";
+import { Match, outcome } from "@/components/match";
 const text = { fontSize: 16, lineHeight: 24, color: "#1e293b" };
 export default function Result() {
   const { date, teamId, mine } = useLocalSearchParams<{

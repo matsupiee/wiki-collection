@@ -1,13 +1,13 @@
-import { Text, TextInput } from "../../../components/typography";
+import { Text, TextInput } from "@/components/typography";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useTRPC } from "../../../lib/client";
-import { useAction } from "../../../lib/mutation";
-import { Button, Card, Confirm, Loading, Screen, Stats } from "../../../components/ui";
-import { ElementBadge } from "../../../components/element";
-import { formatDateTime, formatDuration, formatPt } from "../../../lib/format";
+import { useTRPC } from "@/lib/client";
+import { useAction } from "@/lib/mutation";
+import { Button, Card, Confirm, Loading, Screen, Stats } from "@/components/ui";
+import { ElementBadge } from "@/components/element";
+import { formatDateTime, formatDuration, formatPt } from "@/lib/format";
 const muted = { fontSize: 12, lineHeight: 16, color: "#64748b" };
 const panel = {
   padding: 20,

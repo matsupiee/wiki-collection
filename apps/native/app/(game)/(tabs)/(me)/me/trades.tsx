@@ -1,11 +1,11 @@
-import { Text } from "../../../components/typography";
+import { Text } from "@/components/typography";
 import { useEffect, useState } from "react";
 import { View, Pressable } from "react-native";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "../../../lib/client";
-import { Loading, Screen, marks } from "../../../components/ui";
-import { formatDuration, formatPt } from "../../../lib/format";
+import { useTRPC } from "@/lib/client";
+import { Loading, Screen, marks } from "@/components/ui";
+import { formatDuration, formatPt } from "@/lib/format";
 const labels = { active: "出品中", sold: "取引成立", cancelled: "取り下げ", expired: "期限切れ" };
 export default function Trades() {
   const trpc = useTRPC();

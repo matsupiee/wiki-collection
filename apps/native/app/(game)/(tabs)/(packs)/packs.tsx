@@ -1,4 +1,4 @@
-import { Text } from "../../../components/typography";
+import { Text } from "@/components/typography";
 import { useState, useMemo, useEffect, type ComponentProps } from "react";
 import { Pressable, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -14,11 +14,11 @@ import Animated, {
 import { scheduleOnRN } from "react-native-worklets";
 import { router } from "expo-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useTRPC } from "../../../lib/client";
-import { useAction } from "../../../lib/mutation";
-import { Button, Loading, Screen } from "../../../components/ui";
-import { OpeningPack } from "../../../components/opening-pack";
-import { formatClock, formatPt } from "../../../lib/format";
+import { useTRPC } from "@/lib/client";
+import { useAction } from "@/lib/mutation";
+import { Button, Confirm, Loading, Screen, styles } from "@/components/ui";
+import { OpeningPack } from "@/components/opening-pack";
+import { formatClock, formatPt } from "@/lib/format";
 const packWidth = 178;
 
 const packSpacing = 150;
@@ -81,14 +81,8 @@ function CarouselItem({
 
 export default function Packs() {
   const trpc = useTRPC();
-  const packs = useQuery(
-    trpc.pack.list.queryOptions(undefined, {
-      refetchInterval: (query) => {
-        const next = query.state.data?.freePack.nextRefillAt;
-        return next ? Math.max(1000, Date.parse(next) - Date.now()) : false;
-      },
-    }),
-  );
+  const packs = useQuery(trpc.pack.list.queryOptions());
+  const [requiredPoints, setRequiredPoints] = useState<number | null>(null);
   const [index, setIndex] = useState(0);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -96,9 +90,8 @@ export default function Packs() {
     return () => clearInterval(timer);
   }, []);
   const p = packs.data?.packs[index];
-  const detail = useQuery(trpc.pack.get.queryOptions({ slug: p?.slug ?? "" }, { enabled: !!p }));
-  const canOpen =
-    p?.type === "free_basic" ? (packs.data?.freePack.remaining ?? 0) > 0 : detail.data?.canOpen;
+  const freePack = p?.type === "free_basic" ? packs.data?.freePack : undefined;
+  const waitingForRefill = freePack?.remaining === 0;
   const open = useMutation(trpc.pack.open.mutationOptions());
   const action = useAction();
   const position = useSharedValue(0);
@@ -129,7 +122,6 @@ export default function Packs() {
             0,
             lastIndex,
           );
-          // Keep the release from also opening the pack, even when it settles at its starting point.
           position.set(withSpring(target, { ...snapSpring, velocity }));
           scheduleOnRN(setIndex, target);
         }),
@@ -160,18 +152,10 @@ export default function Packs() {
                     slug={pack.slug}
                     accessibilityRole="button"
                     accessibilityLabel={offset === 0 ? `${pack.name}を選ぶ` : pack.name}
-                    disabled={action.pending || (offset === 0 && !canOpen)}
+                    accessibilityState={{ selected: offset === 0 }}
+                    disabled={action.pending}
                     onPress={() => {
-                      if (dragged.get()) return;
-                      if (offset !== 0) {
-                        selectPack(i);
-                        return;
-                      }
-                      if (Math.abs(position.get() - i) > 0.01) return;
-                      void action.run(async () => {
-                        const result = await open.mutateAsync({ packId: pack.id });
-                        router.push(`/openings/${result.openingId}`);
-                      });
+                      if (!dragged.get() && offset !== 0) selectPack(i);
                     }}
                   />
                 );
@@ -202,23 +186,6 @@ export default function Packs() {
               {p?.description}
             </Text>
           </View>
-          {detail.data && (action.pending || p?.type !== "free_basic") && (
-            <View style={{ marginVertical: 16, gap: 12 }}>
-              <Text style={{ fontSize: 12, lineHeight: 16, color: "#475569", textAlign: "center" }}>
-                {action.pending
-                  ? "準備中…"
-                  : `タップで ${formatPt(p?.priceCoins ?? 0)} を使って開封（残高 ${formatPt(detail.data.balance)}）`}
-              </Text>
-              {detail.data.blockedReason === "insufficient_coins" && (
-                <Button
-                  variant="link"
-                  title="pt が不足しています。pt を購入する"
-                  textStyle={{ fontSize: 12 }}
-                  onPress={() => router.push("/point")}
-                />
-              )}
-            </View>
-          )}
           {!!action.error && (
             <Text
               accessibilityRole="alert"
@@ -227,29 +194,57 @@ export default function Packs() {
               {action.error}
             </Text>
           )}
-          {detail.error && <Loading error={detail.error} retry={detail.refetch} />}
-          <View
-            style={{
-              marginTop: "auto",
-              padding: 16,
-              borderRadius: 24,
-              backgroundColor: "rgba(255,255,255,.8)",
-              boxShadow: "0 1px 2px #0000000d",
-              alignItems: "center",
-            }}
-          >
-            <Text style={{ fontSize: 14, lineHeight: 28, fontWeight: "700", color: "#334155" }}>
-              無料パック 残り{" "}
-              <Text style={{ fontSize: 24, fontWeight: "900", color: "#7c3aed" }}>
-                {packs.data.freePack.remaining}
+          {p && (
+            <View style={{ marginTop: "auto", paddingTop: 20, gap: 8 }}>
+              {freePack && !freePack.nextRefillAt && (
+                <Text style={[styles.muted, { textAlign: "center" }]}>
+                  10分で1パック回復（最大{freePack.limit}パック）
+                </Text>
+              )}
+              <Text
+                style={{ textAlign: "center", fontSize: 22, fontWeight: "800", color: "#334155" }}
+              >
+                {formatPt(p.type === "free_basic" ? 0 : (p.priceCoins ?? 0))}
               </Text>
-            </Text>
-            <Text style={{ marginTop: 4, fontSize: 12, lineHeight: 16, color: "#64748b" }}>
-              {packs.data.freePack.nextRefillAt
-                ? `次の無料パックまで ${formatClock(Date.parse(packs.data.freePack.nextRefillAt) - now)}`
-                : `10分で1パック回復（最大${packs.data.freePack.limit}パック）`}
-            </Text>
-          </View>
+              <Button
+                title={
+                  waitingForRefill && freePack.nextRefillAt
+                    ? `次の無料パックまで ${formatClock(Date.parse(freePack.nextRefillAt) - now)}`
+                    : "開封する"
+                }
+                disabled={action.pending || waitingForRefill}
+                onPress={() =>
+                  void action.run(async () => {
+                    try {
+                      const result = await open.mutateAsync({ packId: p.id });
+                      router.push(`/openings/${result.openingId}`);
+                    } catch (error) {
+                      if (error instanceof Error && error.message === "pt が足りません") {
+                        setRequiredPoints(p.priceCoins ?? 0);
+                        return;
+                      }
+                      throw error;
+                    }
+                  })
+                }
+              />
+            </View>
+          )}
+          {requiredPoints !== null && (
+            <Confirm
+              title="ポイントが不足しています"
+              confirmLabel="ポイント購入へ"
+              onCancel={() => setRequiredPoints(null)}
+              onConfirm={() => {
+                setRequiredPoints(null);
+                router.push("/point");
+              }}
+            >
+              <Text style={styles.text}>
+                このパックの開封には{formatPt(requiredPoints)}が必要です。
+              </Text>
+            </Confirm>
+          )}
         </>
       )}
     </Screen>

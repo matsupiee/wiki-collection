@@ -1,14 +1,14 @@
-import { Text } from "../../../components/typography";
+import { Text } from "@/components/typography";
 import { useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import { ExternalLink, Swords, Shield } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "../../../lib/client";
-import { Button, Card, Loading, Panel, Screen, Stats, marks } from "../../../components/ui";
-import { ElementBadge } from "../../../components/element";
-import { Select } from "../../../components/select";
-import { formatPt } from "../../../lib/format";
+import { useTRPC } from "@/lib/client";
+import { Button, Card, Loading, Panel, Screen, Stats, marks } from "@/components/ui";
+import { ElementBadge } from "@/components/element";
+import { Select } from "@/components/select";
+import { formatPt } from "@/lib/format";
 const labels: Record<string, string> = {
   common: "コモン",
   uncommon: "アンコモン",

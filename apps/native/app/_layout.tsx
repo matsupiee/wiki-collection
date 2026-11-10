@@ -13,9 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { Providers } from "../lib/client";
 export default function Layout() {
   const segments = useSegments();
-  const opening =
-    segments.some((segment) => segment === "openings") &&
-    !segments.some((segment) => segment === "result");
+  const opening = segments[1] === "openings";
   const nativeTabs = Platform.OS === "ios" && segments.some((segment) => segment === "(tabs)");
   const [loaded, error] = useFonts({
     MPLUSRounded1c_400Regular,

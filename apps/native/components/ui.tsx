@@ -170,6 +170,14 @@ export function Screen({
 }>) {
   const trpc = useTRPC();
   const balance = useQuery(trpc.coin.getBalance.queryOptions());
+  const packs = useQuery(
+    trpc.pack.list.queryOptions(undefined, {
+      refetchInterval: (query) => {
+        const next = query.state.data?.freePack.nextRefillAt;
+        return next ? Math.max(1000, Date.parse(next) - Date.now()) : false;
+      },
+    }),
+  );
   const segments = useSegments();
   const nativeTabs = Platform.OS === "ios" && segments.some((segment) => segment === "(tabs)");
   return (
@@ -198,6 +206,12 @@ export function Screen({
               ) : !hideBrand && title !== "" ? (
                 <Brand />
               ) : null}
+            </View>
+            <View style={{ alignItems: "center", marginHorizontal: 6 }}>
+              <Text style={{ fontSize: 10, color: "#475569" }}>無料パック</Text>
+              <Text style={{ fontSize: 13, fontWeight: "800", color: "#334155" }}>
+                残り {packs.data?.freePack.remaining ?? "…"}
+              </Text>
             </View>
             <Pressable
               accessibilityRole="button"
@@ -538,6 +552,7 @@ export function Confirm({
   return (
     <Modal visible transparent animationType="fade" onRequestClose={() => !pending && onCancel()}>
       <Pressable
+        accessible={false}
         accessibilityRole="none"
         onPress={() => !pending && onCancel()}
         style={{
@@ -549,6 +564,7 @@ export function Confirm({
         }}
       >
         <Pressable
+          accessible={false}
           accessibilityRole="none"
           onPress={(event) => event.stopPropagation()}
           style={{

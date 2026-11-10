@@ -1,10 +1,10 @@
-import { Text } from "../../../components/typography";
+import { Text } from "@/components/typography";
 import { View, Pressable } from "react-native";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "../../../lib/client";
-import { Loading, Screen, marks } from "../../../components/ui";
-import { formatDateTime } from "../../../lib/format";
+import { useTRPC } from "@/lib/client";
+import { Loading, Screen, marks } from "@/components/ui";
+import { formatDateTime } from "@/lib/format";
 export default function Openings() {
   const trpc = useTRPC();
   const q = useQuery(trpc.opening.list.queryOptions());

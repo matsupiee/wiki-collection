@@ -1,12 +1,12 @@
-import { Text, TextInput } from "../../../components/typography";
+import { Text, TextInput } from "@/components/typography";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { Search } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "../../../lib/client";
-import { Card, Loading, Screen } from "../../../components/ui";
-import { formatDuration, formatPt } from "../../../lib/format";
+import { useTRPC } from "@/lib/client";
+import { Card, Loading, Screen } from "@/components/ui";
+import { formatDuration, formatPt } from "@/lib/format";
 const sortOptions = {
   fixed_price: [
     ["newest", "新着順"],

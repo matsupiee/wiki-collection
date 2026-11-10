@@ -1,6 +1,6 @@
 import { SafeAreaView } from "react-native-screens/experimental";
 import { Platform } from "react-native";
-import { Text, TextInput } from "../../../components/typography";
+import { Text, TextInput } from "@/components/typography";
 import { useState, useEffect } from "react";
 import { Pressable, View, Image, StyleSheet, useWindowDimensions } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -11,11 +11,11 @@ import {
   moveTeamMember,
   toggleTeamMember,
 } from "@wiki-collection/ui/lib/battle-selection";
-import { apiUrl, auth, useTRPC } from "../../../lib/client";
-import { useAction } from "../../../lib/mutation";
-import { Button, Confirm, Loading, Screen, Stats } from "../../../components/ui";
-import { ElementBadge } from "../../../components/element";
-import { Match } from "../../../components/match";
+import { apiUrl, auth, useTRPC } from "@/lib/client";
+import { useAction } from "@/lib/mutation";
+import { Button, Confirm, Loading, Screen, Stats } from "@/components/ui";
+import { ElementBadge } from "@/components/element";
+import { Match } from "@/components/match";
 import {
   Plus,
   Sparkles,
@@ -30,10 +30,10 @@ import {
 import Svg, { Rect, Path } from "react-native-svg";
 import { cardImageDisplayUrl } from "@wiki-collection/db/card-image";
 
-import { BattleHelpContent } from "../../../components/battle-help-content";
-import { BattleSheet } from "../../../components/battle-sheet";
-import { BattleArtwork, BattleCardOption } from "../../../components/battle-card-option";
-import { Select } from "../../../components/select";
+import { BattleHelpContent } from "@/components/battle-help-content";
+import { BattleSheet } from "@/components/battle-sheet";
+import { BattleArtwork, BattleCardOption } from "@/components/battle-card-option";
+import { Select } from "@/components/select";
 const sample: Fighter[] = ["person", "nature", "culture"].map((element, i) => ({
   id: `sample-${i}`,
   title: ["練習用・人物カード", "練習用・自然カード", "練習用・文化カード"][i]!,

@@ -1,12 +1,12 @@
-import { Text } from "../../../components/typography";
+import { Text } from "@/components/typography";
 
 import { Pressable, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
 import { router } from "expo-router";
-import { auth, queryClient } from "../../../lib/client";
-import { useAction } from "../../../lib/mutation";
-import { Button, Panel, Screen, styles } from "../../../components/ui";
-import { openLegalPage, type LegalPath } from "../../../lib/legal-browser";
+import { auth, queryClient } from "@/lib/client";
+import { useAction } from "@/lib/mutation";
+import { Button, Panel, Screen, styles } from "@/components/ui";
+import { openLegalPage, type LegalPath } from "@/lib/legal-browser";
 const menu = [
   ["/me/trades", "出品・入札の管理"],
   ["/me/wallet", "pt の履歴"],
