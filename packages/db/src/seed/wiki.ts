@@ -4,8 +4,9 @@ import { commonsImageUrl } from "../card-image";
 import { type Rarity } from "../enums";
 import { rarityByRank, thresholdsFromPageviews } from "../rarity";
 import type { Database } from "../index";
-import { card, genre, rarityThreshold, pack, packSlotRate, coinProduct } from "../schema";
-import { coinProducts, slotRates } from "./master-data";
+import { card, genre, rarityThreshold, coinProduct } from "../schema";
+import { coinProducts } from "./master-data";
+import { seedPacks } from "./packs";
 import { reset } from "./reset";
 
 // 閲覧数順で100件選び、ローカル用の排出バランスを作る。
@@ -78,38 +79,15 @@ export async function seedWiki(input: {
   }
   {
     const thresholds = thresholdsFromPageviews(selected.map((c) => c.monthlyPageviews));
-    await db
-      .insert(rarityThreshold)
-      .values(
-        Object.entries(thresholds).map(([rarity, minMonthlyPageviews]) => ({
-          wikiLang: "ja",
-          rarity: rarity as Rarity,
-          minMonthlyPageviews,
-        })),
-      );
+    await db.insert(rarityThreshold).values(
+      Object.entries(thresholds).map(([rarity, minMonthlyPageviews]) => ({
+        wikiLang: "ja",
+        rarity: rarity as Rarity,
+        minMonthlyPageviews,
+      })),
+    );
   }
-  const [basic] = await db
-    .insert(pack)
-    .values({
-      slug: "basic",
-      name: "基本パック",
-      description: "すべてのジャンルのカードが出る無料パック。",
-      type: "free_basic",
-      colorHex: "#7c3aed",
-    })
-    .returning();
-  await db.insert(packSlotRate).values(
-    slotRates.basic.flatMap((weights, index) =>
-      Object.entries(weights)
-        .filter(([, weight]) => weight > 0)
-        .map(([rarity, weight]) => ({
-          packId: basic!.id,
-          slot: index + 1,
-          rarity: rarity as Rarity,
-          weight,
-        })),
-    ),
-  );
+  await seedPacks(db);
   await db.insert(coinProduct).values(coinProducts);
   return { cards: selected.length, images: result.uploaded + result.existing };
 }

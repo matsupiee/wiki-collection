@@ -1,12 +1,6 @@
-import {
-  card,
-  genre,
-  pack,
-  packFeaturedCard,
-  packSlotRate,
-} from "@wiki-collection/db/schema/index";
+import { genre, pack, packSlotRate } from "@wiki-collection/db/schema/index";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import type { ProtectedContext } from "../../../../context";
 import { compareRarity } from "../../../../shared/card/compare-rarity";
@@ -38,14 +32,8 @@ export async function handler({
     .where(and(eq(pack.slug, input.slug), eq(pack.isActive, true)));
   if (!found) throw new TRPCError({ code: "NOT_FOUND", message: "パックが見つかりません" });
 
-  const [rates, featuredCards, freePack, balance] = await Promise.all([
+  const [rates, freePack, balance] = await Promise.all([
     ctx.db.select().from(packSlotRate).where(eq(packSlotRate.packId, found.id)),
-    ctx.db
-      .select({ id: card.id, title: card.title, rarity: card.rarity, imageUrl: card.imageUrl })
-      .from(packFeaturedCard)
-      .innerJoin(card, eq(card.id, packFeaturedCard.cardId))
-      .where(eq(packFeaturedCard.packId, found.id))
-      .orderBy(desc(packFeaturedCard.weight), asc(card.title)),
     getFreePackStatus(ctx.db, ctx.session.user.id, new Date()),
     getCoinBalance(ctx.db, ctx.session.user.id),
   ]);
@@ -74,7 +62,6 @@ export async function handler({
   return {
     pack: found,
     slotRates,
-    featuredCards,
     canOpen: blockedReason === null,
     blockedReason,
     freePack: {

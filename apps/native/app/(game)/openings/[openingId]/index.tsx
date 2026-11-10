@@ -335,6 +335,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
                   <PackNeighbor
                     key={side}
                     side={side}
+                    slug={query.data!.pack.slug}
                     width={pw}
                     height={h}
                     screenWidth={w}
@@ -368,13 +369,13 @@ function OpeningScene({ openingId }: { openingId: string }) {
                     }}
                   >
                     <View style={{ marginTop: -ph * sealFraction }}>
-                      <OpeningPack width={pw} />
+                      <OpeningPack slug={query.data!.pack.slug} width={pw} />
                     </View>
                   </View>
                   <Animated.View
                     style={[{ height: ph * sealFraction, overflow: "hidden" }, sealStyle]}
                   >
-                    <OpeningPack width={pw} />
+                    <OpeningPack slug={query.data!.pack.slug} width={pw} />
                   </Animated.View>
                   {stage === "pack" && (
                     <>
@@ -476,6 +477,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
   );
 }
 function PackNeighbor({
+  slug,
   side,
   width,
   height,
@@ -486,6 +488,7 @@ function PackNeighbor({
   onSelect,
   reduced,
 }: {
+  slug: string;
   side: number;
   width: number;
   height: number;
@@ -526,7 +529,7 @@ function PackNeighbor({
       ]}
     >
       <Pressable accessible={false} onPress={onSelect}>
-        <OpeningPack width={width} />
+        <OpeningPack slug={slug} width={width} />
       </Pressable>
     </Animated.View>
   );

@@ -373,7 +373,7 @@ export default function Battle() {
               <Text style={battleStyles.secondaryText}>所持カードを強化</Text>
             </Pressable>
             <Text style={battleStyles.note}>
-              編成中のカードは出品・還元・強化素材に使えません。同じ1枚を複数チームに使えます。
+              編成中のカードは出品・強化素材に使えません。同じ1枚を複数チームに使えます。
             </Text>
             {ready && cards.filter((c) => c.defense !== null).length < 3 && (
               <View>

@@ -3,19 +3,9 @@ import { useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import { ExternalLink, Swords, Shield } from "lucide-react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "../../../lib/client";
-import { useAction } from "../../../lib/mutation";
-import {
-  Button,
-  Card,
-  Confirm,
-  Loading,
-  Panel,
-  Screen,
-  Stats,
-  marks,
-} from "../../../components/ui";
+import { Button, Card, Loading, Panel, Screen, Stats, marks } from "../../../components/ui";
 import { ElementBadge } from "../../../components/element";
 import { Select } from "../../../components/select";
 import { formatPt } from "../../../lib/format";
@@ -30,10 +20,7 @@ export default function Detail() {
   const { cardId } = useLocalSearchParams<{ cardId: string }>();
   const trpc = useTRPC();
   const q = useQuery(trpc.card.get.queryOptions({ cardId }));
-  const redeem = useMutation(trpc.card.redeem.mutationOptions());
-  const action = useAction();
   const [selected, setSelected] = useState("");
-  const [confirm, setConfirm] = useState(false);
   const d = q.data;
   const first =
     d?.ownedCopies.find((c) => c.id === selected && !c.inTeam)?.id ??
@@ -130,11 +117,9 @@ export default function Detail() {
             </View>
             {!!d.ownedCopies.length && (
               <View style={{ marginTop: 12, gap: 4 }}>
-                <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>
-                  出品・還元する1枚
-                </Text>
+                <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>出品する1枚</Text>
                 <Select
-                  label="出品・還元する1枚"
+                  label="出品する1枚"
                   value={selected || first || ""}
                   options={[
                     { value: "", label: "カードを選ぶ" },
@@ -157,13 +142,6 @@ export default function Detail() {
             />
             <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
               <Button
-                secondary
-                title={`還元する ${formatPt(d.redeemPoints)}`}
-                disabled={!first}
-                style={{ flex: 1, height: 44, paddingHorizontal: 8, paddingVertical: 11 }}
-                onPress={() => setConfirm(true)}
-              />
-              <Button
                 title="出品する"
                 disabled={!first}
                 style={{ flex: 1, height: 44, paddingVertical: 12 }}
@@ -185,26 +163,6 @@ export default function Detail() {
               />
             )}
           </Panel>
-          {confirm && (
-            <Confirm
-              title="カードを還元します"
-              confirmLabel="還元する"
-              pending={action.pending}
-              onCancel={() => setConfirm(false)}
-              onConfirm={() =>
-                first &&
-                void action.run(
-                  () => redeem.mutateAsync({ userCardId: first }),
-                  () => setConfirm(false),
-                )
-              }
-            >
-              <Text style={{ fontSize: 14, lineHeight: 20, textAlign: "center", color: "#475569" }}>
-                「{d.card.title}」を1枚手放して {formatPt(d.redeemPoints)} を受け取ります。
-              </Text>
-              {!!action.error && <Text accessibilityRole="alert">{action.error}</Text>}
-            </Confirm>
-          )}
         </>
       )}
     </Screen>

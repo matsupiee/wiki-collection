@@ -39,6 +39,7 @@
     "wiki:top": "bun run --cwd packages/wiki-import top",
     "wiki:images": "bun run --cwd packages/wiki-import images",
     "db:seed:images": "bun run --cwd packages/db seed:images",
+    "db:seed:packs": "bun packages/db/src/seed/packs-cli.ts",
     "db:seed:wiki": "bun run --cwd packages/db seed:wiki",
     "wiki:lengths": "bun run --cwd packages/wiki-import lengths",
     "db:seed:battle": "bun run --cwd packages/db seed:battle",

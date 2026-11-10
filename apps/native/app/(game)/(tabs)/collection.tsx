@@ -4,10 +4,9 @@ import { useState } from "react";
 import { Pressable, View, ScrollView, Modal, useWindowDimensions } from "react-native";
 import { ChevronDown, Check } from "lucide-react-native";
 import { router } from "expo-router";
-import { useMutation, useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useTRPC } from "../../../lib/client";
-import { useAction } from "../../../lib/mutation";
-import { Button, Card, Confirm, Loading, Screen, Stats } from "../../../components/ui";
+import { Button, Card, Loading, Screen, Stats } from "../../../components/ui";
 import { rarities, type Rarity } from "@wiki-collection/db/enums";
 const rarityLabels = {
   common: "コモン",
@@ -28,13 +27,10 @@ export default function Collection() {
   const [rarity, setRarity] = useState<Rarity>();
   const [sort, setSort] = useState<"acquired" | "attack" | "defense">("acquired");
   const [sortOpen, setSortOpen] = useState(false);
-  const [confirm, setConfirm] = useState(false);
   const q = useQuery({
     ...trpc.card.listOwned.queryOptions({ sort, rarity }),
     placeholderData: keepPreviousData,
   });
-  const redeem = useMutation(trpc.card.redeemDuplicates.mutationOptions());
-  const action = useAction();
   return (
     <Screen title="コレクション" contentStyle={{ gap: 0, paddingBottom: 24 }}>
       {!q.data ? (
@@ -133,15 +129,6 @@ export default function Collection() {
               ))}
             </View>
           )}
-          {q.data.duplicates.count > 0 && (
-            <Button
-              title={`重複をまとめて還元（${q.data.duplicates.count}枚・${q.data.duplicates.points.toLocaleString("ja-JP")}pt）`}
-              variant="chip"
-              style={{ marginTop: 24, paddingVertical: 12 }}
-              textStyle={{ fontSize: 14, lineHeight: 20, fontWeight: "800", color: "#7c3aed" }}
-              onPress={() => setConfirm(true)}
-            />
-          )}
         </>
       )}
       {sortOpen && (
@@ -188,26 +175,6 @@ export default function Collection() {
             </View>
           </Pressable>
         </Modal>
-      )}
-      {confirm && (
-        <Confirm
-          title="重複をまとめて還元します"
-          confirmLabel="還元する"
-          pending={action.pending}
-          onCancel={() => setConfirm(false)}
-          onConfirm={() =>
-            void action.run(
-              () => redeem.mutateAsync(),
-              () => setConfirm(false),
-            )
-          }
-        >
-          <Text style={{ fontSize: 14, lineHeight: 20, color: "#475569", textAlign: "center" }}>
-            各カードを1枚ずつ残して {q.data?.duplicates.count} 枚を手放し、
-            {q.data?.duplicates.points.toLocaleString("ja-JP")}pt を受け取ります。
-          </Text>
-          {!!action.error && <Text accessibilityRole="alert">{action.error}</Text>}
-        </Confirm>
       )}
     </Screen>
   );

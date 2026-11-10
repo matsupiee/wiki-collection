@@ -32,9 +32,9 @@
 
 - `user_card.created_at`: 現在所持中・出品中の同種カードの最新日時を引いた順の基準に使う。
 - `card.monthly_pageviews` と `card.article_length`: 一覧に表示する基本の攻撃力・防御力を高い順に並べる。強化ボーナスは含めない。
-- 同値の場合は引いた順、日時も同じ場合はカード ID 順にする。並び替えても所持数・出品数・重複還元数は変わらない。
+- 同値の場合は引いた順、日時も同じ場合はカード ID 順にする。並び替えても所持数・出品数は変わらない。
 
 ## 対応するテスト
 
-- `packages/api/src/routers/consumer/card/list-owned/handler.integration.test.ts`: 3種類の並び順、同値、未計測、絞り込み、集約、他人・還元済みカードの除外、不正な指定を確認する。
+- `packages/api/src/routers/consumer/card/list-owned/handler.integration.test.ts`: 3種類の並び順、同値、未計測、絞り込み、集約、他人・合成済みカードの除外、不正な指定を確認する。
 - 全ストーリーの既存回帰テストは `bun run test`、ブラウザでは上記手順で確認する。

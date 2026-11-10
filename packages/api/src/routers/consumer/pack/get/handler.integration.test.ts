@@ -2,13 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { Database } from "@wiki-collection/db";
 
 import { createTestDb } from "../../../../test/create-test-db";
-import {
-  createCard,
-  createGenre,
-  createPack,
-  createUserContext,
-  grantCoins,
-} from "../../../../test/fixtures";
+import { createPack, createUserContext, grantCoins } from "../../../../test/fixtures";
 import { handler } from "./handler";
 
 let db: Database;
@@ -17,21 +11,14 @@ beforeAll(async () => ({ db, dispose } = await createTestDb()));
 afterAll(() => dispose());
 
 describe("pack/get", () => {
-  test("枠ごとの排出率を % で返し、注目カードを重みの大きい順に返す", async () => {
+  test("枠ごとの排出率を % で返す", async () => {
     const ctx = await createUserContext(db);
-    const g = await createGenre(db);
-    const a = await createCard(db, { genreId: g.id, rarity: "rare", title: "A" });
-    const b = await createCard(db, { genreId: g.id, rarity: "legendary", title: "B" });
     const p = await createPack(db, {
       type: "premium",
       priceCoins: 150,
       rates: [
         { slot: 5, rarity: "legendary", weight: 25 },
         { slot: 5, rarity: "rare", weight: 75 },
-      ],
-      featured: [
-        { cardId: a.id, weight: 2 },
-        { cardId: b.id, weight: 5 },
       ],
     });
 
@@ -45,7 +32,6 @@ describe("pack/get", () => {
         { rarity: "legendary", percent: 25 },
       ],
     });
-    expect(result.featuredCards.map((c) => c.title)).toEqual(["B", "A"]);
   });
 
   test("有料パックは pt が足りないと開封できない", async () => {

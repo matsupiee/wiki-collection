@@ -27,8 +27,6 @@ export const cardListOwnedOutputSchema = z.object({
       listedCount: z.number(),
     }),
   ),
-  // 各カードを1枚ずつ残して還元したときの枚数と pt
-  duplicates: z.object({ count: z.number(), points: z.number() }),
 });
 
 export type CardListOwnedInput = z.infer<typeof cardListOwnedInputSchema>;

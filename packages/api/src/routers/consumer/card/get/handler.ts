@@ -11,7 +11,6 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, eq, min } from "drizzle-orm";
 
 import type { ProtectedContext } from "../../../../context";
-import { getRedeemPoints } from "../../../../shared/card/get-redeem-points";
 import type { CardGetInput, CardGetOutput } from "./route";
 
 export async function handler({
@@ -93,7 +92,6 @@ export async function handler({
       })),
     ownedUserCardIds: copies.filter((u) => u.status === "owned").map((u) => u.id),
     listedCount: copies.filter((u) => u.status === "listed").length,
-    redeemPoints: getRedeemPoints(c.rarity),
     lowestMarketPrice: lowest?.price ?? null,
   };
 }

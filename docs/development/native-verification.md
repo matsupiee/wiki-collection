@@ -6,7 +6,7 @@
 
 - `bun run test`: API 86件、Wikipedia取り込み29件、Webロジック9件、ネイティブ共通ロジック2件。
 - `bun run check-types`: 全8パッケージの型チェック。Webビルドを含む。
-- `bun run test:native:e2e`: 独立したChromiumで認証、開封・再開、並べ替え、編成・破棄、練習、強化、2利用者間の売買・入札、pt購入、還元、履歴、規約、ログアウトを操作する。
+- `bun run test:native:e2e`: 独立したChromiumで認証、開封・再開、並べ替え、編成・破棄、練習、強化、2利用者間の売買・入札、pt購入、履歴、規約、ログアウトを操作する。
 - Expo Webの書き出し、iOS・Android向けHermesバンドルの書き出し。
 - iOSシミュレーター向けXcodeビルドと、アプリのログイン画面表示。
 
@@ -24,7 +24,6 @@ iOS実機とAndroid実機での一連の操作、ストア配信、実課金は�
 | [開封再開](../user-stories/resume-opening.md)                       | opening/get、opening/reveal、opening/list、ブラウザーでリロード後に同一開封を再開                   |
 | [コレクション](../user-stories/collection.md)                       | card/list-owned、card/get、ブラウザーで一覧                                                         |
 | [並べ替え](../user-stories/sort-collection.md)                      | card/list-owned、ブラウザーで攻撃力順・防御力順                                                     |
-| [カード還元](../user-stories/redeem-card.md)                        | card/redeem、card/redeem-duplicates、ブラウザーで還元                                               |
 | [フリマ](../user-stories/market-fixed-price.md)                     | market/create-listing、buy、cancel-listing、list、get、list-mine、2利用者のブラウザー操作           |
 | [オークション](../user-stories/market-auction.md)                   | market/bid、get、list-mine、入札後の取り下げ不可をブラウザー確認                                    |
 | [pt購入](../user-stories/buy-coins.md)                              | shop/purchase、shop/list-products、ブラウザーで開発用購入                                           |

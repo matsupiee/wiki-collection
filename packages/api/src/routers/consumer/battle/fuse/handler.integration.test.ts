@@ -49,14 +49,11 @@ test("合成で素材を1枚消費・小数加算・同じ素材の同時消費�
   expect(
     await db.select().from(cardFusion).where(eq(cardFusion.materialId, input.materialId)),
   ).toHaveLength(1);
-  await expect(a.api.card.redeem({ userCardId: input.materialId })).rejects.toMatchObject({
-    code: "PRECONDITION_FAILED",
-  });
   await expect(
     a.api.battle.saveTeam({ slot: 1, name: "消費済み", members: a.members }),
   ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
 });
-test("出品中・還元済みの合成拒否と強化後の売買引継ぎ", async () => {
+test("出品中・合成済みの合成拒否と強化後の売買引継ぎ", async () => {
   const a = await setup(),
     b = await setup();
   const gain = await a.api.battle.fuse({ baseId: a.members[0]!, materialId: a.members[1]! });
@@ -71,7 +68,7 @@ test("出品中・還元済みの合成拒否と強化後の売買引継ぎ", as
   await expect(
     a.api.battle.fuse({ baseId: a.members[2]!, materialId: a.members[0]! }),
   ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
-  await a.api.card.redeem({ userCardId: a.members[2]! });
+  await a.api.battle.fuse({ baseId: a.copies[4]!.id, materialId: a.members[2]! });
   await expect(
     a.api.battle.fuse({ baseId: a.copies[3]!.id, materialId: a.members[2]! }),
   ).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });

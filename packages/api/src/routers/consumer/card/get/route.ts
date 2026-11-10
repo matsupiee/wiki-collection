@@ -35,7 +35,6 @@ export const cardGetOutputSchema = z.object({
   ),
   ownedUserCardIds: z.array(z.string()),
   listedCount: z.number(),
-  redeemPoints: z.number(),
   lowestMarketPrice: z.number().nullable(),
 });
 

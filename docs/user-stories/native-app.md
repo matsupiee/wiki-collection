@@ -16,8 +16,8 @@
 3. パックを開封し、結果からコレクションへ移動する。
    - 5枚を順番に表示できる。中断した開封は開封履歴から再開できる。
    - → [無料パック](./open-free-pack.md)、[有料パック](./open-premium-pack.md)、[開封再開](./resume-opening.md)
-4. コレクションの絞り込み・並べ替え、詳細表示、還元を行う。
-   - → [コレクション](./collection.md)、[並べ替え](./sort-collection.md)、[還元](./redeem-card.md)
+4. コレクションの絞り込み・並べ替え、詳細表示を行う。
+   - → [コレクション](./collection.md)、[並べ替え](./sort-collection.md)
 5. フリマへの出品・購入、オークションの入札、出品管理を行う。
    - 消費前に金額を確認できる。残高不足や編成中のカードなどはAPIでも拒否される。
    - → [フリマ](./market-fixed-price.md)、[オークション](./market-auction.md)

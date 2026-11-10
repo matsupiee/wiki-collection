@@ -7,7 +7,6 @@ import { user } from "./auth";
 import { auctionBid } from "./auction-bid";
 import { coinPurchase } from "./coin-purchase";
 import { marketListing } from "./market-listing";
-import { userCard } from "./user-card";
 
 // pt を獲得した記録。追記のみ。残高は coin_deposit から coin_deposit_withdraw を引いて求める
 export const coinDeposit = sqliteTable(
@@ -31,7 +30,6 @@ export const coinDeposit = sqliteTable(
     isPaid: integer("is_paid", { mode: "boolean" }).notNull(),
     amount: integer("amount").notNull(),
     coinPurchaseId: text("coin_purchase_id").references(() => coinPurchase.id),
-    userCardId: text("user_card_id").references(() => userCard.id),
     marketListingId: text("market_listing_id").references(() => marketListing.id),
     auctionBidId: text("auction_bid_id").references(() => auctionBid.id),
     note: text("note"),

@@ -6,7 +6,6 @@ import type { Database } from "@wiki-collection/db";
 
 import { createTestDb } from "../../../../test/create-test-db";
 import { createCard, createGenre, createUserContext, giveCard } from "../../../../test/fixtures";
-import { handler as redeemHandler } from "../redeem/handler";
 import { handler as createListingHandler } from "../../market/create-listing/handler";
 import { handler } from "./handler";
 
@@ -16,17 +15,16 @@ beforeAll(async () => ({ db, dispose } = await createTestDb()));
 afterAll(() => dispose());
 
 describe("card/list-owned", () => {
-  test("同じカードをまとめて所持数と出品数を返す。還元済みのカードは数えない", async () => {
+  test("同じカードをまとめて所持数と出品数を返す。合成素材は数えない", async () => {
     const ctx = await createUserContext(db);
     const userId = ctx.session.user.id;
     const g = await createGenre(db);
     const common = await createCard(db, { genreId: g.id, rarity: "common" });
     const rare = await createCard(db, { genreId: g.id, rarity: "rare" });
-    const c1 = await giveCard(db, userId, common.id);
+    await db.insert(userCard).values({ userId, cardId: common.id, status: "fused" });
     const c2 = await giveCard(db, userId, common.id);
     await giveCard(db, userId, common.id);
     await giveCard(db, userId, rare.id);
-    await redeemHandler({ input: { userCardId: c1.id }, ctx });
     await createListingHandler({
       input: { format: "fixed_price", userCardId: c2.id, price: 10 },
       ctx,
@@ -38,11 +36,9 @@ describe("card/list-owned", () => {
       [rare.id, 1, 0],
       [common.id, 1, 1],
     ]);
-    // 出品中の1枚を残すので、所持中のコモン1枚が重複として還元対象になる
-    expect(result.duplicates).toEqual({ count: 1, points: 1 });
   });
 
-  test("引いた順・攻撃力順・防御力順と絞り込みを併用でき、集約と還元数は変わらない", async () => {
+  test("引いた順・攻撃力順・防御力順と絞り込みを併用でき、集約結果は変わらない", async () => {
     const ctx = await createUserContext(db);
     const other = await createUserContext(db);
     const g = await createGenre(db);
@@ -64,13 +60,13 @@ describe("card/list-owned", () => {
         .insert(userCard)
         .values({ userId: ctx.session.user.id, cardId: c.id, createdAt: new Date(spec.time) });
     }
-    // 他人のコピー・還元済みのコピーは取得順に影響しない。
+    // 他人のコピー・合成済みのコピーは取得順に影響しない。
     await db.insert(userCard).values([
       { userId: other.session.user.id, cardId: ids[0]!, createdAt: new Date(9000) },
       {
         userId: ctx.session.user.id,
         cardId: ids[0]!,
-        status: "redeemed",
+        status: "fused",
         createdAt: new Date(9000),
       },
       { userId: ctx.session.user.id, cardId: ids[1]!, status: "listed", createdAt: new Date(5000) },
@@ -85,7 +81,6 @@ describe("card/list-owned", () => {
     ] as const) {
       const result = await api.listOwned({ sort });
       expect(result.cards.map((c) => c.id)).toEqual([...expected]);
-      expect(result.duplicates).toEqual(acquired.duplicates);
       expect(result.cards.find((c) => c.id === ids[1])).toMatchObject({
         ownedCount: 1,
         listedCount: 1,
@@ -133,6 +128,18 @@ describe("card/list-owned", () => {
     const result = await appRouter.createCaller(ctx).card.listOwned({});
     expect(result.cards.map((c) => c.id)).toEqual([owned.id]);
   });
+
+  test.each(["redeem", "redeemDuplicates"])(
+    "廃止したカード還元API %s は開けない",
+    async (method) => {
+      const ctx = await createUserContext(db);
+      const caller = appRouter.createCaller(ctx).card as unknown as Record<
+        string,
+        (input: object) => Promise<unknown>
+      >;
+      await expect(caller[method]!({})).rejects.toMatchObject({ code: "NOT_FOUND" });
+    },
+  );
 
   test("削除した図鑑 API は NOT_FOUND を返す", async () => {
     const ctx = await createUserContext(db);

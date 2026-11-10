@@ -77,12 +77,11 @@ export default function NewListing() {
               <Text style={{ fontSize: 14, lineHeight: 20, fontWeight: "800", color: "#1e293b" }}>
                 {detail.data.card.title}
               </Text>
-              <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>
-                還元 {formatPt(detail.data.redeemPoints)}
-                {detail.data.lowestMarketPrice !== null
-                  ? `・最安値 ${formatPt(detail.data.lowestMarketPrice)}`
-                  : ""}
-              </Text>
+              {detail.data.lowestMarketPrice !== null && (
+                <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>
+                  最安値 {formatPt(detail.data.lowestMarketPrice)}
+                </Text>
+              )}
             </View>
           </View>
           <View
@@ -145,7 +144,7 @@ export default function NewListing() {
               </View>
             </View>
             <Text style={{ marginTop: 12, fontSize: 11, lineHeight: 16.5, color: "#94a3b8" }}>
-              出品中のカードは還元できません。入札が入ったオークションは取り下げられません。
+              入札が入ったオークションは取り下げられません。
             </Text>
           </View>
           <Button

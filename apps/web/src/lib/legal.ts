@@ -67,7 +67,7 @@ export const legalDocuments: Record<
               },
               {
                 tag: "li",
-                text: "ジャンルパックは pt を支払って開封します。",
+                text: "ダブルレア確定ガチャは100ptで5枚すべてがダブルレア以上、レジェンド確定ガチャは500ptで5枚すべてがレジェンドです。",
               },
               {
                 tag: "li",
@@ -89,7 +89,7 @@ export const legalDocuments: Record<
             children: [
               {
                 tag: "li",
-                text: "pt は本サービスの中で使える前払式支払手段です。課金で購入した pt（有償 pt）と、カードの還元やマーケットの売上などで得た pt（無償 pt）があります。",
+                text: "pt は本サービスの中で使える前払式支払手段です。課金で購入した pt（有償 pt）と、マーケットの売上などで得た pt（無償 pt）があります。",
               },
               {
                 tag: "li",
@@ -116,20 +116,7 @@ export const legalDocuments: Record<
         children: [
           {
             tag: "h2",
-            text: "第5条（カードの還元）",
-          },
-          {
-            tag: "p",
-            text: "利用者は、所持しているカードを手放して、レアリティに応じた無償 pt を受け取れます。還元したカードは元に戻せません。",
-          },
-        ],
-      },
-      {
-        tag: "section",
-        children: [
-          {
-            tag: "h2",
-            text: "第6条（マーケット）",
+            text: "第5条（マーケット）",
           },
           {
             tag: "ul",
@@ -163,7 +150,7 @@ export const legalDocuments: Record<
         children: [
           {
             tag: "h2",
-            text: "第6条の2（チーム・対戦・合成）",
+            text: "第5条の2（チーム・対戦・合成）",
           },
           {
             tag: "ul",
@@ -178,7 +165,7 @@ export const legalDocuments: Record<
               },
               {
                 tag: "li",
-                text: "編成中のカードは出品・還元・合成素材に利用できません。強化値はカード1枚ごとに保存され、売買時も引き継がれます。",
+                text: "編成中のカードは出品・合成素材に利用できません。強化値はカード1枚ごとに保存され、売買時も引き継がれます。",
               },
               {
                 tag: "li",
@@ -193,7 +180,7 @@ export const legalDocuments: Record<
         children: [
           {
             tag: "h2",
-            text: "第7条（カードの内容とライセンス）",
+            text: "第6条（カードの内容とライセンス）",
           },
           {
             tag: "p",
@@ -218,7 +205,7 @@ export const legalDocuments: Record<
         children: [
           {
             tag: "h2",
-            text: "第8条（禁止事項）",
+            text: "第7条（禁止事項）",
           },
           {
             tag: "ul",
@@ -241,7 +228,7 @@ export const legalDocuments: Record<
               },
               {
                 tag: "li",
-                text: "第6条で禁止するリアルマネートレード",
+                text: "第5条で禁止するリアルマネートレード",
               },
             ],
           },
@@ -252,7 +239,7 @@ export const legalDocuments: Record<
         children: [
           {
             tag: "h2",
-            text: "第9条（利用停止）",
+            text: "第8条（利用停止）",
           },
           {
             tag: "p",
@@ -265,7 +252,7 @@ export const legalDocuments: Record<
         children: [
           {
             tag: "h2",
-            text: "第10条（サービスの変更・終了）",
+            text: "第9条（サービスの変更・終了）",
           },
           {
             tag: "p",
@@ -278,7 +265,7 @@ export const legalDocuments: Record<
         children: [
           {
             tag: "h2",
-            text: "第11条（免責）",
+            text: "第10条（免責）",
           },
           {
             tag: "p",
@@ -291,7 +278,7 @@ export const legalDocuments: Record<
         children: [
           {
             tag: "h2",
-            text: "第12条（規約の変更）",
+            text: "第11条（規約の変更）",
           },
           {
             tag: "p",
@@ -304,7 +291,7 @@ export const legalDocuments: Record<
         children: [
           {
             tag: "h2",
-            text: "第13条（準拠法・管轄）",
+            text: "第12条（準拠法・管轄）",
           },
           {
             tag: "p",
@@ -338,7 +325,7 @@ export const legalDocuments: Record<
               },
               {
                 tag: "li",
-                text: "利用状況: パックの開封、カードの所持・還元・合成、チーム編成と対戦結果、マーケットでの出品・購入・入札、pt の獲得と使用の記録",
+                text: "利用状況: パックの開封、カードの所持・合成、チーム編成と対戦結果、マーケットでの出品・購入・入札、pt の獲得と使用の記録",
               },
               {
                 tag: "li",

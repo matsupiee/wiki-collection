@@ -71,19 +71,22 @@ describe("pack/open", () => {
     expect(secondCards.every((c) => !c.isNewOnAcquire)).toBe(true);
   });
 
-  test("注目カードは重みの分だけ出やすい", async () => {
+  test("同じレアリティの2枚は各枠で半分ずつの確率で選ばれる", async () => {
     const ctx = await createUserContext(db);
     const g = await createGenre(db);
-    const featured = await createCard(db, { genreId: g.id, rarity: "common" });
-    await createCard(db, { genreId: g.id, rarity: "common" });
-    const p = await createPack(db, {
-      genreId: g.id,
-      featured: [{ cardId: featured.id, weight: 1000 }],
-    });
-    // random を 0.5 に固定すると、重み 1000 : 1 の候補からは注目カードが選ばれる
-    const { openingId } = await handler({ input: { packId: p.id }, ctx, random: () => 0.5 });
-    const cards = await db.select().from(userCard).where(eq(userCard.packOpeningId, openingId));
-    expect(cards.every((c) => c.cardId === featured.id)).toBe(true);
+    const a = await createCard(db, { genreId: g.id, rarity: "common" });
+    const b = await createCard(db, { genreId: g.id, rarity: "common" });
+    const p = await createPack(db, { genreId: g.id });
+    const ids = new Set<string>();
+    for (const point of [0.49999, 0.5]) {
+      const { openingId } = await handler({ ctx, input: { packId: p.id }, random: () => point });
+      const drawn = await db.select().from(userCard).where(eq(userCard.packOpeningId, openingId));
+      expect(drawn).toHaveLength(5);
+      const id = drawn[0]!.cardId;
+      expect(drawn.every((c) => c.cardId === id)).toBe(true);
+      ids.add(id);
+    }
+    expect(ids).toEqual(new Set([a.id, b.id]));
   });
 
   test("ジャンルパックは指定ジャンルのカードだけが出る。排出停止のカードは出ない", async () => {

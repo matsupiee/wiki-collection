@@ -7,7 +7,6 @@ export * from "./card";
 export * from "./rarity-threshold";
 export * from "./pack";
 export * from "./pack-slot-rate";
-export * from "./pack-featured-card";
 export * from "./coin-product";
 export * from "./pack-opening";
 export * from "./free-pack-allowance";

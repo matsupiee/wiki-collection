@@ -133,7 +133,7 @@ test("ログイン・開封再開・カード・対戦・履歴・ログアウ�
   expect(errors).toEqual([]);
 });
 
-test("2人でフリマ購入・オークション入札・ポイント購入・カード還元", async ({ browser }) => {
+test("2人でフリマ購入・オークション入札・ポイント購入", async ({ browser }) => {
   const sellerContext = await browser.newContext();
   const buyerContext = await browser.newContext();
   const seller = await sellerContext.newPage();
@@ -209,20 +209,6 @@ test("2人でフリマ購入・オークション入札・ポイント購入・�
     await buyer.getByRole("button", { name: "購入する", exact: true }).click();
     await expect(buyer.getByText("pt を購入します", { exact: true })).not.toBeVisible();
   }
-  const inventoryForRedeem = await buyerContext.request.get(
-    "http://localhost:3001/api/trpc/battle.inventory",
-  );
-  const available = (
-    (await inventoryForRedeem.json()).result.data as { cardId: string; inTeam: boolean }[]
-  ).find((c) => !c.inTeam);
-  expect(available).toBeDefined();
-  await buyer.goto(`http://localhost:8082/cards/${available!.cardId}`);
-  await buyer
-    .getByRole("button", { name: /還元する .*pt/ })
-    .first()
-    .click();
-  await buyer.getByRole("button", { name: "還元する", exact: true }).click();
-  await expect(buyer.getByText("カードを還元します", { exact: true })).not.toBeVisible();
   await sellerContext.close();
   await buyerContext.close();
 });

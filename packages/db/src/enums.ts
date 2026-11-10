@@ -7,7 +7,7 @@ export type PackType = (typeof packTypes)[number];
 export const packPayments = ["free_initial", "free_daily", "coin"] as const;
 export type PackPayment = (typeof packPayments)[number];
 
-export const userCardStatuses = ["owned", "listed", "redeemed", "fused"] as const;
+export const userCardStatuses = ["owned", "listed", "fused"] as const;
 export type UserCardStatus = (typeof userCardStatuses)[number];
 
 export const listingFormats = ["fixed_price", "auction"] as const;
@@ -19,13 +19,7 @@ export type ListingStatus = (typeof listingStatuses)[number];
 export const bidStatuses = ["leading", "outbid", "won"] as const;
 export type BidStatus = (typeof bidStatuses)[number];
 
-export const coinDepositSources = [
-  "purchase",
-  "card_redeem",
-  "market_sale",
-  "bid_refund",
-  "admin_grant",
-] as const;
+export const coinDepositSources = ["purchase", "market_sale", "bid_refund", "admin_grant"] as const;
 export type CoinDepositSource = (typeof coinDepositSources)[number];
 
 export const coinWithdrawPurposes = [

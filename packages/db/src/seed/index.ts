@@ -22,18 +22,16 @@ import {
   freePackAllowance,
   genre,
   marketListing,
-  pack,
-  packFeaturedCard,
   packOpening,
-  packSlotRate,
   rarityThreshold,
   user,
   userCard,
 } from "../schema";
+import { seedPacks } from "./packs";
 import { reset } from "./reset";
 import { openLocalDb } from "./local-db";
 import { rarityByRank, thresholdsFromPageviews } from "../rarity";
-import { cards, coinProducts, genres, packs, slotRates } from "./master-data";
+import { cards, coinProducts, genres } from "./master-data";
 
 const PASSWORD = "password1234";
 const HOUR = 60 * 60 * 1000;
@@ -91,45 +89,7 @@ async function seedMaster(db: Database) {
   }
   const cardByTitle = new Map(cardRows.map((c) => [c.title, c]));
 
-  const packRows = [];
-  for (const [i, p] of packs.entries()) {
-    const [created] = await db
-      .insert(pack)
-      .values({
-        slug: p.slug,
-        name: p.name,
-        description: p.description,
-        type: p.type,
-        genreId: p.genreSlug ? genreIdBySlug.get(p.genreSlug)! : null,
-        priceCoins: p.priceCoins,
-        colorHex: p.colorHex,
-        sortOrder: i,
-      })
-      .returning();
-    await db.insert(packSlotRate).values(
-      slotRates[p.rates].flatMap((weights, index) =>
-        Object.entries(weights)
-          .filter(([, weight]) => weight > 0)
-          .map(([rarity, weight]) => ({
-            packId: created!.id,
-            slot: index + 1,
-            rarity: rarity as keyof typeof weights,
-            weight,
-          })),
-      ),
-    );
-    if (p.featured.length > 0) {
-      await db.insert(packFeaturedCard).values(
-        p.featured.map((title) => ({
-          packId: created!.id,
-          cardId: cardByTitle.get(title)!.id,
-          weight: 5,
-        })),
-      );
-    }
-    packRows.push(created!);
-  }
-
+  const packRows = await seedPacks(db);
   const productRows = await db.insert(coinProduct).values(coinProducts).returning();
   return { cardByTitle, packBySlug: new Map(packRows.map((p) => [p.slug, p])), productRows };
 }
@@ -267,12 +227,12 @@ async function main() {
     await reset(db);
     const { cardByTitle, packBySlug, productRows } = await seedMaster(db);
     const basic = packBySlug.get("basic")!;
-    const astro = packBySlug.get("astronomical-object")!;
+    const doubleRare = packBySlug.get("double-rare-guaranteed")!;
     const now = Date.now();
 
     await createUser(db, "たろう", "taro@example.com");
 
-    // hanako: 基本パックを3回、天体パックを1回開けている。最後の基本パックは演出を見ていない
+    // hanako: 基本パックを3回、ダブルレア確定ガチャを1回開けている。最後の基本パックは演出を見ていない
     const hanako = await createUser(db, "はなこ", "hanako@example.com");
     await purchase(db, hanako, productRows[1]!);
     await db.insert(freePackAllowance).values({
@@ -281,6 +241,9 @@ async function main() {
       dailyUsedDate: new Date(now + 9 * HOUR).toISOString().slice(0, 10),
       dailyUsedCount: 3,
     });
+    const guaranteedCards = [...cardByTitle.values()].filter(
+      (c) => c.rarity === "double_rare" || c.rarity === "legendary",
+    );
     const opened = [
       await openPack(
         db,
@@ -307,13 +270,16 @@ async function main() {
       await openPack(
         db,
         hanako,
-        astro.id,
-        ["冥王星", "天の川銀河", "太陽", "月", "ブラックホール"],
+        doubleRare.id,
+        Array.from(
+          { length: 5 },
+          (_, index) => guaranteedCards[index % guaranteedCards.length]!.title,
+        ),
         cardByTitle,
         {
           revealed: true,
           payment: "coin",
-          coinsSpent: 150,
+          coinsSpent: doubleRare.priceCoins!,
         },
       ),
       await openPack(
@@ -331,22 +297,9 @@ async function main() {
     await withdraw(db, {
       userId: hanako,
       purpose: "pack_open",
-      amount: 150,
+      amount: doubleRare.priceCoins!,
       packOpeningId: opened[2]!.opening.id,
     });
-    const water = opened[0]!.userCards[0]!;
-    await db
-      .update(userCard)
-      .set({ status: "redeemed", redeemedAt: new Date() })
-      .where(eq(userCard.id, water.id));
-    await deposit(db, {
-      userId: hanako,
-      source: "card_redeem",
-      isPaid: false,
-      amount: 1,
-      userCardId: water.id,
-    });
-
     const pick = (index: number, title: string) =>
       opened[index]!.userCards.find((u) => u.cardId === cardByTitle.get(title)!.id)!;
 

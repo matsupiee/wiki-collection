@@ -35,7 +35,6 @@ export const userCard = sqliteTable(
     isNewOnAcquire: integer("is_new_on_acquire", { mode: "boolean" }).notNull().default(false),
     attackBonus: real("attack_bonus").notNull().default(0),
     defenseBonus: real("defense_bonus").notNull().default(0),
-    redeemedAt: integer("redeemed_at", { mode: "timestamp_ms" }),
   },
   (table) => [
     index("user_card_user_status_card_idx").on(table.userId, table.status, table.cardId),

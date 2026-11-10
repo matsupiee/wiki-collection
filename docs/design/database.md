@@ -27,10 +27,8 @@ erDiagram
   genre ||--o{ pack : "ジャンルパック"
   card ||--o{ user_card : ""
   card ||--o{ card_discovery : ""
-  card ||--o{ pack_featured_card : ""
 
   pack ||--o{ pack_slot_rate : "排出率"
-  pack ||--o{ pack_featured_card : "注目カード"
   pack ||--o{ pack_opening : ""
   pack_opening ||--o{ user_card : "5枚"
 
@@ -43,7 +41,7 @@ erDiagram
 
 テーブルは役割ごとに4つに分かれる。
 
-- マスタ（運営が作る）: `genre`、`card`、`rarity_threshold`、`pack`、`pack_slot_rate`、`pack_featured_card`、`coin_product`
+- マスタ（運営が作る）: `genre`、`card`、`rarity_threshold`、`pack`、`pack_slot_rate`、`coin_product`
 - 所持と開封: `user_card`、`card_discovery`、`pack_opening`、`free_pack_allowance`
 - 通貨: `coin_deposit`、`coin_withdraw`、`coin_deposit_withdraw`、`coin_purchase`
 - マーケット: `market_listing`、`auction_bid`
@@ -52,19 +50,19 @@ erDiagram
 
 値は `packages/db/src/enums.ts` にまとめてある。
 
-| enum                  | 値                                                                        | 使う列                                 |
-| --------------------- | ------------------------------------------------------------------------- | -------------------------------------- |
-| rarity                | `common` / `uncommon` / `rare` / `double_rare` / `legendary`              | `card.rarity`、`pack_slot_rate.rarity` |
-| pack_type             | `free_basic` / `premium`                                                  | `pack.type`                            |
-| pack_payment          | `free_initial` / `free_daily` / `coin`                                    | `pack_opening.payment`                 |
-| user_card_status      | `owned` / `listed` / `redeemed`                                           | `user_card.status`                     |
-| listing_format        | `fixed_price` / `auction`                                                 | `market_listing.format`                |
-| listing_status        | `active` / `sold` / `cancelled` / `expired`                               | `market_listing.status`                |
-| bid_status            | `leading` / `outbid` / `won`                                              | `auction_bid.status`                   |
-| coin_deposit_source   | `purchase` / `card_redeem` / `market_sale` / `bid_refund` / `admin_grant` | `coin_deposit.source`                  |
-| coin_withdraw_purpose | `pack_open` / `market_buy` / `auction_bid` / `admin_revoke`               | `coin_withdraw.purpose`                |
-| purchase_provider     | `mock` / `stripe` / `app_store` / `google_play`                           | `coin_purchase.provider`               |
-| purchase_status       | `pending` / `completed` / `failed` / `refunded`                           | `coin_purchase.status`                 |
+| enum                  | 値                                                           | 使う列                                 |
+| --------------------- | ------------------------------------------------------------ | -------------------------------------- |
+| rarity                | `common` / `uncommon` / `rare` / `double_rare` / `legendary` | `card.rarity`、`pack_slot_rate.rarity` |
+| pack_type             | `free_basic` / `premium`                                     | `pack.type`                            |
+| pack_payment          | `free_initial` / `free_daily` / `coin`                       | `pack_opening.payment`                 |
+| user_card_status      | `owned` / `listed` / `fused`                                 | `user_card.status`                     |
+| listing_format        | `fixed_price` / `auction`                                    | `market_listing.format`                |
+| listing_status        | `active` / `sold` / `cancelled` / `expired`                  | `market_listing.status`                |
+| bid_status            | `leading` / `outbid` / `won`                                 | `auction_bid.status`                   |
+| coin_deposit_source   | `purchase` / `market_sale` / `bid_refund` / `admin_grant`    | `coin_deposit.source`                  |
+| coin_withdraw_purpose | `pack_open` / `market_buy` / `auction_bid` / `admin_revoke`  | `coin_withdraw.purpose`                |
+| purchase_provider     | `mock` / `stripe` / `app_store` / `google_play`              | `coin_purchase.provider`               |
+| purchase_status       | `pending` / `completed` / `failed` / `refunded`              | `coin_purchase.status`                 |
 
 SQLite には enum 型がないため、Drizzle の `text("...", { enum: [...] })` で TypeScript 側の型を絞り込む。
 
@@ -106,7 +104,6 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 
 - `(wikiLang, wikiPageId)` に unique 制約をつける。同じ記事のカードを二重に作らない。
 - `(genreId, rarity, isActive)` に index をつける。抽選でジャンルとレアリティから候補を引くため。
-- 還元ポイントはレアリティから決まるので列に持たない。`packages/api/src/shared/card/get-redeem-points.ts` に置く。
 - Wikipedia へのリンクは `https://{wikiLang}.wikipedia.org/wiki/{title}` で作る。改名されても Wikipedia 側のリダイレクトで記事にたどり着ける。
 - 取り込んだ時点の版へのリンク `https://{wikiLang}.wikipedia.org/w/index.php?oldid={wikiRevisionId}` を API で返す。要約はこの版の冒頭から取っている。カード詳細には版のリンクを表示しない。
 
@@ -132,7 +129,7 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 | 列                | 型                | 説明                                                  |
 | ----------------- | ----------------- | ----------------------------------------------------- |
 | slug              | text unique       | URL 用                                                |
-| name              | text              | 「基本パック」「天体パック」など                      |
+| name              | text              | 「基本パック」「ダブルレア確定ガチャ」など            |
 | description       | text              |                                                       |
 | type              | pack_type         | `free_basic` は無料枠で開ける。`premium` は pt が必要 |
 | genreId           | text null → genre | null なら全ジャンルから出る                           |
@@ -158,34 +155,15 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 - `(packId, slot, rarity)` に unique 制約をつける。
 - 確率を小数で持たず整数の重みで持つ。合計が100%にならない設定ミスを避け、表示時に計算するため。
 
-初期値（重みは10000分率）。seed（`packages/db/src/seed/master-data.ts`）もこの値で作る。
+初期値（重みは10000分率）。seed（`packages/db/src/seed/master-data.ts`、`packages/db/src/seed/packs.ts`）もこの値で作る。
 
-| パック         | 枠   | コモン | アンコモン | レア | ダブルレア | レジェンド |
-| -------------- | ---- | ------ | ---------- | ---- | ---------- | ---------- |
-| 基本パック     | 1〜3 | 10000  | 0          | 0    | 0          | 0          |
-| 基本パック     | 4    | 0      | 8900       | 900  | 160        | 40         |
-| 基本パック     | 5    | 0      | 6000       | 3000 | 800        | 200        |
-| ジャンルパック | 1〜3 | 10000  | 0          | 0    | 0          | 0          |
-| ジャンルパック | 4    | 0      | 7000       | 2200 | 600        | 200        |
-| ジャンルパック | 5    | 0      | 0          | 7000 | 2400       | 600        |
-
-価格を決めるときは、1パックの還元ポイントの期待値が価格を下回るようにする。上回ると「買って還元する」だけで pt が増えてしまう。
-初期値のジャンルパックの期待値は約 50pt で、価格 150pt を下回る。
-
-### pack_featured_card
-
-パックで出やすくしたいカード。ジャンルパックの「特定のカードがよく出る」を表す。
-
-| 列     | 型          | 説明                                                                |
-| ------ | ----------- | ------------------------------------------------------------------- |
-| packId | text → pack |                                                                     |
-| cardId | text → card |                                                                     |
-| weight | integer     | 同じレアリティの候補のなかでの重み。登録のないカードは 1 として扱う |
-
-- `(packId, cardId)` に unique 制約をつける。
-- 抽選は2段階で行う。まず `pack_slot_rate` で枠ごとのレアリティを決め、次にそのレアリティの候補カードから `pack_featured_card.weight` の重みで1枚を選ぶ。
-  - 全カードを `pack_featured_card` に並べなくて済む。候補はパックの `genreId` と `card.isActive` で絞り込んで作る。
-  - 候補カードが1枚もないレアリティは抽選から外す。
+| パック               | 枠   | コモン | アンコモン | レア | ダブルレア | レジェンド |
+| -------------------- | ---- | ------ | ---------- | ---- | ---------- | ---------- |
+| 基本パック           | 1〜3 | 10000  | 0          | 0    | 0          | 0          |
+| 基本パック           | 4    | 0      | 9500       | 350  | 100        | 50         |
+| 基本パック           | 5    | 0      | 8600       | 1000 | 300        | 100        |
+| ダブルレア確定ガチャ | 1〜5 | 0      | 0          | 0    | 9900       | 100        |
+| レジェンド確定ガチャ | 1〜5 | 0      | 0          | 0    | 0          | 10000      |
 
 ### coin_product
 
@@ -207,13 +185,13 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 
 パックを1回開けた記録。抽選結果はここに紐づく `user_card` として残る。
 
-| 列         | 型             | 説明                                             |
-| ---------- | -------------- | ------------------------------------------------ |
-| userId     | text → user    |                                                  |
-| packId     | text → pack    |                                                  |
-| payment    | pack_payment   | 毎日の無料枠か、pt か（旧履歴には登録特典も残る）          |
-| coinsSpent | integer        | 無料なら 0                                       |
-| revealedAt | timestamp null | 開封演出を最後まで見た（結果画面に到達した）日時 |
+| 列         | 型             | 説明                                              |
+| ---------- | -------------- | ------------------------------------------------- |
+| userId     | text → user    |                                                   |
+| packId     | text → pack    |                                                   |
+| payment    | pack_payment   | 毎日の無料枠か、pt か（旧履歴には登録特典も残る） |
+| coinsSpent | integer        | 無料なら 0                                        |
+| revealedAt | timestamp null | 開封演出を最後まで見た（結果画面に到達した）日時  |
 
 - 抽選は「これにする」を押した時点でサーバーが行い、結果を保存してから演出を始める。演出中にリロードしても引き直しにはならず、`revealedAt` が null の開封は開封履歴から演出を再開できる。
 - `(userId, createdAt)` に index をつける。開封履歴を新しい順に出すため。
@@ -225,7 +203,7 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 | 列               | 型                 | 説明                                                  |
 | ---------------- | ------------------ | ----------------------------------------------------- |
 | userId           | text unique → user |                                                       |
-| initialRemaining | integer            | 廃止した登録特典の旧残高。新規作成は 0。利用対象外             |
+| initialRemaining | integer            | 廃止した登録特典の旧残高。新規作成は 0。利用対象外    |
 | dailyUsedDate    | text null          | 毎日の無料枠を最後に使った日（日本時間の YYYY-MM-DD） |
 | dailyUsedCount   | integer            | その日に使った毎日の無料枠の数                        |
 
@@ -240,19 +218,16 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 ユーザーが持っている1枚1枚のカード。同じカードを3枚持っていれば3行ある。
 マーケットに1枚単位で出品するため、枚数のカウンターではなく1枚ごとに行を持つ。
 
-| 列             | 型                       | 説明                                                         |
-| -------------- | ------------------------ | ------------------------------------------------------------ |
-| userId         | text → user              | いまの持ち主。マーケットで売れたら買った人に書き換える       |
-| cardId         | text → card              |                                                              |
-| status         | user_card_status         | `owned` 所持中、`listed` 出品中、`redeemed` 還元済み         |
-| packOpeningId  | text null → pack_opening | どの開封で出たか                                             |
-| slot           | integer null             | 開封演出でめくる順番。抽選後にレアリティの低い順に並べてある |
-| isNewOnAcquire | boolean                  | 手に入れた時点で初めてのカードだったか。NEW バッジに使う     |
-| redeemedAt     | timestamp null           |                                                              |
+| 列             | 型                       | 説明                                                            |
+| -------------- | ------------------------ | --------------------------------------------------------------- |
+| userId         | text → user              | いまの持ち主。マーケットで売れたら買った人に書き換える          |
+| cardId         | text → card              |                                                                 |
+| status         | user_card_status         | `owned` 所持中、`listed` 出品中、`fused` 合成素材として消費済み |
+| packOpeningId  | text null → pack_opening | どの開封で出たか                                                |
+| slot           | integer null             | 開封演出でめくる順番。抽選後にレアリティの低い順に並べてある    |
+| isNewOnAcquire | boolean                  | 手に入れた時点で初めてのカードだったか。NEW バッジに使う        |
 
 - `(userId, status, cardId)` に index をつける。コレクション画面で所持中のカードをまとめて数えるため。
-- 還元しても行は消さず `status = redeemed` にする。開封履歴から追えるようにするため。
-- `listed` のカードは還元も別の出品もできない。
 - 同じパックで同じカードが2枚出たときは、1枚目だけを NEW にする。
 
 ### card_discovery
@@ -266,7 +241,7 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 | firstAcquiredAt | timestamp   |      |
 
 - `(userId, cardId)` に unique 制約をつける。
-- 還元や売却で手放しても消さない。再取得したカードを初獲得として扱わないため。
+- 合成や売却で手放しても消さない。再取得したカードを初獲得として扱わないため。
 - 手に入れたことのないカードは、カード詳細を開けない。
 
 ## 通貨
@@ -287,20 +262,18 @@ pt の残高を1つの数値として持つテーブルは作らない。
 
 pt を獲得した記録。
 
-| 列              | 型                  | 説明                                                 |
-| --------------- | ------------------- | ---------------------------------------------------- |
-| userId          | text → user         |                                                      |
-| source          | coin_deposit_source | 購入、還元、売上、入札の返金、運営からの付与         |
-| isPaid          | boolean             | 課金で得た有償 pt なら true。それ以外は無償          |
-| amount          | integer             | 獲得した pt                                          |
-| coinPurchaseId  | text null           | 獲得の理由に応じて関連するものを入れる               |
-| userCardId      | text null           | 1枚を還元したときのカード                            |
-| marketListingId | text null           | 売上のときの出品                                     |
-| auctionBidId    | text null           | 入札の返金のときの入札                               |
-| note            | text null           | まとめて還元したときの枚数、運営による付与の理由など |
+| 列              | 型                  | 説明                                        |
+| --------------- | ------------------- | ------------------------------------------- |
+| userId          | text → user         |                                             |
+| source          | coin_deposit_source | 購入、売上、入札の返金、運営からの付与      |
+| isPaid          | boolean             | 課金で得た有償 pt なら true。それ以外は無償 |
+| amount          | integer             | 獲得した pt                                 |
+| coinPurchaseId  | text null           | 獲得の理由に応じて関連するものを入れる      |
+| marketListingId | text null           | 売上のときの出品                            |
+| auctionBidId    | text null           | 入札の返金のときの入札                      |
+| note            | text null           | 運営による付与の理由など                    |
 
 - `(userId, createdAt)` に index をつける。
-- 重複をまとめて還元したときは、獲得を1件にまとめる。1pt の獲得が細かく大量にできると、消費のたびに割り当てが散らばるため。
 
 ### coin_withdraw
 
@@ -413,16 +386,11 @@ D1 はアプリから任意のトランザクションを張れないため、�
 ### パック開封
 
 1. 有料パックは残高を確かめる。
-2. 抽選: `pack_slot_rate` と `pack_featured_card` からサーバーで5枚を決め、レアリティの低い順に並べる。乱数は `crypto.getRandomValues` を使う。
+2. 抽選: サーバーは各枠のレアリティを `pack_slot_rate` で決め、該当する有効なカードから等確率で1枚ずつ選び、レアリティの低い順に並べる。乱数は `crypto.getRandomValues` を使う。
 3. 無料パックは `free_pack_allowance` を条件付き UPDATE で減らす。
 4. `pack_opening` を作る。
 5. batch で `user_card` 5行、`card_discovery`（新規分）、有料なら `coin_withdraw` と `coin_deposit_withdraw` を書く。
 6. batch が失敗したら、`pack_opening` を消し、無料枠を戻す。
-
-### ポイント還元
-
-1. `user_card` を `status = 'owned'` かつ持ち主が本人の条件で `redeemed` に更新する。更新できなければ還元できない。
-2. 無償の `coin_deposit`（`card_redeem`）を作る。
 
 ### フリマ購入
 

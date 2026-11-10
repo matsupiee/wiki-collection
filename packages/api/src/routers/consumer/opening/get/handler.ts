@@ -22,7 +22,7 @@ export async function handler({
     .where(and(eq(packOpening.id, input.openingId), eq(packOpening.userId, ctx.session.user.id)));
   if (!found) throw new TRPCError({ code: "NOT_FOUND", message: "開封の記録が見つかりません" });
 
-  // 売却や還元で持ち主や状態が変わっていても、開封の結果としては表示する
+  // 売却や合成で持ち主や状態が変わっていても、開封の結果としては表示する
   const cards = await ctx.db
     .select({
       userCardId: userCard.id,

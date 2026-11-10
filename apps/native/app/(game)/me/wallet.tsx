@@ -6,7 +6,6 @@ import { Loading, Screen } from "../../../components/ui";
 import { formatDateTime, formatPt } from "../../../lib/format";
 const labels: Record<string, string> = {
   purchase: "購入",
-  card_redeem: "カードの還元",
   market_sale: "マーケットの売上",
   bid_refund: "入札の返金",
   admin_grant: "運営からの付与",

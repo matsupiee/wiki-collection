@@ -25,14 +25,6 @@ export const packGetOutputSchema = z.object({
       rates: z.array(z.object({ rarity: z.enum(rarities), percent: z.number() })),
     }),
   ),
-  featuredCards: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      rarity: z.enum(rarities),
-      imageUrl: z.string().nullable(),
-    }),
-  ),
   canOpen: z.boolean(),
   // 開封できないときの理由
   blockedReason: z.enum(["no_free_pack", "insufficient_coins"]).nullable(),

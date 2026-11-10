@@ -17,8 +17,40 @@ import Svg, {
 
 export const OPENING_PACK_RATIO = 1.72;
 
-/** The opening-only wrapper: dark foil, orange heat seals and a diagonal printed panel. */
-export function OpeningPack({ width }: { width: number }) {
+const foilPalettes = {
+  orange: {
+    shadow: "#4c2108",
+    edge: "#983200",
+    mid: "#d85b00",
+    foil: "#ff7400",
+    shine: "#ff8402",
+    glint: "#ffe471",
+  },
+  silver: {
+    shadow: "#333c4a",
+    edge: "#596678",
+    mid: "#99a5b5",
+    foil: "#c2ccd8",
+    shine: "#f6f9fd",
+    glint: "#ffffff",
+  },
+  gold: {
+    shadow: "#5a3c08",
+    edge: "#88600f",
+    mid: "#c29023",
+    foil: "#e9b634",
+    shine: "#ffe38a",
+    glint: "#fff3bd",
+  },
+};
+
+export function OpeningPack({ width, slug }: { width: number; slug: string }) {
+  const foil =
+    slug === "legend-guaranteed"
+      ? foilPalettes.gold
+      : slug === "double-rare-guaranteed"
+        ? foilPalettes.silver
+        : foilPalettes.orange;
   const id = useId().replace(/:/g, "");
   return (
     <View style={{ width, height: width * OPENING_PACK_RATIO }}>
@@ -37,21 +69,21 @@ export function OpeningPack({ width }: { width: number }) {
             <Stop offset="0.67" stopColor="#1d2028" />
             <Stop offset="1" stopColor="#090b10" />
           </LinearGradient>
-          <LinearGradient id={`${id}orange`} x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor="#9e3c00" />
-            <Stop offset="0.07" stopColor="#ee6800" />
-            <Stop offset="0.45" stopColor="#ef7d06" />
-            <Stop offset="0.92" stopColor="#ea6900" />
-            <Stop offset="1" stopColor="#8f3200" />
+          <LinearGradient id={`${id}emblem`} x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0" stopColor={foil.edge} />
+            <Stop offset="0.07" stopColor={foil.foil} />
+            <Stop offset="0.45" stopColor={foil.shine} />
+            <Stop offset="0.92" stopColor={foil.foil} />
+            <Stop offset="1" stopColor={foil.edge} />
           </LinearGradient>
           <LinearGradient id={`${id}print`} x1="0" y1="0" x2="1" y2="0.12">
-            <Stop offset="0" stopColor="#983200" />
-            <Stop offset="0.08" stopColor="#d85b00" />
-            <Stop offset="0.2" stopColor="#ff7400" />
-            <Stop offset="0.47" stopColor="#ff8402" />
-            <Stop offset="0.8" stopColor="#ff7000" />
-            <Stop offset="0.97" stopColor="#ff6400" />
-            <Stop offset="1" stopColor="#d14b00" />
+            <Stop offset="0" stopColor={foil.edge} />
+            <Stop offset="0.08" stopColor={foil.mid} />
+            <Stop offset="0.2" stopColor={foil.foil} />
+            <Stop offset="0.47" stopColor={foil.shine} />
+            <Stop offset="0.8" stopColor={foil.foil} />
+            <Stop offset="0.97" stopColor={foil.foil} />
+            <Stop offset="1" stopColor={foil.mid} />
           </LinearGradient>
           <LinearGradient id={`${id}facet`} x1="0" y1="0" x2="1" y2="0.72">
             <Stop offset="0" stopColor="#2a1f24" stopOpacity="0" />
@@ -64,10 +96,10 @@ export function OpeningPack({ width }: { width: number }) {
             <Stop offset="1" stopColor="#2a1f24" stopOpacity="0" />
           </LinearGradient>
           <RadialGradient id={`${id}seamLight`}>
-            <Stop offset="0" stopColor="#f47816" stopOpacity="0.46" />
-            <Stop offset="0.37" stopColor="#b54a11" stopOpacity="0.21" />
-            <Stop offset="0.68" stopColor="#9e3c12" stopOpacity="0.08" />
-            <Stop offset="1" stopColor="#833810" stopOpacity="0" />
+            <Stop offset="0" stopColor={foil.foil} stopOpacity="0.46" />
+            <Stop offset="0.37" stopColor={foil.mid} stopOpacity="0.21" />
+            <Stop offset="0.68" stopColor={foil.edge} stopOpacity="0.08" />
+            <Stop offset="1" stopColor={foil.edge} stopOpacity="0" />
           </RadialGradient>
           <LinearGradient id={`${id}creases`} x1="0" y1="0.3" x2="1" y2="0.45">
             <Stop offset="0" stopColor="#100e13" stopOpacity="0.28" />
@@ -80,28 +112,28 @@ export function OpeningPack({ width }: { width: number }) {
             <Stop offset="1" stopColor="#080a11" stopOpacity="0.33" />
           </LinearGradient>
           <LinearGradient id={`${id}seal`} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#e88508" />
-            <Stop offset="0.2" stopColor="#ffbd19" />
-            <Stop offset="0.53" stopColor="#ab4300" />
-            <Stop offset="0.8" stopColor="#ffaf00" />
-            <Stop offset="1" stopColor="#ffca38" />
+            <Stop offset="0" stopColor={foil.foil} />
+            <Stop offset="0.2" stopColor={foil.shine} />
+            <Stop offset="0.53" stopColor={foil.mid} />
+            <Stop offset="0.8" stopColor={foil.shine} />
+            <Stop offset="1" stopColor={foil.shine} />
           </LinearGradient>
           <LinearGradient id={`${id}crimpShadow`} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#301311" stopOpacity="0" />
-            <Stop offset="0.62" stopColor="#512615" stopOpacity="0.56" />
-            <Stop offset="1" stopColor="#32130b" stopOpacity="0.96" />
+            <Stop offset="0" stopColor={foil.shadow} stopOpacity="0" />
+            <Stop offset="0.62" stopColor={foil.shadow} stopOpacity="0.56" />
+            <Stop offset="1" stopColor={foil.shadow} stopOpacity="0.96" />
           </LinearGradient>
           <LinearGradient id={`${id}bottomSeal`} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#6c2905" />
-            <Stop offset="0.33" stopColor="#ce5b06" />
-            <Stop offset="0.69" stopColor="#852d00" />
-            <Stop offset="1" stopColor="#ca5a04" />
+            <Stop offset="0" stopColor={foil.edge} />
+            <Stop offset="0.33" stopColor={foil.mid} />
+            <Stop offset="0.69" stopColor={foil.edge} />
+            <Stop offset="1" stopColor={foil.mid} />
           </LinearGradient>
           <RadialGradient id={`${id}heat`}>
-            <Stop offset="0" stopColor="#fff4b3" stopOpacity="0.98" />
-            <Stop offset="0.19" stopColor="#ffd146" stopOpacity="0.9" />
-            <Stop offset="0.56" stopColor="#ff8500" stopOpacity="0.42" />
-            <Stop offset="1" stopColor="#ff7500" stopOpacity="0" />
+            <Stop offset="0" stopColor={foil.glint} stopOpacity="0.98" />
+            <Stop offset="0.19" stopColor={foil.shine} stopOpacity="0.9" />
+            <Stop offset="0.56" stopColor={foil.foil} stopOpacity="0.42" />
+            <Stop offset="1" stopColor={foil.foil} stopOpacity="0" />
           </RadialGradient>
           <LinearGradient id={`${id}rim`} x1="0" y1="0" x2="1" y2="0">
             <Stop offset="0" stopColor="#7b818c" stopOpacity="0.5" />
@@ -110,8 +142,8 @@ export function OpeningPack({ width }: { width: number }) {
             <Stop offset="1" stopColor="#6d7480" stopOpacity="0.36" />
           </LinearGradient>
           <Pattern id={`${id}ribs`} width="4.6" height="24" patternUnits="userSpaceOnUse">
-            <Path d="M1 0 0 24" stroke="#4c2108" strokeOpacity="0.7" strokeWidth="1.6" />
-            <Path d="M2.4 0 1.4 24" stroke="#ffe471" strokeOpacity="0.6" strokeWidth="0.7" />
+            <Path d="M1 0 0 24" stroke={foil.shadow} strokeOpacity="0.7" strokeWidth="1.6" />
+            <Path d="M2.4 0 1.4 24" stroke={foil.glint} strokeOpacity="0.6" strokeWidth="0.7" />
           </Pattern>
           <ClipPath id={`${id}clip`}>
             <Path d="M3 18 Q125 26 247 18 L245 411 Q125 418 5 411 Z" />
@@ -143,15 +175,15 @@ export function OpeningPack({ width }: { width: number }) {
             <Path
               d="M116 49 120 62 125 52 130 62 134 49 M118 49 122 49 125 57 128 49 132 49"
               fill="none"
-              stroke="#c78637"
+              stroke={foil.foil}
               strokeWidth="1.7"
             />
-            <Path d="M85 73 169 73 162 86 78 86Z" fill="#e7780d" />
+            <Path d="M85 73 169 73 162 86 78 86Z" fill={foil.foil} />
             <Text
               x="124"
               y="82"
               textAnchor="middle"
-              fill="#ffe6b3"
+              fill={foil.glint}
               fontSize="7"
               fontWeight="800"
               letterSpacing="1.3"
@@ -173,8 +205,15 @@ export function OpeningPack({ width }: { width: number }) {
           </Text>
           <G transform="translate(127 291) scale(1.05) translate(-125 -302)">
             <Circle cx="125" cy="302" r="45" fill="#171b23" stroke="#c4c6c9" strokeWidth="2.4" />
-            <Path d="M81 302 A44 44 0 0 1 169 302 L169 310 81 292Z" fill={`url(#${id}orange)`} />
-            <Circle cx="125" cy="302" r="43.2" fill="none" stroke="#f7dca9" strokeOpacity="0.38" />
+            <Path d="M81 302 A44 44 0 0 1 169 302 L169 310 81 292Z" fill={`url(#${id}emblem)`} />
+            <Circle
+              cx="125"
+              cy="302"
+              r="43.2"
+              fill="none"
+              stroke={foil.glint}
+              strokeOpacity="0.38"
+            />
             <Circle cx="125" cy="302" r="20" fill="#171b23" stroke="#dce0e6" strokeWidth="2" />
             <Path
               d="M125 292 Q118 287 112 291 L112 311 Q119 307 125 312 Q131 307 138 311 L138 291 Q132 287 125 292 V312"
@@ -184,21 +223,11 @@ export function OpeningPack({ width }: { width: number }) {
             />
           </G>
           <Text
-            x="32"
+            x="125"
             y="376"
+            textAnchor="middle"
             fontFamily="Helvetica Neue"
-            fill="#ffe2a4"
-            fontSize="10.1"
-            fontWeight="900"
-            letterSpacing="2.0"
-          >
-            WIKI GACHA
-          </Text>
-          <Text
-            x="113"
-            y="376"
-            fontFamily="Helvetica Neue"
-            fill="#352013"
+            fill={foil.shadow}
             fontSize="10.3"
             fontWeight="900"
             letterSpacing="3.7"
@@ -226,7 +255,7 @@ export function OpeningPack({ width }: { width: number }) {
             />
             <Path
               d={`M4 ${y + h} Q125 ${y + h + 4} 246 ${y + h}`}
-              stroke={top ? "#ffce40" : "#ae5105"}
+              stroke={top ? foil.shine : foil.mid}
               strokeWidth="1.3"
               fill="none"
             />

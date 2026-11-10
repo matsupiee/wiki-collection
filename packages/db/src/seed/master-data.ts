@@ -170,68 +170,12 @@ export const cards: [GenreSlug, string, number, string][] = [
 ];
 
 const commonOnly = { common: 10000, uncommon: 0, rare: 0, double_rare: 0, legendary: 0 };
-export const slotRates: Record<"basic" | "genre", Record<Rarity, number>[]> = {
-  basic: [
-    commonOnly,
-    commonOnly,
-    commonOnly,
-    { common: 0, uncommon: 8900, rare: 900, double_rare: 160, legendary: 40 },
-    { common: 0, uncommon: 6000, rare: 3000, double_rare: 800, legendary: 200 },
-  ],
-  genre: [
-    commonOnly,
-    commonOnly,
-    commonOnly,
-    { common: 0, uncommon: 7000, rare: 2200, double_rare: 600, legendary: 200 },
-    { common: 0, uncommon: 0, rare: 7000, double_rare: 2400, legendary: 600 },
-  ],
-};
-
-export const packs = [
-  {
-    slug: "basic",
-    name: "基本パック",
-    description: "すべてのジャンルのカードが出る無料パック。",
-    type: "free_basic" as const,
-    genreSlug: null,
-    priceCoins: null,
-    colorHex: "#7c3aed",
-    rates: "basic" as const,
-    featured: [] as string[],
-  },
-  {
-    slug: "astronomical-object",
-    name: "天体パック",
-    description: "天体のカードだけが出る。ブラックホールと月が出やすい。",
-    type: "premium" as const,
-    genreSlug: "sample-astronomical-object",
-    priceCoins: 150,
-    colorHex: "#4f46e5",
-    rates: "genre" as const,
-    featured: ["ブラックホール", "月"],
-  },
-  {
-    slug: "human",
-    name: "人間パック",
-    description: "人物のカードだけが出る。織田信長が出やすい。",
-    type: "premium" as const,
-    genreSlug: "sample-human",
-    priceCoins: 150,
-    colorHex: "#b45309",
-    rates: "genre" as const,
-    featured: ["織田信長"],
-  },
-  {
-    slug: "sport",
-    name: "スポーツパック",
-    description: "スポーツのカードだけが出る。サッカーが出やすい。",
-    type: "premium" as const,
-    genreSlug: "sample-sport",
-    priceCoins: 150,
-    colorHex: "#b91c1c",
-    rates: "genre" as const,
-    featured: ["サッカー"],
-  },
+export const basicRates: Record<Rarity, number>[] = [
+  commonOnly,
+  commonOnly,
+  commonOnly,
+  { common: 0, uncommon: 9500, rare: 350, double_rare: 100, legendary: 50 },
+  { common: 0, uncommon: 8600, rare: 1000, double_rare: 300, legendary: 100 },
 ];
 
 export const coinProducts = [

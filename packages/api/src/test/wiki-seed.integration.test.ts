@@ -8,6 +8,9 @@ import { seedWiki, selectWikiCards } from "@wiki-collection/db/seed/wiki";
 import { DATA_DIR, readCardStore } from "../../../wiki-import/src/card-store";
 import { cardImageKey } from "@wiki-collection/db/card-image";
 
+import { handler as getPack } from "../routers/consumer/pack/get/handler";
+import { createUserContext } from "./fixtures";
+
 test("wiki seed resets existing data, creates 100 cards and stores every image in R2 on repeated runs", async () => {
   const proxy = await getPlatformProxy<{ DB: D1Database; CARD_IMAGES: R2Bucket }>({
     configPath: path.resolve(import.meta.dirname, "../../../../apps/web/wrangler.local.jsonc"),
@@ -40,11 +43,22 @@ test("wiki seed resets existing data, creates 100 cards and stores every image i
         expect(await proxy.env.CARD_IMAGES.head(await cardImageKey(row.imageUrl!))).not.toBeNull();
       }
     }
-    await db.insert(user).values({ id: "keep", name: "keep", email: "keep@example.com" });
+    const ctx = await createUserContext(db);
+    const basic = await getPack({ input: { slug: "basic" }, ctx });
+    expect(
+      basic.slotRates
+        .slice(3)
+        .map(({ rates }) =>
+          Object.fromEntries(rates.map(({ rarity, percent }) => [rarity, percent])),
+        ),
+    ).toEqual([
+      { uncommon: 95, rare: 3.5, double_rare: 1, legendary: 0.5 },
+      { uncommon: 86, rare: 10, double_rare: 3, legendary: 1 },
+    ]);
     await expect(
       seedWiki({ db, images: proxy.env.CARD_IMAGES, store: { ...store, cards: [] } }),
     ).rejects.toThrow("DBは初期化していません");
-    expect(await db.select().from(user)).toHaveLength(1);
+    expect(await db.select({ id: user.id }).from(user)).toEqual([{ id: ctx.session.user.id }]);
     await expect(
       seedWiki({
         db,

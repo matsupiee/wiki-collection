@@ -14,7 +14,7 @@ beforeAll(async () => ({ db, dispose } = await createTestDb()));
 afterAll(() => dispose());
 
 describe("card/get", () => {
-  test("カードの情報、出典 URL、所持中のカード、還元 pt、マーケットの最安値を返す", async () => {
+  test("カードの情報、出典 URL、所持中のカード、マーケットの最安値を返す", async () => {
     const ctx = await createUserContext(db);
     const seller = await createUserContext(db);
     const g = await createGenre(db);
@@ -42,7 +42,6 @@ describe("card/get", () => {
     );
     expect(result.card.wikiRevisionUrl).toBe("https://ja.wikipedia.org/w/index.php?oldid=123456");
     expect(result.ownedUserCardIds).toEqual([mine.id]);
-    expect(result.redeemPoints).toBe(60);
     expect(result.lowestMarketPrice).toBe(80);
   });
 

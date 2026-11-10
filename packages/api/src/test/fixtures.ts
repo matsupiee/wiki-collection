@@ -6,7 +6,6 @@ import {
   coinProduct,
   genre,
   pack,
-  packFeaturedCard,
   packSlotRate,
   user,
   userCard,
@@ -93,7 +92,6 @@ export async function createPack(
     genreId?: string | null;
     priceCoins?: number | null;
     rates?: { slot: number; rarity: Rarity; weight: number }[];
-    featured?: { cardId: string; weight: number }[];
   } = {},
 ) {
   const type = input.type ?? "free_basic";
@@ -112,11 +110,6 @@ export async function createPack(
   const rates =
     input.rates ?? [1, 2, 3, 4, 5].map((slot) => ({ slot, rarity: "common" as const, weight: 1 }));
   await db.insert(packSlotRate).values(rates.map((r) => ({ ...r, packId: created!.id })));
-  if (input.featured?.length) {
-    await db
-      .insert(packFeaturedCard)
-      .values(input.featured.map((f) => ({ ...f, packId: created!.id })));
-  }
   return created!;
 }
 

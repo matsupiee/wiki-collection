@@ -6,8 +6,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTRPC } from "../../../lib/client";
 import { useAction } from "../../../lib/mutation";
 import { Button, Loading, Screen } from "../../../components/ui";
-import { Pack } from "../../../components/pack";
+import { OpeningPack } from "../../../components/opening-pack";
 import { formatClock, formatPt } from "../../../lib/format";
+const packWidth = 178;
+
 export default function Packs() {
   const trpc = useTRPC();
   const packs = useQuery(trpc.pack.list.queryOptions());
@@ -61,7 +63,7 @@ export default function Packs() {
                     position: "absolute",
                     top: 0,
                     left: "50%",
-                    marginLeft: -96,
+                    marginLeft: -packWidth / 2,
                     zIndex: offset === 0 ? 10 : 1,
                     opacity: offset === 0 ? 1 : 0.7,
                     transform: [
@@ -82,25 +84,23 @@ export default function Packs() {
                     });
                   }}
                 >
-                  <Pack
-                    color={pack.colorHex}
-                    label={pack.type === "free_basic" ? "無料" : formatPt(pack.priceCoins ?? 0)}
-                  />
+                  <OpeningPack slug={pack.slug} width={packWidth} />
                   {offset === 0 && (
                     <View
                       pointerEvents="none"
                       style={{
-                        height: 64,
-                        width: 176,
+                        height: 42,
+                        width: packWidth,
+                        justifyContent: "flex-end",
                         overflow: "hidden",
                         marginTop: 4,
                         alignSelf: "center",
-                        opacity: 0.25,
+                        opacity: 0.14,
                         filter: "blur(1px)",
                         transform: [{ scaleY: -1 }],
                       }}
                     >
-                      <Pack color={pack.colorHex} reflection />
+                      <OpeningPack slug={pack.slug} width={packWidth} />
                     </View>
                   )}
                 </Pressable>

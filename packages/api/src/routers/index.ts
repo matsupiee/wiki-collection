@@ -1,8 +1,6 @@
 import { publicProcedure, router } from "../index";
 import { cardGetRoute } from "./consumer/card/get/route";
 import { cardListOwnedRoute } from "./consumer/card/list-owned/route";
-import { cardRedeemRoute } from "./consumer/card/redeem/route";
-import { cardRedeemDuplicatesRoute } from "./consumer/card/redeem-duplicates/route";
 import { coinGetBalanceRoute } from "./consumer/coin/get-balance/route";
 import { coinListHistoryRoute } from "./consumer/coin/list-history/route";
 import { marketBidRoute } from "./consumer/market/bid/route";
@@ -43,8 +41,6 @@ export const appRouter = router({
   card: router({
     get: cardGetRoute,
     listOwned: cardListOwnedRoute,
-    redeem: cardRedeemRoute,
-    redeemDuplicates: cardRedeemDuplicatesRoute,
   }),
   coin: router({
     getBalance: coinGetBalanceRoute,
