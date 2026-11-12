@@ -1,14 +1,20 @@
 appId: com.matsupiee.wikicollection
 ---
 # Run bun packages/db/src/seed/opening-juice-cli.ts and sign in as opening-juice1@example.com.
+- stopApp
 - openLink: wiki-collection://openings/opening-juice-all-rarities
 - tapOn:
     text: "開く"
     optional: true
 - extendedWaitUntil:
-    visible: "タップで開ける"
+    visible: "パックを選ぶ"
     timeout: 15000
-- tapOn: "タップで開ける"
+- tapOn: "パックを選ぶ"
+- assertVisible: "封を切る"
+- swipe:
+    start: "85%,56%"
+    end: "13%,56%"
+    duration: 650
 - extendedWaitUntil:
     visible: ".*、C、めくる"
     timeout: 12000
@@ -31,12 +37,16 @@ appId: com.matsupiee.wikicollection
 - tapOn: ".*、R、めくる"
 - tapOn: ".*、R、めくる"
 - tapOn: ".*、SR、めくる"
-- tapOn: ".*、レジェンド、開封結果を見る"
+- assertVisible: ".*、レジェンド、開封結果を見る"
+- swipe:
+    start: "70%,47%"
+    end: "28%,47%"
+    duration: 500
 - assertVisible: "開封結果"
 - openLink: wiki-collection://openings/opening-juice-skip
 - tapOn:
     text: "開く"
     optional: true
-- assertVisible: "タップで開ける"
+- assertVisible: "パックを選ぶ"
 - tapOn: "スキップ"
 - assertVisible: "開封結果"

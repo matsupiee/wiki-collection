@@ -1,11 +1,14 @@
+import sharp from "sharp";
+import { cardImageKey } from "@wiki-collection/db/card-image";
 import { gzipSync } from "node:zlib";
 import { expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { enrichDump } from "./enrich-dump";
-import { publishCatalog } from "./upload-cli";
-import { decodePart, latestKey, manifestSchema, partKey } from "./catalog";
+import { uploadImages } from "./upload-images-cli";
+import { importChunk } from "./import-cards";
+import { decodePart, encodePart } from "./catalog";
 import { createWikimediaClient } from "./wikimedia-client";
 import { createFakeWikimedia } from "./test/fake-wikimedia";
 import { createTestDb } from "./test/create-test-db";
@@ -145,20 +148,19 @@ test("全記事ダンプから公開版を作り、未閲覧の記事と既存�
     const client = createWikimediaClient({ fetch: fake.fetch });
     const objects = new Map<string, Uint8Array>();
     const storage = {
-      exists: async (key: string) => objects.has(key),
+      read: async (key: string) => objects.get(key) ?? null,
       put: async (key: string, data: Uint8Array) => {
         objects.set(key, data);
       },
     };
-    await publishCatalog(output, storage, client);
-    const manifest = manifestSchema.parse(
-      JSON.parse(new TextDecoder().decode(objects.get(latestKey))),
-    );
-    expect(manifest.articles).toBe(2);
-    const requests = fake.requests.length;
-    await publishCatalog(output, storage, client);
-    expect(fake.requests.length).toBe(requests);
-    const part = decodePart(Uint8Array.from(objects.get(partKey(manifest.snapshot, 0))!).buffer);
+    await uploadImages(output, storage, client, db);
+    expect(objects.size).toBe(0); // 画像がある1件目はコモン。
+    const catalog = await importChunk(client, {
+      pages: dumped,
+      genres: new Map(),
+      now: new Date(),
+    });
+    const part = decodePart(Uint8Array.from(encodePart(catalog)).buffer);
     expect(fake.requests).toHaveLength(0);
     expect(part.cards.map((c) => c.genre)).toEqual(["Q99", "Q99"]);
     expect(part.cards.map((c) => [c.title, c.summary, c.wikiRevisionId, c.articleLength])).toEqual(
@@ -166,6 +168,20 @@ test("全記事ダンプから公開版を作り、未閲覧の記事と既存�
     );
     for (let i = 0; i < 2; i++) await loadRecords(db, { ...part, thresholds: rarityThresholds });
     expect((await db.select().from(card)).map((c) => c.rarity)).toEqual(["common", "super_rare"]);
+    // 保存済みのWebPを再取得せずに測定し、同じ記事・画像のカードだけを更新する。
+    const rare = { ...dumped[0], monthlyPageviews: 50_000 };
+    const key = await cardImageKey(rare.metadata.image.url);
+    objects.set(
+      key,
+      await sharp({ create: { width: 17, height: 9, channels: 3, background: "red" } })
+        .webp()
+        .toBuffer(),
+    );
+    const imageInput = path.join(dir, "image-candidates.jsonl");
+    await writeFile(imageInput, JSON.stringify(rare) + "\n");
+    await uploadImages(imageInput, storage, client, db);
+    const measured = (await db.select().from(card)).find((row) => row.wikiPageId === rare.pageId)!;
+    expect([measured.imageWidth, measured.imageHeight]).toEqual([17, 9]);
     // 構造化データが不十分な同一画像は候補をまとめて補完する。
     await sqlDump(
       "page_props",
@@ -205,8 +221,8 @@ test("全記事ダンプから公開版を作り、未閲覧の記事と既存�
       expect(imageApi.requests).toHaveLength(offline ? 0 : 1);
     }
     await writeFile(output, "invalid\n");
-    await expect(publishCatalog(output, storage, client)).rejects.toThrow();
-    expect(JSON.parse(new TextDecoder().decode(objects.get(latestKey)))).toEqual(manifest);
+    await expect(uploadImages(output, storage, client, db)).rejects.toThrow();
+    expect(objects.size).toBe(1);
   } finally {
     await dispose();
     await rm(dir, { recursive: true, force: true });

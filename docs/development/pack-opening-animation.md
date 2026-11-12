@@ -14,7 +14,7 @@
 bun packages/db/src/seed/opening-juice-cli.ts
 ```
 
-`opening-juice1@example.com` / `password1234` でログインする。全レアリティの既存マスターが必要。固定IDの7つの開封を作り、再実行で所持カードを増やさない。既存の利用者・開封を削除しない。
+`opening-juice1@example.com` / `password1234` でログインする。全レアリティの既存マスターが必要。固定IDの8つの開封を作り、再実行で所持カードを増やさない。既存の利用者・開封を削除しない。
 
 ```sh
 xcrun simctl openurl booted wiki-collection://openings/opening-juice-all-rarities
@@ -33,7 +33,9 @@ xcrun simctl launch booted com.matsupiee.wikicollection
 
 既存ストーリー全体の回帰として `bun run test`（API 86件、取り込み29件、Web 3件、ネイティブ2件）と `bun run test:native:e2e`（4シナリオ）を実行した。全8パッケージの型チェックも成功。ブラウザーE2Eは既存業務フローの確認であり、iOS演出確認の代替ではない。
 
-iPhone 18 Pro / iOS 27.0シミュレーターで開発ビルドと署名付きReleaseビルドを確認した。Maestroで全5枚の公開、同じ組の詳細移動と復帰、スキップ、部分スワイプと全スワイプ、もう1パック、存在しない開封IDからの復帰を確認した。`tests/ios/opening-gesture.yaml` の座標はこの端末用。OSのReduce Motionを有効にした状態でも5枚と結果・スキップを確認した。
+iPhone 18 Pro / iOS 27.0シミュレーターで開発ビルドと署名付きReleaseビルドを確認した。Maestroで全5枚の公開、同じ組の詳細移動と復帰、スキップ、部分スワイプと全スワイプ、もう1パック、存在しない開封IDからの復帰を確認した。OSのReduce Motionを有効にした状態でも5枚と結果・スキップを確認した。
+
+現在の `tests/ios/opening-gesture.yaml` は iPhone 17e の縦向きで実行する。袋をタップして手前に寄せ、封の中央をタップしたり、途中までなぞって離したりしても袋が開かないことを確認する。次に封を端から端までなぞって開封する。
 
 iOS実機は接続されていない。触覚の強さ・同期と最も遅い対応端末のリリースビルドでの性能は未確認。
 

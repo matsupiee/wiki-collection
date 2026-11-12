@@ -1,3 +1,4 @@
+import { publicErrorMessage } from "@wiki-collection/api/public-error";
 import { useState } from "react";
 import { queryClient } from "./client";
 // 同じ操作の二重送信を防ぎ、成功後に全画面の残高・所持情報を更新する。
@@ -16,7 +17,7 @@ export function useAction() {
       await queryClient.invalidateQueries();
       done?.();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "処理できませんでした");
+      setError(publicErrorMessage(e instanceof Error ? e.message : undefined));
     } finally {
       running.current = false;
       setPending(false);

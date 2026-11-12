@@ -12,7 +12,13 @@ export async function cacheCommonImages(
   fetchImage: ImageFetch = fetch,
 ) {
   const rows = await db
-    .select({ url: card.imageUrl, credit: card.imageCredit })
+    .select({
+      id: card.id,
+      url: card.imageUrl,
+      credit: card.imageCredit,
+      width: card.imageWidth,
+      height: card.imageHeight,
+    })
     .from(card)
     .where(and(eq(card.rarity, "common"), inArray(card.id, ids)));
   const sources = new Set<string>();
@@ -30,7 +36,28 @@ export async function cacheCommonImages(
   async function save(source: string) {
     try {
       const key = await cardImageKey(source);
-      if (await bucket.head(key)) return;
+      const cards = rows.filter((row) => row.url && commonsImageUrl(row.url) === source);
+      async function recordStoredSize(bytes?: ArrayBuffer) {
+        if (!bytes) {
+          const object = await bucket.get(key);
+          if (!object || object.httpMetadata?.contentType !== "image/webp") return;
+          bytes = await object.arrayBuffer();
+        }
+        const size = await images.info(new Blob([bytes]).stream());
+        if (!("width" in size)) return;
+        for (const row of cards) {
+          if (row.width === size.width && row.height === size.height) continue;
+          await db
+            .update(card)
+            .set({ imageWidth: size.width, imageHeight: size.height })
+            .where(and(eq(card.id, row.id), eq(card.imageUrl, row.url!)));
+        }
+      }
+      if (await bucket.head(key)) {
+        if (cards.some((row) => row.width === null || row.height === null))
+          await recordStoredSize();
+        return;
+      }
       const { bytes } = await downloadImage(
         source,
         fetchImage,
@@ -43,10 +70,12 @@ export async function cacheCommonImages(
           .output({ format: "image/webp", quality: 75 });
         const output = await result.response().arrayBuffer();
         if (output.byteLength > 50_000) continue;
-        await bucket.put(key, output, {
+        const stored = await bucket.put(key, output, {
           httpMetadata: { contentType: "image/webp" },
           onlyIf: { etagDoesNotMatch: "*" },
         });
+        // 並行処理で先に保存された場合は、R2にある方の画像を測る。
+        await recordStoredSize(stored ? output : undefined);
         return;
       }
       throw new Error("変換後の画像が50KBを超えています");

@@ -23,6 +23,14 @@ try {
   const selected = [common, rare, rare, sr, legendary];
   const openings = {
     "all-rarities": selected,
+    // Use an illustrated first card when available to check emergence from the wrapper.
+    trace: [
+      candidates.find((c) => c.isActive && c.imageUrl && c.imageWidth && c.imageHeight) ?? common,
+      rare,
+      rare,
+      sr,
+      legendary,
+    ],
     skip: selected,
     reduced: selected,
     reference: [common, legendary, rare, rare, sr],

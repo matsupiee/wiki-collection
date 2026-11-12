@@ -10,7 +10,7 @@ import Svg, {
   Rect,
   Stop,
 } from "react-native-svg";
-import { wrapperPosition } from "./opening-geometry";
+import { selectedWidth, wrapperPosition } from "./opening-geometry";
 import { OpeningStars } from "./opening-effects";
 type SceneProps = { width: number; height: number; time: SharedValue<number>; reduced: boolean };
 export function OpeningAtmosphere({ width, height, time, reduced }: SceneProps) {
@@ -74,32 +74,52 @@ export function OpeningAtmosphere({ width, height, time, reduced }: SceneProps) 
     </>
   );
 }
+export function SealGlint() {
+  const id = useId().replace(/:/g, "");
+  return (
+    <Svg width="100%" height="100%" viewBox="0 0 100 32" preserveAspectRatio="none">
+      <Defs>
+        <RadialGradient id={id}>
+          <Stop offset="0" stopColor="white" />
+          <Stop offset="0.22" stopColor="#ecffff" />
+          <Stop offset="0.52" stopColor="#7feaff" stopOpacity="0.85" />
+          <Stop offset="1" stopColor="#37bfff" stopOpacity="0" />
+        </RadialGradient>
+      </Defs>
+      <Ellipse cx="50" cy="16" rx="50" ry="16" fill={`url(#${id})`} />
+    </Svg>
+  );
+}
 export function OpeningBeam({
   width,
   height,
   y,
+  direction,
   time,
   reduced,
 }: {
   width: number;
   height: number;
   y: number;
+  direction: SharedValue<number>;
   time: SharedValue<number>;
   reduced: boolean;
 }) {
   const id = useId().replace(/:/g, "");
   const style = useAnimatedStyle(() => ({
+    zIndex: 7,
     opacity: reduced ? 0 : interpolate(time.get(), [565, 630, 705, 820], [0, 1, 0.96, 0], "clamp"),
-    transform: [{ scaleX: interpolate(time.get(), [565, 650], [0.05, 1], "clamp") }],
   }));
   const hotspot = useAnimatedStyle(() => ({
+    zIndex: 7,
     opacity: reduced ? 0 : interpolate(time.get(), [555, 600, 738, 827], [0, 1, 1, 0], "clamp"),
-    transform: [
-      { translateX: interpolate(time.get(), [555, 785], [-width * 0.17, width * 1.17], "clamp") },
-    ],
+    transform: [{ translateX: width * (0.5 + (direction.get() * selectedWidth) / 2) }],
   }));
-  const molten = useAnimatedStyle(() => ({
-    opacity: reduced ? 0 : interpolate(time.get(), [710, 805, 905, 1020], [0, 1, 0.86, 0], "clamp"),
+  const rim = useAnimatedStyle(() => ({
+    zIndex: 7,
+    opacity: reduced
+      ? 0
+      : interpolate(time.get(), [710, 805, 1160, 1410], [0, 1, 0.86, 0], "clamp"),
     transform: [{ translateY: wrapperPosition(time.get(), width, height).mouth - y }],
   }));
   return (
@@ -110,10 +130,9 @@ export function OpeningBeam({
           {
             position: "absolute",
             left: 0,
-            top: y - 50,
+            top: y - 24,
             width,
-            height: 100,
-            transformOrigin: "left",
+            height: 48,
           },
           style,
         ]}
@@ -140,9 +159,9 @@ export function OpeningBeam({
           {
             position: "absolute",
             left: -width * 0.27,
-            top: y - 48,
+            top: y - 25,
             width: width * 0.54,
-            height: 96,
+            height: 50,
           },
           hotspot,
         ]}
@@ -152,7 +171,7 @@ export function OpeningBeam({
             <RadialGradient id={`${id}hot`}>
               <Stop offset="0" stopColor="white" />
               <Stop offset="0.17" stopColor="#fff7ff" />
-              <Stop offset="0.35" stopColor="#ffadfb" stopOpacity="0.93" />
+              <Stop offset="0.35" stopColor="#c4fdff" stopOpacity="0.93" />
               <Stop offset="0.56" stopColor="#91dfff" stopOpacity="0.6" />
               <Stop offset="1" stopColor="#388cff" stopOpacity="0" />
             </RadialGradient>
@@ -163,23 +182,27 @@ export function OpeningBeam({
       <Animated.View
         pointerEvents="none"
         style={[
-          { position: "absolute", left: width * 0.19, top: y - 7, width: width * 0.62, height: 16 },
-          molten,
+          {
+            position: "absolute",
+            left: (width * (1 - selectedWidth)) / 2,
+            top: y - 2,
+            width: width * selectedWidth,
+            height: 9,
+          },
+          rim,
         ]}
       >
-        <Svg width="100%" height="100%" viewBox="0 0 200 16" preserveAspectRatio="none">
-          <Path
-            d="M0 6 Q21 14 41 7 T81 8 T117 6 T160 8 T200 4"
-            fill="none"
-            stroke="#ff7517"
-            strokeWidth="6"
-          />
-          <Path
-            d="M0 6 Q21 14 41 7 T81 8 T117 6 T160 8 T200 4"
-            fill="none"
-            stroke="#fff297"
-            strokeWidth="2"
-          />
+        <Svg width="100%" height="100%" viewBox="0 0 200 9" preserveAspectRatio="none">
+          <Defs>
+            <LinearGradient id={`${id}rim`} x1="0" y1="0" x2="1" y2="0">
+              <Stop offset="0" stopColor="#9caec0" />
+              <Stop offset="0.35" stopColor="#edffff" />
+              <Stop offset="0.52" stopColor="#acfbff" />
+              <Stop offset="1" stopColor="#869baa" />
+            </LinearGradient>
+          </Defs>
+          <Path d="M2 2 Q100 0 198 2 Q100 9 2 2Z" fill="#182132" />
+          <Path d="M2 2 Q100 9 198 2" fill="none" stroke={`url(#${id}rim)`} strokeWidth="1.4" />
         </Svg>
       </Animated.View>
     </>

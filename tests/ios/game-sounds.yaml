@@ -1,6 +1,9 @@
 appId: com.matsupiee.wikicollection
 ---
 # ログイン済みのアプリで実行する。音の聞き分けは手順に沿って確認する。
+- stopApp
+- openLink: wiki-collection://packs
+- assertVisible: "無料で開封する"
 - tapOn: "コレクション"
 - tapOn:
     text: ".*の詳細を見る"
@@ -14,7 +17,12 @@ appId: com.matsupiee.wikicollection
 - assertVisible: "100pt で開封する"
 - tapOn: "基本パックへ"
 - tapOn: "無料で開封する"
-- tapOn: "タップで開ける"
+- tapOn: "パックを選ぶ"
+- assertVisible: "封を切る"
+- swipe:
+    start: "85%,56%"
+    end: "13%,56%"
+    duration: 650
 - tapOn: "写真の詳細を見る"
 - tapOn: "カードを閉じる"
 - swipe:

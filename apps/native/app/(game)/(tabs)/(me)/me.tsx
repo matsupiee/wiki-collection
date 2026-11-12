@@ -68,7 +68,7 @@ export default function Me() {
         onPress={() =>
           void action.run(async () => {
             const result = await auth.signOut();
-            if (result.error) throw new Error(result.error.message);
+            if (result.error) throw new Error();
             queryClient.clear();
             router.replace("/login");
           })

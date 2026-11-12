@@ -11,6 +11,7 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
+import { seamHeight } from "./opening-geometry";
 import { CardArt, type CardArtData } from "./ui";
 
 export const stackReadyAt = 2490;
@@ -52,13 +53,7 @@ export function OpeningPhoto({
           easing: Easing.bezier(0.23, 1, 0.32, 1),
         },
         (done) => {
-          if (done) {
-            if (last) {
-              offset.set(0);
-              turning.set(false);
-            }
-            scheduleOnRN(onTurn);
-          }
+          if (done) scheduleOnRN(onTurn);
         },
       ),
     );
@@ -78,14 +73,14 @@ export function OpeningPhoto({
     });
   const placement = useAnimatedStyle(() => {
     const p = Math.min(Math.abs(offset.get()) / size, 1);
-    const entry = interpolate(time.get(), [1250, 1490], [0, 1], "clamp");
+    const rise = interpolate(time.get(), [1130, 1690], [0, 1], "clamp");
+    const travel = height * (seamHeight - 0.47) + size / 2;
     return {
-      opacity: entry * (reduced ? 1 : 1 - p * p),
+      opacity: time.get() < 1120 ? 0 : reduced ? 1 : 1 - p * p,
       transform: [
         { perspective: 900 },
         { translateX: reduced ? 0 : offset.get() * 0.72 },
-        { translateY: depth * 4 },
-        { rotateZ: `${depth * 2.5}deg` },
+        { translateY: depth * 4 + travel * (1 - rise) },
         { rotateY: `${reduced ? 0 : -Math.sign(offset.get()) * 83 * p}deg` },
       ],
     };

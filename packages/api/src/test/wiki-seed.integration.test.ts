@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { expect, test } from "bun:test";
 import path from "node:path";
 import { getPlatformProxy } from "wrangler";
@@ -64,8 +65,10 @@ test("wiki seed resets existing data, creates 500 cards and preloads higher-rari
           !rows.some((c) => c.rarity !== "common" && c.imageUrl === row.imageUrl)
         ) {
           expect(image).toBeNull();
+          expect([row.imageWidth, row.imageHeight]).toEqual([null, null]);
           continue;
         }
+        expect([row.imageWidth, row.imageHeight]).toEqual([3, 3]);
         expect(image?.httpMetadata?.contentType).toBe("image/webp");
         expect(image!.size).toBeLessThanOrEqual(50_000);
       }
@@ -86,8 +89,15 @@ test("wiki seed resets existing data, creates 500 cards and preloads higher-rari
         { headers: { "Content-Type": "image/png" } },
       );
     };
-    for (let i = 0; i < 2; i++)
-      await cacheCommonImages(db, [common.id], proxy.env.CARD_IMAGES, proxy.env.IMAGES, fetchImage);
+    await cacheCommonImages(db, [common.id], proxy.env.CARD_IMAGES, proxy.env.IMAGES, fetchImage);
+    expect((await db.select().from(card).where(eq(card.id, common.id)))[0]?.imageWidth).toBe(3);
+    await db
+      .update(card)
+      .set({ imageWidth: null, imageHeight: null })
+      .where(eq(card.id, common.id));
+    await cacheCommonImages(db, [common.id], proxy.env.CARD_IMAGES, proxy.env.IMAGES, fetchImage);
+    const cached = (await db.select().from(card)).find((row) => row.id === common.id)!;
+    expect([cached.imageWidth, cached.imageHeight]).toEqual([3, 3]);
     expect(downloads).toBe(1);
     expect((await proxy.env.CARD_IMAGES.head(key))?.httpMetadata?.contentType).toBe("image/webp");
     const ctx = await createUserContext(db);

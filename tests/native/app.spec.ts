@@ -32,20 +32,19 @@ test("ログイン・開封再開・カード・履歴・ログアウト", async
   await page.getByRole("button", { name: "基本パックを選ぶ", exact: true }).click();
   await expect(page.getByText("0pt", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "無料で開封する", exact: true }).click();
-  await expect(page.getByRole("button", { name: "タップで開ける", exact: true })).toBeVisible();
+  const choosePack = page.getByRole("button", { name: "パックを選ぶ", exact: true });
+  await choosePack.click();
   const opening = page.url();
   // 戻り先がある状態で、途中まで／最後まで切り口をなぞる。
   const tearArea = page.getByTestId("tear-area");
-  const swipe = async (fraction: number) => {
-    // 登場アニメーションが完了してから座標を取得する。
-    await expect(async () => {
-      const box = await tearArea.boundingBox();
-      expect(box?.width).toBeGreaterThan(140);
-    }).toPass();
+  const swipe = async (from: number, to: number, offsetY = 0) => {
+    await expect(tearArea).toBeVisible();
+    await tearArea.click({ trial: true }); // 拡大中の袋が静止してから指を置く。
     const box = (await tearArea.boundingBox())!;
-    await page.mouse.move(box.x + 2, box.y + box.height / 2);
+    const y = box.y + box.height / 2;
+    await page.mouse.move(box.x + box.width * from, y);
     await page.mouse.down();
-    await page.mouse.move(box.x + box.width * fraction, box.y + box.height / 2, { steps: 20 });
+    await page.mouse.move(box.x + box.width * to, y + offsetY, { steps: 20 });
     await page.mouse.up();
   };
   // A failed skip must leave the same pack openable, even if the player swipes while it is pending.
@@ -66,28 +65,42 @@ test("ログイン・開封再開・カード・履歴・ログアウト", async
   await page.getByRole("button", { name: "スキップ", exact: true }).click();
   await pendingSkip;
   try {
-    await swipe(0.95);
+    await swipe(0.005, 0.995);
   } finally {
     releaseResponse();
   }
   await expect(page.getByRole("alert")).toBeVisible();
-  await swipe(0.45);
+  await tearArea.click();
+  await swipe(0.5, 0.995); // 封の途中からでは切れない。
+  await swipe(0.005, 0.995, 100); // 上端から指が外れると取り消す。
+  await swipe(0.005, 0.45);
   await expect(page).toHaveURL(opening);
-  await expect(page.getByRole("button", { name: "タップで開ける", exact: true })).toBeVisible();
-  await swipe(0.95);
+  await expect(tearArea).toBeVisible();
+  await swipe(0.005, 0.995);
   await expect(page.getByRole("button", { name: /、めくる$/ })).toBeVisible();
   await expect(page).toHaveURL(opening);
   await page.reload();
-  await expect(page.getByRole("button", { name: "タップで開ける", exact: true })).toBeVisible();
+  await expect(choosePack).toBeVisible();
   expect(page.url()).toBe(opening);
-  await page.getByRole("button", { name: "タップで開ける", exact: true }).click();
+  await choosePack.click();
+  await swipe(0.995, 0.005);
   const front = page.getByRole("button", { name: /、めくる$/ });
   for (let i = 1; i < 5; i++) {
     await expect(page.getByText(new RegExp(`^${i} / 5`))).toBeVisible();
     await expect(front).toHaveCount(1);
     await front.click();
   }
-  await page.getByRole("button", { name: /、開封結果を見る$/ }).click();
+  const lastCard = page.getByRole("button", { name: /、開封結果を見る$/ });
+  // 通信に失敗しても、めくり終えた5枚目を再表示せず同じ結果を再取得できる。
+  await page.route(revealPath, (route) => route.fulfill({ status: 503, body: "[]" }), {
+    times: 1,
+  });
+  await lastCard.click();
+  const retryResult = page.getByRole("button", { name: "結果を再読み込み" });
+  await expect(retryResult).toBeVisible();
+  await expect(lastCard).toHaveCount(0);
+  await expect(page.getByText(/^5 \/ 5/)).toHaveCount(0);
+  await retryResult.click();
   await expect(page.getByText("開封結果", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "コレクションへ", exact: true }).click();
   await page.getByRole("button", { name: "並び順", exact: true }).click();

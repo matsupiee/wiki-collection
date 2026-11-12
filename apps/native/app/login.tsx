@@ -32,7 +32,11 @@ export default function Login() {
         ? await auth.signUp.email({ email, password, name })
         : await auth.signIn.email({ email, password });
       if (result.error)
-        setError(result.error.message ?? "ログインできませんでした");
+        setError(
+          signup
+            ? "登録できませんでした。入力内容を確認してください。"
+            : "ログインできませんでした。メールアドレスとパスワードを確認してください。",
+        );
       else {
         queryClient.clear();
         router.replace("/packs");

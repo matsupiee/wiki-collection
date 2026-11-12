@@ -1,0 +1,6 @@
+appId: com.matsupiee.wikicollection
+---
+- tapOn: "無料で開封する"
+- assertVisible: "処理できませんでした。時間をおいてもう一度お試しください。"
+- assertNotVisible: ".*(Failed query|free_pack_allowance).*"
+- assertVisible: "無料で開封する"

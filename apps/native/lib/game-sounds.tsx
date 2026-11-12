@@ -1,10 +1,11 @@
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 import { createContext, useCallback, useContext, useEffect, type ReactNode } from "react";
 
-type Sound = "scroll" | "open" | "tab" | "card";
+type Sound = "packSwipe" | "scroll" | "open" | "tab" | "card";
 const GameSounds = createContext<(sound: Sound) => void>(() => {});
 
 export function GameSoundProvider({ children }: { children: ReactNode }) {
+  const packSwipe = useAudioPlayer(require("../assets/sounds/pack-swipe.wav"));
   const scroll = useAudioPlayer(require("../assets/sounds/scroll.wav"));
   const open = useAudioPlayer(require("../assets/sounds/open.wav"));
   const tab = useAudioPlayer(require("../assets/sounds/tab.wav"));
@@ -18,13 +19,13 @@ export function GameSoundProvider({ children }: { children: ReactNode }) {
 
   const play = useCallback(
     (sound: Sound) => {
-      const player = { scroll, open, tab, card }[sound];
+      const player = { packSwipe, scroll, open, tab, card }[sound];
       void player
         .seekTo(0)
         .then(() => player.play())
         .catch(() => {});
     },
-    [scroll, open, tab, card],
+    [packSwipe, scroll, open, tab, card],
   );
 
   return <GameSounds.Provider value={play}>{children}</GameSounds.Provider>;

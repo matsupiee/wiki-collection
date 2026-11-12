@@ -16,6 +16,7 @@ import Animated, {
   useSharedValue,
   withDelay,
   withSpring,
+  withRepeat,
   withTiming,
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -36,14 +37,18 @@ import {
   carouselScale,
   restingPackCenter,
   sealFraction,
+  selectedWidth,
+  seamHeight,
   wrapperPosition,
 } from "../../../../components/opening-geometry";
 import { OpeningPhoto, stackReadyAt } from "../../../../components/opening-photo";
+import { OpeningSeal } from "../../../../components/opening-seal";
 import { OpeningInspection } from "../../../../components/opening-inspection";
 import {
   OpeningAtmosphere,
   OpeningBeam,
   OpeningRainbow,
+  SealGlint,
 } from "../../../../components/opening-stage";
 
 export default function Opening() {
@@ -57,7 +62,9 @@ function OpeningScene({ openingId }: { openingId: string }) {
   const reveal = useMutation(trpc.opening.reveal.mutationOptions());
   const action = useAction();
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const [stage, setStage] = useState<"pack" | "running" | "revealed">("pack");
+  const [stage, setStage] = useState<"pack" | "selecting" | "tracing" | "running" | "revealed">(
+    "pack",
+  );
   const [front, setFront] = useState(0);
   const [detail, setDetail] = useState<number | null>(null);
   const [motionPreference, setMotionPreference] = useState<boolean | null>(null);
@@ -85,11 +92,14 @@ function OpeningScene({ openingId }: { openingId: string }) {
   const arrival = useSharedValue(0);
   const cut = useSharedValue(0);
   const committed = useSharedValue(false);
+  const shimmer = useSharedValue(0);
+  const direction = useSharedValue(1);
   const validStart = useSharedValue(false);
   const { width: w, height: h } = size;
   const pw = w * 0.48;
   const ph = pw * OPENING_PACK_RATIO;
   const cards = query.data?.cards ?? [];
+  const allTurned = cards.length > 0 && front >= cards.length;
   useEffect(() => {
     mounted.current = true;
     let active = true;
@@ -127,17 +137,13 @@ function OpeningScene({ openingId }: { openingId: string }) {
     busy.current = false;
     setStage("revealed");
   }
-  function play(side = 0) {
-    if (leaving.current) {
-      if (!busy.current && stage === "pack") {
-        committed.set(false);
-        cut.set(0);
-      }
-      return;
-    }
-    if (busy.current || !query.data) return;
+  function readyToTrace() {
+    if (mounted.current) setStage("tracing");
+  }
+  function selectPack(side = 0) {
+    if (leaving.current || busy.current || stage !== "pack") return;
     busy.current = true;
-    playSound("open");
+    setStage("selecting");
     cancelIntroFrame();
     const pickup =
       drag.get() + (reduce ? side * carouselPitch : carouselOffset(arrival.get(), side)) * w;
@@ -147,7 +153,21 @@ function OpeningScene({ openingId }: { openingId: string }) {
     drag.set(
       withTiming(0, { duration: reduce ? 0 : 320, easing: Easing.bezier(0.23, 1, 0.32, 1) }),
     );
+    time.set(
+      withTiming(
+        440,
+        { duration: reduce ? 0 : 400, easing: Easing.bezier(0.23, 1, 0.32, 1) },
+        (done) => {
+          if (done) scheduleOnRN(readyToTrace);
+        },
+      ),
+    );
+  }
+  function play() {
+    if (leaving.current || stage !== "tracing" || time.get() >= 565) return;
     committed.set(true);
+    cut.set(1);
+    playSound("open");
     const end = stackReadyAt;
     const rarity = highestOpeningRarity(cards);
     const impactStyles = {
@@ -164,9 +184,9 @@ function OpeningScene({ openingId }: { openingId: string }) {
       return;
     }
     setStage("running");
-    time.set(0);
+    time.set(565);
     time.set(
-      withTiming(end, { duration: end, easing: Easing.linear }, (finished) => {
+      withTiming(end, { duration: end - 565, easing: Easing.linear }, (finished) => {
         if (finished) scheduleOnRN(revealed);
       }),
     );
@@ -187,29 +207,53 @@ function OpeningScene({ openingId }: { openingId: string }) {
       )
       .finally(() => {
         leaving.current = false;
-        if (mounted.current && stage === "pack" && !busy.current) {
+        if (mounted.current && stage === "tracing" && time.get() < 565) {
           committed.set(false);
           cut.set(0);
         }
       });
   }
+  useEffect(() => {
+    if (stage !== "tracing" || reduce) return;
+    shimmer.set(0);
+    shimmer.set(
+      withRepeat(
+        withDelay(850, withTiming(1, { duration: 950, easing: Easing.linear })),
+        -1,
+        false,
+      ),
+    );
+    return () => cancelAnimation(shimmer);
+  }, [stage, reduce, shimmer]);
+  const sealWidth = w * selectedWidth;
   const tear = Gesture.Pan()
-    .enabled(!action.pending)
+    .enabled(!action.pending && stage === "tracing")
     .minDistance(0)
+    .maxPointers(1)
     .onBegin((e) => {
-      validStart.set(e.x < pw * 0.35 && !committed.get());
+      const margin = Math.min(32, sealWidth * 0.13);
+      validStart.set(!committed.get() && (e.x <= margin || e.x >= sealWidth - margin));
+      if (validStart.get()) {
+        direction.set(e.x < sealWidth / 2 ? 1 : -1);
+        cut.set(0);
+      }
     })
     .onUpdate((e) => {
       if (!validStart.get() || committed.get()) return;
-      const p = Math.max(0, Math.min(1, e.translationX / (pw * 0.7)));
-      cut.set(p);
-      if (p >= 0.95) {
+      if (Math.abs(e.y - 28) > 32 || e.numberOfPointers !== 1) {
+        validStart.set(false);
+        cut.set(withTiming(0, { duration: 160 }));
+        return;
+      }
+      const distance = direction.get() === 1 ? e.x : sealWidth - e.x;
+      cut.set(Math.max(0, Math.min(1, distance / sealWidth)));
+      if (distance >= sealWidth - 8) {
         committed.set(true);
-        scheduleOnRN(play, 0);
+        scheduleOnRN(play);
       }
     })
     .onFinalize(() => {
-      if (!committed.get()) cut.set(withSpring(0, { duration: 400, dampingRatio: 1 }));
+      if (!committed.get()) cut.set(withTiming(0, { duration: 160 }));
       validStart.set(false);
     });
   useEffect(() => {
@@ -257,27 +301,40 @@ function OpeningScene({ openingId }: { openingId: string }) {
     const x = drag.get() + (reduce ? 0 : carouselOffset(arrival.get()) * w);
     const distance = reduce || !w ? 0 : Math.min(1, Math.abs(x) / (w * carouselPitch));
     return {
-      opacity: (1 - distance * 0.5) * interpolate(t, [1180, 1250], [1, 0], "clamp"),
+      opacity: (1 - distance * 0.5) * interpolate(t, [1470, 1540], [1, 0], "clamp"),
       transform: [
         { translateX: x },
-        { translateY: reduce ? 0 : position.y },
+        { translateY: position.y },
         { perspective: 800 },
         { rotateY: `${-Math.sign(x) * distance * 20}deg` },
         {
-          scale: reduce ? 1 : position.scale * carouselScale(arrival.get()) * (1 - distance * 0.07),
+          scale:
+            position.scale * (reduce ? 1 : carouselScale(arrival.get()) * (1 - distance * 0.07)),
         },
       ],
     };
   });
-  const sealStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(time.get(), [620, 790], [1, 0], "clamp"),
-    transform: [
-      { translateY: reduce ? 0 : interpolate(time.get(), [650, 850], [0, -12], "clamp") },
-    ],
+  const seamFade = useAnimatedStyle(() => ({
+    opacity: interpolate(time.get(), [620, 675], [1, 0], "clamp"),
   }));
   const guideStyle = useAnimatedStyle(() => ({
-    opacity: cut.get(),
+    transformOrigin: direction.get() === 1 ? "left" : "right",
     transform: [{ scaleX: cut.get() }],
+  }));
+  const tipStyle = useAnimatedStyle(() => ({
+    opacity:
+      cut.get() > 0
+        ? 1
+        : reduce
+          ? 0
+          : interpolate(shimmer.get(), [0, 0.08, 0.92, 1], [0, 0.85, 0.85, 0], "clamp"),
+    transform: [
+      {
+        translateX:
+          (cut.get() > 0 ? (direction.get() === 1 ? cut.get() : 1 - cut.get()) : shimmer.get()) *
+          sealWidth,
+      },
+    ],
   }));
   return (
     <View style={styles.screen} onLayout={(e) => setSize(e.nativeEvent.layout)}>
@@ -300,7 +357,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
         w > 0 && (
           <>
             <OpeningRainbow time={time} width={w} height={h} reduced={reduce} />
-            {stage !== "pack" &&
+            {(stage === "running" || stage === "revealed") &&
               cards.slice(front).map((c, depth) => (
                 <OpeningPhoto
                   key={c.userCardId}
@@ -315,8 +372,8 @@ function OpeningScene({ openingId }: { openingId: string }) {
                   onTurn={() => {
                     if (!mounted.current) return;
                     playSound("card");
+                    setFront(front + 1);
                     if (front === cards.length - 1) finish();
-                    else setFront(front + 1);
                   }}
                 />
               ))}
@@ -333,7 +390,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
                     time={time}
                     drag={drag}
                     arrival={arrival}
-                    onSelect={() => play(side)}
+                    onSelect={() => selectPack(side)}
                     reduced={reduce}
                   />
                 ))}
@@ -346,6 +403,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
                       top: h * restingPackCenter - ph / 2,
                       width: pw,
                       height: ph,
+                      zIndex: stage === "running" ? 6 : 0,
                     },
                     packStyle,
                   ]}
@@ -363,45 +421,68 @@ function OpeningScene({ openingId }: { openingId: string }) {
                       <OpeningPack slug={query.data!.pack.slug} width={pw} />
                     </View>
                   </View>
-                  <Animated.View
-                    style={[{ height: ph * sealFraction, overflow: "hidden" }, sealStyle]}
-                  >
-                    <OpeningPack slug={query.data!.pack.slug} width={pw} />
-                  </Animated.View>
+                  <OpeningSeal
+                    slug={query.data!.pack.slug}
+                    width={pw}
+                    time={time}
+                    direction={direction}
+                    cut={cut}
+                    reduced={reduce}
+                  />
                   {stage === "pack" && (
-                    <>
-                      <GestureDetector gesture={carousel}>
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel="タップで開ける"
-                          onPress={() => play()}
-                          style={{ position: "absolute", top: 45, bottom: 0, width: pw }}
-                        />
-                      </GestureDetector>
-                      <GestureDetector gesture={tear}>
-                        <View
-                          collapsable={false}
-                          testID="tear-area"
-                          style={{ position: "absolute", top: -12, height: 52, width: pw }}
-                        >
-                          <Animated.View
-                            style={[
-                              {
-                                top: ph * sealFraction + 12,
-                                height: 2,
-                                backgroundColor: "#c5f5ff",
-                                transformOrigin: "left",
-                                boxShadow: "0 0 12px #70cfff",
-                              },
-                              guideStyle,
-                            ]}
-                          />
-                        </View>
-                      </GestureDetector>
-                    </>
+                    <GestureDetector gesture={carousel}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="パックを選ぶ"
+                        onPress={() => selectPack()}
+                        style={StyleSheet.absoluteFill}
+                      />
+                    </GestureDetector>
                   )}
                 </Animated.View>
+                {(stage === "tracing" || stage === "running") && (
+                  <View
+                    accessible={stage === "tracing"}
+                    accessibilityRole="button"
+                    accessibilityLabel="封を切る"
+                    accessibilityHint="上端の光る線を端から端までなぞります"
+                    onAccessibilityTap={play}
+                    accessibilityActions={[{ name: "activate" }]}
+                    onAccessibilityAction={(event) => {
+                      if (event.nativeEvent.actionName === "activate") play();
+                    }}
+                    style={{
+                      position: "absolute",
+                      left: (w - sealWidth) / 2,
+                      top: h * seamHeight - 28,
+                      width: sealWidth,
+                      height: 56,
+                      zIndex: 7,
+                      justifyContent: "center",
+                    }}
+                  >
+                    <GestureDetector gesture={tear}>
+                      <View
+                        collapsable={false}
+                        testID="tear-area"
+                        style={{ flex: 1, justifyContent: "center" }}
+                      >
+                        <Animated.View pointerEvents="none" style={[styles.traceOverlay, seamFade]}>
+                          <View style={styles.seam} />
+                          <Animated.View
+                            pointerEvents="none"
+                            style={[styles.cutLine, guideStyle]}
+                          />
+                          <Animated.View pointerEvents="none" style={[styles.tip, tipStyle]}>
+                            <SealGlint />
+                          </Animated.View>
+                        </Animated.View>
+                      </View>
+                    </GestureDetector>
+                  </View>
+                )}
                 <OpeningBeam
+                  direction={direction}
                   time={time}
                   width={w}
                   height={h}
@@ -412,10 +493,10 @@ function OpeningScene({ openingId }: { openingId: string }) {
             )}
             {stage === "pack" && (
               <Text style={[styles.hint, { top: h * 0.86 }]} pointerEvents="none">
-                パックをタップして開封
+                パックをタップして選ぶ
               </Text>
             )}
-            {stage === "revealed" && (
+            {stage === "revealed" && !allTurned && (
               <View style={[styles.controls, { top: h * 0.81 }]}>
                 <Text style={styles.hintInline}>
                   {front + 1} / {cards.length}　
@@ -434,15 +515,18 @@ function OpeningScene({ openingId }: { openingId: string }) {
                 </Pressable>
               </View>
             )}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="スキップ"
-              onPress={finish}
-              disabled={action.pending}
-              style={styles.skip}
-            >
-              <Text style={styles.skipText}>スキップ</Text>
-            </Pressable>
+            {allTurned && !action.error && <ActivityIndicator color="#ffffff" />}
+            {(!allTurned || !!action.error) && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={allTurned ? "結果を再読み込み" : "スキップ"}
+                onPress={finish}
+                disabled={action.pending}
+                style={styles.skip}
+              >
+                <Text style={styles.skipText}>{allTurned ? "結果を再読み込み" : "スキップ"}</Text>
+              </Pressable>
+            )}
             {detail !== null && cards[detail] && (
               <OpeningInspection
                 index={detail}
@@ -532,6 +616,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+  },
+  traceOverlay: { width: "100%", justifyContent: "center" },
+  seam: { height: 2, backgroundColor: "#d2edff", boxShadow: "0 0 5px 1px #37b5ff" },
+  cutLine: {
+    position: "absolute",
+    width: "100%",
+    height: 4,
+    backgroundColor: "#fff",
+    boxShadow: "0 0 7px 2px #39c6ff",
+  },
+  tip: {
+    position: "absolute",
+    left: "-9%",
+    width: "18%",
+    height: 18,
   },
   hint: {
     position: "absolute",

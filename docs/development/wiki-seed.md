@@ -29,19 +29,31 @@ WikidataとCommonsの全件ダンプは大きく、2026年11月の2ファイル�
 
 配布元は [日本語版Wikipedia](https://dumps.wikimedia.org/jawiki/latest/)、[Wikidata](https://dumps.wikimedia.org/wikidatawiki/entities/)、[Commons](https://dumps.wikimedia.org/commonswiki/entities/) を参照する。
 
-## 記事と画像を R2 に保存する
+## 月ごとに記事候補をバックアップする
 
-`bun run wiki:upload-r2` は候補を500件ずつ処理し、JSONLに保存したタイトル・要約・版・カテゴリ・分類・確認済みの画像を使う。新形式を使うと、公開時の Wikipedia・Wikidata・Commons のメタデータAPI呼び出しは0件になる。除外判定とレアリティの決定後、カード、ジャンル、除外理由を gzip 圧縮した JSONL として非公開 R2 に保存する。画像のある R・SR・レジェンドは先に保存する。
+`bun run wiki:backup-in-r2 --month 2026-10` は、手元の `articles-ja.jsonl` をそのまま `wiki-source/ja/2026-10/articles-ja.jsonl` に保存する。月は月次閲覧数の対象月を指定する。別の月は別のオブジェクトになり、同じ月の再実行はその月のファイルを置き換える。`--input <JSONL>` で入力を変更できる。
 
-`R2_ACCOUNT_ID`、`R2_BUCKET_NAME`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY` を設定する。バケット名はアプリの CARD_IMAGES と合わせる。入力を変更する場合は `--input <JSONL>` を使う。以前のJSONLや2列TSVも指定できる。メタデータを持たない旧形式では公開時に従来のAPIを使う。
+バックアップと画像保存には `R2_ACCOUNT_ID`、`R2_BUCKET_NAME`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY` を設定する。バケット名はアプリの CARD_IMAGES と合わせる。
 
-全分割の保存が終わると `wiki-catalog/ja/latest.json` が新しい版を指す。同じ入力で再実行すると保存済みの分割から先へ進む。全件のカードは Git に入れない。
+Wrangler のログインを使う場合は、両コマンドに `--wrangler-config <設定ファイル>` を指定する。対象アカウントと `remote: true` の `CARD_IMAGES` バインディングを設定し、画像の保存には同じ設定に本番D1の `DB` バインディングも指定する。
 
-公開時に削除済み・非対応形式・容量超過と判定した画像はカードから外す。ネットワーク障害や R2 書き込みエラーで公開に失敗した場合は、同じ候補ファイルを指定して再実行する。
+## カード画像を保存する
+
+本番D1にカードを登録し、画像サイズのマイグレーションを適用してから `bun run wiki:upload-images-r2` を実行する。D1の接続設定は次節を参照する。入力は同じ記事候補で、`--input` で切り替えられる。500件ずつカード化の条件を確認し、R・SR・レジェンドの画像をWebPとして `wiki-images/` に保存する。既存WebPも含め、対応するカードに保存画像のピクセル寸法を記録する。通信エラーの場合は同じ入力で再実行できる。コモン画像はパック開封時に保存する。
 
 ## 本番 D1 に読み込む
 
-マイグレーション適用済みの D1 の ID を `D1_DATABASE_ID` に設定し、対象アカウントの Wrangler 認証を用意する。`bun run db:seed:prod` は R2 の latest.json が指す版を1分割ずつ本番 D1 に読み込む。利用者のデータを初期化しない。同じ記事 ID は重複せず、既存カードのレアリティと版は保持する。
+マイグレーション適用済みの本番 D1 を指定し、Wrangler にログインして実行する。
+
+```sh
+bun run db:seed:prod --wrangler-config <本番のDBバインディングを含むWrangler設定ファイル>
+```
+
+設定ファイルを省略する場合は `D1_DATABASE_ID` と対象アカウントの `CLOUDFLARE_ACCOUNT_ID`（または `R2_ACCOUNT_ID`）を指定する。既定の入力は `packages/wiki-import/.cache/articles-ja.jsonl` で、別のファイルは `--input <JSONL>` で指定する。
+
+500記事ずつカード化し、複数行のINSERTを最大16 MiBの一時SQLファイルにまとめて本番へ順次インポートする。D1のファイルインポート中は対象DBへの他のリクエストが待機する場合がある。途中で失敗したら同じコマンドを再実行する。言語と記事IDで既存カードを照合し、所持品、カードID、版、レアリティ、排出停止状態、画像寸法を維持する。
+
+新規カードの画像寸法は未計測として登録する。先に画像をR2に保存した場合は、投入後に `wiki:upload-images-r2` を実行すると、保存済みWebPから対応するカードの寸法を補完できる。
 
 ## ローカルで確認する
 

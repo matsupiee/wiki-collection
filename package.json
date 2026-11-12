@@ -37,7 +37,8 @@
     "dev:native:web": "bun run --cwd apps/native web",
     "test:native:e2e": "playwright test --config playwright.native.config.ts",
     "wiki:dump": "bun packages/wiki-import/src/dump-cli.ts",
-    "wiki:upload-r2": "bun packages/wiki-import/src/upload-cli.ts",
+    "wiki:backup-in-r2": "bun packages/wiki-import/src/backup-cli.ts",
+    "wiki:upload-images-r2": "bun packages/wiki-import/src/upload-images-cli.ts",
     "db:seed:local": "bun packages/db/src/seed/wiki-cli.ts",
     "db:seed:prod": "bun packages/db/src/seed/prod-cli.ts"
   },

@@ -1,3 +1,8 @@
+import { cardImageKey, commonsImageUrl } from "../card-image";
+import {
+  measuredImageStorage,
+  type ImageDimensions,
+} from "../../../wiki-import/src/measured-image-storage";
 import type { CardStore } from "../../../wiki-import/src/card-store";
 import { mirrorImages, type ImageFetch } from "../../../wiki-import/src/mirror-images";
 import { type Rarity } from "../enums";
@@ -34,14 +39,19 @@ export async function seedWiki(input: {
 }) {
   const { db, images, store } = input;
   const selected = selectWikiCards(store);
+  const sizes = new Map<string, ImageDimensions>();
   const result = await mirrorImages({
     cards: selected.filter((c) => c.rarity !== "common"),
-    storage: {
-      exists: async (key) => (await images.head(key)) !== null,
-      put: async (key, bytes, contentType) => {
+    storage: measuredImageStorage(
+      async (key) => {
+        const object = await images.get(key);
+        return object && new Uint8Array(await object.arrayBuffer());
+      },
+      async (key, bytes, contentType) => {
         await images.put(key, bytes, { httpMetadata: { contentType } });
       },
-    },
+      sizes,
+    ),
     limit: selected.length,
     fetch: input.fetch,
     sleep: input.sleep,
@@ -59,7 +69,9 @@ export async function seedWiki(input: {
     genreIds.set(g.slug, row!.id);
   }
   for (const { genre: slug, ...c } of selected) {
-    await db.insert(card).values({ ...c, wikiLang: "ja", genreId: genreIds.get(slug)! });
+    const url = c.imageUrl && commonsImageUrl(c.imageUrl);
+    const size = url ? sizes.get(await cardImageKey(url)) : undefined;
+    await db.insert(card).values({ ...c, ...size, wikiLang: "ja", genreId: genreIds.get(slug)! });
   }
   await db.insert(rarityThreshold).values(
     Object.entries(rarityThresholds).map(([rarity, minMonthlyPageviews]) => ({

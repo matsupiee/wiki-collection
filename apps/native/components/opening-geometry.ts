@@ -3,17 +3,19 @@ import { OPENING_PACK_RATIO } from "./opening-pack";
 
 export const carouselPitch = 0.61;
 export const restingPackCenter = 0.5;
-export const sealFraction = 0.075;
+export const selectedWidth = 0.74;
+export const seamHeight = 0.56;
+export const sealFraction = 0.18;
 export function wrapperPosition(ms: number, width: number, height: number) {
   "worklet";
   const approach = interpolate(ms, [0, 440], [0, 1], "clamp");
-  const drop = interpolate(ms, [900, 1220], [0, 1], "clamp");
-  const scale = 1 + approach * 0.3;
-  const y = approach * height * (0.8 - restingPackCenter) + drop * height * 0.57;
-  const mouth =
-    height * restingPackCenter +
-    y -
-    width * 0.48 * OPENING_PACK_RATIO * (0.5 - sealFraction) * scale;
+  const drop = interpolate(ms, [1190, 1510], [0, 1], "clamp");
+  const scale = 1 + approach * (selectedWidth / 0.48 - 1);
+  const packHeight = width * 0.48 * OPENING_PACK_RATIO;
+  const selectedCenter =
+    height * seamHeight + packHeight * (selectedWidth / 0.48) * (0.5 - sealFraction);
+  const y = approach * (selectedCenter - height * restingPackCenter) + drop * height * 0.57;
+  const mouth = height * restingPackCenter + y - packHeight * (0.5 - sealFraction) * scale;
   return { scale, y, mouth };
 }
 

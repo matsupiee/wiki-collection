@@ -27,6 +27,8 @@ export const card = sqliteTable(
     wikiFetchedAt: integer("wiki_fetched_at", { mode: "timestamp_ms" }),
     summary: text("summary").notNull(),
     imageUrl: text("image_url"),
+    imageWidth: integer("image_width"),
+    imageHeight: integer("image_height"),
     imageCredit: text("image_credit"),
     genreId: text("genre_id")
       .notNull()

@@ -2,7 +2,7 @@ import { enrichDump } from "./enrich-dump";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { mkdir, rename, rm } from "node:fs/promises";
-import { createInterface } from "node:readline";
+import { readLines } from "./read-lines";
 import { Readable } from "node:stream";
 import path from "node:path";
 import { parseArgs } from "node:util";
@@ -59,7 +59,7 @@ export async function dump() {
     const writer = Bun.file(temp + ".leads").writer();
     let count = 0;
     try {
-      for await (const line of createInterface({ input: Readable.from(process.stdout) })) {
+      for await (const line of readLines(process.stdout)) {
         const { lead, ...article } = leadSchema.parse(JSON.parse(line));
         const summary = leadSummary(lead);
         writer.write(

@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "Wiki Collection",
+    "icon": "./assets/icon.png",
     "slug": "wiki-collection",
     "version": "1.0.0",
     "orientation": "portrait",

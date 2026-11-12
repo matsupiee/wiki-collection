@@ -89,7 +89,7 @@ export default function Packs() {
   const [index, setIndex] = useState(0);
   const previousIndex = useRef(index);
   useEffect(() => {
-    if (index !== previousIndex.current) playSound("scroll");
+    if (index !== previousIndex.current) playSound("packSwipe");
     previousIndex.current = index;
   }, [index, playSound]);
   const [now, setNow] = useState(Date.now());

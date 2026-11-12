@@ -1,3 +1,4 @@
+import { publicErrorMessage } from "@wiki-collection/api/public-error";
 import { rarityLabels } from "@/lib/rarity";
 import type { Rarity } from "@wiki-collection/db/enums";
 import { cardImageDisplayUrl } from "@wiki-collection/db/card-image";
@@ -336,7 +337,7 @@ export function Loading({
   return error ? (
     <Panel>
       <Text accessibilityRole="alert" style={styles.text}>
-        {error.message}
+        {publicErrorMessage(error.message, "読み込めませんでした。もう一度お試しください。")}
       </Text>
       {retry && <Button title="再試行" onPress={() => void retry()} />}
     </Panel>

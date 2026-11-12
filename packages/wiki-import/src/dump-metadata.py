@@ -248,6 +248,9 @@ if __name__ == "__main__":
           CREATE TABLE local_files(name TEXT PRIMARY KEY) WITHOUT ROWID;
         """)
         index_jawiki(db, directory)
+        db.commit()
         index_wikidata(db, directory)
+        db.commit()
         index_commons(db, directory)
+        db.commit()
         enrich(db, articles)

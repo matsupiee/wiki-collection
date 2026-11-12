@@ -1,6 +1,5 @@
 import path from "node:path";
-import { createInterface } from "node:readline";
-import { Readable } from "node:stream";
+import { readLines } from "./read-lines";
 import { z } from "zod";
 import { dumpArticleSchema, metadataSchema } from "./dump-article";
 import { fetchImageLicenses, type CardImage } from "./fetch-image-licenses";
@@ -48,7 +47,7 @@ export async function enrichDump(
     rows = [];
   }
   try {
-    for await (const line of createInterface({ input: Readable.from(child.stdout) })) {
+    for await (const line of readLines(child.stdout)) {
       rows.push(rowSchema.parse(JSON.parse(line)));
       if (rows.length === 500) await flush();
     }
