@@ -2,14 +2,20 @@ import { initTRPC, TRPCError } from "@trpc/server";
 
 import type { Context } from "./context";
 
-import { operationFailed, publicErrorMessage } from "./public-error";
+import { operationFailed, publicErrorMessage, publicErrorReason } from "./public-error";
 
 export const t = initTRPC.context<Context>().create({
   errorFormatter({ shape }) {
+    const message =
+      shape.data.httpStatus >= 500 ? operationFailed : publicErrorMessage(shape.message);
     return {
       ...shape,
-      message: shape.data.httpStatus >= 500 ? operationFailed : publicErrorMessage(shape.message),
-      data: { code: shape.data.code, httpStatus: shape.data.httpStatus },
+      message,
+      data: {
+        code: shape.data.code,
+        httpStatus: shape.data.httpStatus,
+        reason: publicErrorReason(message),
+      },
     };
   },
 });

@@ -14,7 +14,7 @@ export const listingFormats = ["fixed_price", "auction"] as const;
 export type ListingFormat = (typeof listingFormats)[number];
 
 export const minimumAuctionPrice = 10;
-export const auctionDurationHours = [1, 12, 24, 72, 168] as const;
+export const auctionDurationHours = Array.from({ length: 24 }, (_, i) => i + 1);
 
 export const listingStatuses = ["active", "sold", "cancelled", "expired"] as const;
 export type ListingStatus = (typeof listingStatuses)[number];

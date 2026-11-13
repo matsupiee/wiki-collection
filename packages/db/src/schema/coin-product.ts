@@ -15,9 +15,6 @@ export const coinProduct = sqliteTable("coin_product", {
     .notNull(),
   sku: text("sku").notNull().unique(),
   name: text("name").notNull(),
-  // 最小通貨単位。10ドルなら 1000（セント）
-  priceAmount: integer("price_amount").notNull(),
-  currency: text("currency").notNull(),
   coins: integer("coins").notNull(),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),

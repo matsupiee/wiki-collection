@@ -1,3 +1,4 @@
+import { useTranslation, locale } from "@/lib/i18n";
 import { Text } from "@/components/typography";
 import { Linking, Pressable, View } from "react-native";
 import { ExternalLink } from "lucide-react-native";
@@ -8,6 +9,7 @@ import { Button, Card, Loading, Panel, Screen } from "@/components/ui";
 import { formatPt } from "@/lib/format";
 import { rarityLabels } from "@/lib/rarity";
 export default function Detail() {
+  const t = useTranslation();
   const { cardId } = useLocalSearchParams<{ cardId: string }>();
   const trpc = useTRPC();
   const q = useQuery(trpc.card.get.queryOptions({ cardId }));
@@ -47,7 +49,7 @@ export default function Detail() {
                 </Text>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Wikipediaで読む（新しいタブで開く）"
+                  accessibilityLabel={t("readWiki")}
                   onPress={() => void Linking.openURL(d.card.wikiUrl)}
                   style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}
                 >
@@ -55,13 +57,11 @@ export default function Detail() {
                 </Pressable>
               </View>
               <Text style={{ fontSize: 12, fontWeight: "700", color: "#64748b" }}>
-                {d.card.rarity === "super_rare"
-                  ? "SR（スーパーレア）"
-                  : rarityLabels[d.card.rarity]}
+                {d.card.rarity === "super_rare" ? t("superRare") : rarityLabels[d.card.rarity]}
               </Text>
             </View>
             <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>
-              月間 {d.card.monthlyPageviews.toLocaleString("ja-JP")} 閲覧
+              {t("monthlyViews", { views: d.card.monthlyPageviews.toLocaleString(locale) })}
             </Text>
             <Text style={{ fontSize: 14, lineHeight: 22.75, color: "#334155" }}>
               {d.card.summary}
@@ -71,12 +71,14 @@ export default function Detail() {
             style={{ marginTop: 16, padding: 20, gap: 0, backgroundColor: "rgba(255,255,255,.85)" }}
           >
             <Text style={{ fontSize: 14, lineHeight: 20, fontWeight: "700", color: "#334155" }}>
-              所持 {d.ownedUserCardIds.length}枚
-              {d.listedCount > 0 ? `（ほかに出品中 ${d.listedCount}枚）` : ""}
+              {t("ownedCount", {
+                count: d.ownedUserCardIds.length,
+                listed: d.listedCount > 0 ? t("listedExtra", { count: d.listedCount }) : "",
+              })}
             </Text>
             <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
               <Button
-                title="出品する"
+                title={t("listCard")}
                 disabled={!first}
                 style={{ flex: 1, height: 44, paddingVertical: 12 }}
                 onPress={() =>
@@ -88,7 +90,7 @@ export default function Detail() {
             {d.lowestMarketPrice !== null && (
               <Button
                 variant="link"
-                title={`マーケットの最安値 ${formatPt(d.lowestMarketPrice)} ›`}
+                title={t("lowestMarketPrice", { price: formatPt(d.lowestMarketPrice) })}
                 style={{ marginTop: 12 }}
                 textStyle={{ fontSize: 12, color: "#64748b" }}
                 onPress={() => router.push({ pathname: "/market", params: { cardId } })}

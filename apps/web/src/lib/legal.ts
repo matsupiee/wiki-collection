@@ -6,7 +6,7 @@ export const legalDocuments: Record<
 > = {
   terms: {
     title: "利用規約",
-    updatedAt: "2026年11月10日",
+    updatedAt: "2026年11月14日",
     blocks: [
       {
         tag: "p",
@@ -37,7 +37,7 @@ export const legalDocuments: Record<
             children: [
               {
                 tag: "li",
-                text: "利用者は、正確な情報でアカウントを登録するものとします。",
+                text: "初回起動時にゲストアカウントを作成します。iOSではマイページからApple Accountと連携できます。連携前にアプリを削除すると、所持カード、pt、取引履歴は引き継げません。",
               },
               {
                 tag: "li",
@@ -45,7 +45,7 @@ export const legalDocuments: Record<
               },
               {
                 tag: "li",
-                text: "アカウントの管理は利用者の責任で行うものとします。",
+                text: "連携済みの利用者は同じApple Accountでデータを引き継げます。アカウントの削除はマイページから依頼できます。",
               },
             ],
           },
@@ -89,7 +89,7 @@ export const legalDocuments: Record<
             children: [
               {
                 tag: "li",
-                text: "pt は本サービスの中で使える前払式支払手段です。課金で購入した pt（有償 pt）と、マーケットの売上などで得た pt（無償 pt）があります。",
+                text: "pt は本サービスの中で使える前払式支払手段です。課金で購入した pt（有償 pt）と、マーケットの売上などで得た pt（無償 pt）があります。TestFlightでのテスト購入分も、同じアカウントの有償 pt 残高に加算され、App Store版でも利用できます。",
               },
               {
                 tag: "li",
@@ -127,11 +127,11 @@ export const legalDocuments: Record<
               },
               {
                 tag: "li",
-                text: "取引が成立すると、売上から手数料（成立価格の10%、1pt 未満切り捨て）を差し引いた額を、出品者に無償 pt として付与します。",
+                text: "取引が成立すると、落札額の全額を、出品者に無償 pt として付与します。",
               },
               {
                 tag: "li",
-                text: "オークションの入札額は、入札した時点で pt から支払われます。より高い入札があった場合は、支払った pt を返します。終了時点で最高額の入札者が落札します。",
+                text: "オークションの入札額は、入札した時点で pt から支払われます。より高い入札があった場合は、支払った pt を返します。終了前の残り10秒以内に入札が成立するたびに、終了時刻をその入札の60秒後に延長します。終了時点で最高額の入札者が落札します。",
               },
               {
                 tag: "li",
@@ -291,7 +291,7 @@ export const legalDocuments: Record<
   },
   privacy: {
     title: "プライバシーポリシー",
-    updatedAt: "2026年11月10日",
+    updatedAt: "2026年11月13日",
     blocks: [
       {
         tag: "p",
@@ -309,15 +309,19 @@ export const legalDocuments: Record<
             children: [
               {
                 tag: "li",
-                text: "アカウント情報: メールアドレス、ニックネーム、パスワード（ハッシュ化して保存し、運営者も元の値は知りません）",
+                text: "アカウント情報: 自動生成したゲスト名、利用者ID、端末のインストールごとの認証情報（サーバーではハッシュを保存）、Apple連携時にAppleから受け取る利用者識別子",
               },
               {
                 tag: "li",
-                text: "利用状況: パックの開封、カードの所持、マーケットでの出品・入札・落札、pt の獲得と使用の記録",
+                text: "利用状況: パックの開封、カードの所持、マーケットでの出品・入札・落札、pt の獲得と使用の記録、アプリ内通知の配信先と既読状態",
               },
               {
                 tag: "li",
                 text: "購入情報: pt の購入日時、商品、金額、決済サービスの取引 ID（カード番号などの決済情報は決済サービスが管理し、運営者は保存しません）",
+              },
+              {
+                tag: "li",
+                text: "お問い合わせの本文、受付日時、運営からの回答と回答日時",
               },
               {
                 tag: "li",
@@ -394,7 +398,7 @@ export const legalDocuments: Record<
               },
               {
                 tag: "li",
-                text: "決済サービス事業者（pt の購入代金の決済）",
+                text: "Apple（iOSでの購入時に、取引と利用者を照合するための識別子を送信します）",
               },
             ],
           },
@@ -439,7 +443,7 @@ export const legalDocuments: Record<
           },
           {
             tag: "p",
-            text: "［運営者名］ ［メールアドレス］",
+            text: "アプリのマイページにある「お問い合わせ」、または［メールアドレス］",
           },
         ],
       },
@@ -598,7 +602,7 @@ export const legalDocuments: Record<
                   },
                   {
                     tag: "td",
-                    text: "［メールアドレス］",
+                    text: "マイページの「お問い合わせ」、または［メールアドレス］",
                   },
                 ],
               },
@@ -623,7 +627,7 @@ export const legalDocuments: Record<
   },
   tokushoho: {
     title: "特定商取引法に基づく表記",
-    updatedAt: "2026年11月6日",
+    updatedAt: "2026年11月13日",
     blocks: [
       {
         tag: "table",
@@ -692,7 +696,7 @@ export const legalDocuments: Record<
                   },
                   {
                     tag: "td",
-                    text: "ポイント購入画面に商品ごとに表示します（例: 1,000pt $10.00）。",
+                    text: "各商品の販売価格はポイント購入画面とApp Storeの購入確認画面に表示します。",
                   },
                 ],
               },
@@ -718,7 +722,7 @@ export const legalDocuments: Record<
                   },
                   {
                     tag: "td",
-                    text: "クレジットカード（決済サービスを通じて支払います）",
+                    text: "iOSアプリでは、App Storeで利用できる支払方法でお支払いいただきます。",
                   },
                 ],
               },

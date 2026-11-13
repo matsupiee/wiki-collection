@@ -9,13 +9,14 @@ export const shopListProductsOutputSchema = z.object({
   products: z.array(
     z.object({
       id: z.string(),
+      sku: z.string(),
       name: z.string(),
-      priceAmount: z.number(),
-      currency: z.string(),
       coins: z.number(),
     }),
   ),
-  // false のときは購入ボタンを押せない（決済の準備ができていない）
+  storeEnabled: z.boolean(),
+  accountToken: z.string().uuid(),
+  // 開発用の従来の購入フローを使えるか。
   purchasable: z.boolean(),
 });
 

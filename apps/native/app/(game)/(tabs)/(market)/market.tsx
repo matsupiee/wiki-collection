@@ -1,3 +1,5 @@
+import { auctionRefreshInterval } from "@/lib/auction";
+import { useTranslation } from "@/lib/i18n";
 import { useGameSound } from "@/lib/game-sounds";
 import { Text, TextInput } from "@/components/typography";
 import { useEffect, useState } from "react";
@@ -8,12 +10,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/client";
 import { CardArt, Loading, Screen } from "@/components/ui";
 import { formatDuration, formatPt } from "@/lib/format";
-const sortOptions = [
-  ["ending_soon", "終了が近い順"],
-  ["most_bids", "入札が多い順"],
-  ["price_asc", "安い順"],
-] as const;
+
 export default function Market() {
+  const t = useTranslation();
+  const sortOptions = [
+    ["ending_soon", t("endingSoon")],
+    ["most_bids", t("mostBids")],
+    ["price_asc", t("lowestFirst")],
+  ] as const;
   const playSound = useGameSound();
   const { cardId } = useLocalSearchParams<{ cardId?: string }>();
   const trpc = useTRPC();
@@ -25,15 +29,26 @@ export default function Market() {
     return () => clearInterval(timer);
   }, []);
   const q = useQuery(
-    trpc.market.list.queryOptions({
-      format: "auction",
-      query: query || undefined,
-      sort,
-      cardId,
-    }),
+    trpc.market.list.queryOptions(
+      {
+        format: "auction",
+        query: query || undefined,
+        sort,
+        cardId,
+      },
+      {
+        refetchInterval: (query) => {
+          const listings = query.state.data?.listings;
+          if (!listings?.length) return false;
+          return Math.min(
+            ...listings.map((item) => (item.endsAt ? auctionRefreshInterval(item.endsAt) : 15_000)),
+          );
+        },
+      },
+    ),
   );
   return (
-    <Screen title="オークション" contentStyle={{ gap: 12, paddingBottom: 24 }}>
+    <Screen title={t("auction")} contentStyle={{ gap: 12, paddingBottom: 24 }}>
       <View
         style={{
           flexDirection: "row",
@@ -48,8 +63,8 @@ export default function Market() {
       >
         <Search size={16} color="#94a3b8" />
         <TextInput
-          accessibilityLabel="カード名で検索"
-          placeholder="カード名で検索"
+          accessibilityLabel={t("searchCards")}
+          placeholder={t("searchCards")}
           placeholderTextColor="#94a3b8"
           value={query}
           onChangeText={setQuery}
@@ -63,7 +78,7 @@ export default function Market() {
           }}
         />
       </View>
-      <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
         {sortOptions.map(([key, label]) => (
           <Pressable
             key={key}
@@ -95,7 +110,7 @@ export default function Market() {
             style={{ marginLeft: "auto" }}
           >
             <Text style={{ fontSize: 12, fontWeight: "700", color: "#0284c7" }}>
-              絞り込みを解除
+              {t("clearFilters")}
             </Text>
           </Pressable>
         )}
@@ -105,14 +120,14 @@ export default function Market() {
       ) : q.data.listings.length === 0 ? (
         <View style={{ padding: 32, borderRadius: 24, backgroundColor: "rgba(255,255,255,.8)" }}>
           <Text style={{ fontSize: 14, lineHeight: 20, color: "#64748b", textAlign: "center" }}>
-            出品はまだありません
+            {t("noListings")}
           </Text>
         </View>
       ) : (
         <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 12, marginHorizontal: -4 }}>
           {q.data.listings.map((listing) => {
             const remaining = listing.endsAt
-              ? `残り ${formatDuration(new Date(listing.endsAt).getTime() - now)}`
+              ? t("timeLeft", { time: formatDuration(new Date(listing.endsAt).getTime() - now) })
               : "";
             const price = formatPt(listing.price);
             return (

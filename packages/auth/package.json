@@ -6,7 +6,8 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
     "@better-auth/core": "1.7.12",
@@ -15,9 +16,11 @@
     "@wiki-collection/db": "workspace:*",
     "better-auth": "catalog:",
     "drizzle-orm": "catalog:",
+    "jose": "^6.2.13",
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/bun": "1.4.2",
     "@wiki-collection/config": "workspace:*",
     "typescript": "catalog:"
   }

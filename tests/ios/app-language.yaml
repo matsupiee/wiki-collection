@@ -1,0 +1,18 @@
+appId: com.matsupiee.wikicollection
+---
+# Start on the Packs screen, signed in with the app language set to English.
+- extendedWaitUntil:
+    visible: "Select Basic pack"
+    timeout: 60000
+- tapOn: "Open for free"
+- extendedWaitUntil:
+    visible: "Choose a pack"
+    timeout: 15000
+- tapOn: "Skip"
+- assertVisible: "Pack results"
+- tapOn: "View collection"
+- assertVisible: "Sort order"
+- tapOn:
+    text: "View details for .+"
+    index: 0
+- assertVisible: 'Read on Wikipedia \(opens in a new tab\)'

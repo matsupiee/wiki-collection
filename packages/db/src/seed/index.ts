@@ -138,8 +138,6 @@ async function purchase(db: Database, userId: string, product: typeof coinProduc
       coinProductId: product.id,
       provider: "mock",
       providerPaymentId: `seed_${crypto.randomUUID()}`,
-      amount: product.priceAmount,
-      currency: product.currency,
       coins: product.coins,
       status: "completed",
       completedAt: new Date(),
@@ -181,7 +179,7 @@ async function openPack(
     .map((t) => cardByTitle.get(t)!)
     .sort((a, b) => rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity));
   const rows = [];
-  for (const [i, c] of sorted.entries()) {
+  for (const c of sorted) {
     const [existing] = await db
       .select()
       .from(cardDiscovery)
@@ -195,8 +193,6 @@ async function openPack(
         userId,
         cardId: c.id,
         packOpeningId: opening!.id,
-        slot: i + 1,
-        isNewOnAcquire: !existing,
       })
       .returning();
     rows.push(row!);
@@ -220,7 +216,6 @@ async function main() {
     await purchase(db, hanako, productRows[1]!);
     await db.insert(freePackAllowance).values({
       userId: hanako,
-      initialRemaining: 0,
       fullAt: now + 30 * 60_000,
     });
     const opened = [
@@ -279,7 +274,7 @@ async function main() {
     const pick = (index: number, title: string) =>
       opened[index]!.userCards.find((u) => u.cardId === cardByTitle.get(title)!.id)!;
 
-    // オークション: 徳川家康を開始 50pt で出品し、jiro が 50pt で入札している（残り2日）
+    // オークション: 徳川家康を開始 50pt で出品し、jiro が 50pt で入札している（残り12時間）
     const jiro = await createUser(db, "じろう", "jiro@example.com");
     await purchase(db, jiro, productRows[1]!);
     const ieyasu = pick(1, "徳川家康");
@@ -294,7 +289,7 @@ async function main() {
         startPrice: 50,
         currentPrice: 50,
         bidCount: 1,
-        endsAt: new Date(now + 48 * HOUR),
+        endsAt: new Date(now + 12 * HOUR),
       })
       .returning();
     const [bid] = await db
@@ -329,7 +324,7 @@ async function main() {
         cardId,
         format: "auction",
         startPrice: price,
-        endsAt: new Date(now + (72 + index) * HOUR),
+        endsAt: new Date(now + (20 + index) * HOUR),
       });
     }
 
@@ -365,7 +360,7 @@ async function main() {
     const shiro = await createUser(db, "しろう", "shiro@example.com");
     await db
       .insert(freePackAllowance)
-      .values({ userId: shiro, initialRemaining: 0, fullAt: Date.now() + 100 * 60_000 });
+      .values({ userId: shiro, fullAt: Date.now() + 100 * 60_000 });
 
     console.log(
       `seed: カード ${cardByTitle.size} 枚、パック ${packBySlug.size} 種類、ユーザー 4 人を作りました`,

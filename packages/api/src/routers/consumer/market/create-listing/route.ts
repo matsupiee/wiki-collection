@@ -10,7 +10,7 @@ export const marketCreateListingInputSchema = z.object({
   format: z.literal("auction"),
   userCardId: z.string(),
   startPrice: z.number().int().min(minimumAuctionPrice).max(MAX_PRICE),
-  durationHours: z.literal(auctionDurationHours),
+  durationHours: z.number().int().min(1).max(auctionDurationHours.length),
 });
 
 export const marketCreateListingOutputSchema = z.object({ listingId: z.string() });

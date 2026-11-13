@@ -15,3 +15,7 @@ export * from "./auction-bid";
 export * from "./coin-deposit";
 export * from "./coin-withdraw";
 export * from "./coin-deposit-withdraw";
+export * from "./app-update-policy";
+export * from "./notification";
+export * from "./notification-user";
+export * from "./inquiry";

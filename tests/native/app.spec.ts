@@ -1,21 +1,19 @@
 import { execFileSync } from "node:child_process";
 import { expect, test } from "@playwright/test";
 
-const prefix = `native-e2e-${Date.now()}-`;
-test.beforeAll(() => {
-  execFileSync("bun", ["packages/db/src/seed/native-cli.ts"], {
-    env: { ...process.env, NATIVE_SEED_PREFIX: prefix },
-  });
-});
+async function seedGuest(page: import("@playwright/test").Page) {
+  await page.goto("http://localhost:8082/me");
+  const name = await page.getByText(/^ゲスト-[a-f0-9]{8}$/).innerText();
+  execFileSync("bun", ["packages/db/src/seed/guest-history-cli.ts", name]);
+}
 
-test("ログイン・開封再開・カード・履歴・ログアウト", async ({ page }) => {
+test("ゲスト開始・開封再開・カード・履歴", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await page.getByRole("button", { name: "アカウントをお持ちの方はログイン", exact: true }).click();
-  await page.getByRole("textbox", { name: "メールアドレス" }).fill(`${prefix}1@example.com`);
-  await page.getByRole("textbox", { name: "パスワード" }).fill("password1234");
-  await page.getByRole("button", { name: "ログイン", exact: true }).click();
+  await expect(page.getByRole("tab", { name: /マイページ/ })).toBeVisible({ timeout: 30000 });
+  await seedGuest(page);
+  await page.goto("/packs");
   await expect(page.getByRole("button", { name: "基本パックを選ぶ", exact: true })).toBeVisible();
   // 指を離す前から袋が移動し、そのまま引き戻しても開封しない。
   const basicPack = page.getByRole("button", { name: "基本パックを選ぶ", exact: true });
@@ -33,9 +31,9 @@ test("ログイン・開封再開・カード・履歴・ログアウト", async
   await expect(page.getByText("0pt", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "無料で開封する", exact: true }).click();
   const choosePack = page.getByRole("button", { name: "パックを選ぶ", exact: true });
-  await choosePack.click();
+  await choosePack.click({ force: true });
   const opening = page.url();
-  // 戻り先がある状態で、途中まで／最後まで切り口をなぞる。
+  // 戻り先がある状態で、小さな指のずれと横スワイプでの開封を確認する。
   const tearArea = page.getByTestId("tear-area");
   const swipe = async (from: number, to: number, offsetY = 0) => {
     await expect(tearArea).toBeVisible();
@@ -71,18 +69,17 @@ test("ログイン・開封再開・カード・履歴・ログアウト", async
   }
   await expect(page.getByRole("alert")).toBeVisible();
   await tearArea.click();
-  await swipe(0.5, 0.995); // 封の途中からでは切れない。
-  await swipe(0.005, 0.995, 100); // 上端から指が外れると取り消す。
-  await swipe(0.005, 0.45);
+  await swipe(0.5, 0.52, 100); // 縦方向の操作では開かない。
+  await swipe(0.5, 0.55); // わずかな指のずれでは開かない。
   await expect(page).toHaveURL(opening);
   await expect(tearArea).toBeVisible();
-  await swipe(0.005, 0.995);
+  await swipe(0.5, 0.72, 12);
   await expect(page.getByRole("button", { name: /、めくる$/ })).toBeVisible();
   await expect(page).toHaveURL(opening);
   await page.reload();
   await expect(choosePack).toBeVisible();
   expect(page.url()).toBe(opening);
-  await choosePack.click();
+  await choosePack.click({ force: true });
   await swipe(0.995, 0.005);
   const front = page.getByRole("button", { name: /、めくる$/ });
   for (let i = 1; i < 5; i++) {
@@ -115,7 +112,8 @@ test("ログイン・開封再開・カード・履歴・ログアウト", async
   await expect(page.getByRole("button", { name: /結果を見る/ }).first()).toBeVisible();
   await page.getByRole("button", { name: "もどる", exact: true }).click();
   await page.getByRole("button", { name: "pt の履歴", exact: true }).click();
-  await expect(page.getByText("pt の履歴", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/me\/wallet$/);
+  await expect(page.getByText(/^有償 .*・無償 /).filter({ visible: true })).toBeVisible();
   await page.getByRole("button", { name: "もどる", exact: true }).click();
   for (const [slug, label] of Object.entries({
     terms: "利用規約",
@@ -132,33 +130,26 @@ test("ログイン・開封再開・カード・履歴・ログアウト", async
     await popup.close();
     await expect(page).toHaveURL(/\/me$/);
   }
-  await page.getByRole("button", { name: "ログアウト", exact: true }).click();
-  await expect(page.getByRole("textbox", { name: "メールアドレス" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
 test("2人でオークション出品・入札・ポイント購入", async ({ browser }) => {
-  const sellerContext = await browser.newContext();
-  const buyerContext = await browser.newContext();
+  const sellerContext = await browser.newContext({ locale: "ja-JP" });
+  const buyerContext = await browser.newContext({ locale: "ja-JP" });
   const seller = await sellerContext.newPage();
   const buyer = await buyerContext.newPage();
-  const login = async (p: typeof seller, email: string) => {
-    await p.goto("http://localhost:8082/login");
-    await p.getByRole("button", { name: "アカウントをお持ちの方はログイン", exact: true }).click();
-    await p.getByRole("textbox", { name: "メールアドレス" }).fill(email);
-    await p.getByRole("textbox", { name: "パスワード" }).fill("password1234");
-    await p.getByRole("button", { name: "ログイン", exact: true }).click();
-    await expect(p.getByRole("tab", { name: /マーケット/ })).toBeVisible();
-  };
-  await login(seller, `${prefix}2@example.com`);
-  await login(buyer, `${prefix}-bidder@example.com`);
+  await seller.goto("http://localhost:8082/");
+  await expect(seller.getByRole("tab", { name: /マーケット/ })).toBeVisible();
+  await seedGuest(seller);
+  await buyer.goto("http://localhost:8082/");
+  await expect(buyer.getByRole("tab", { name: /マーケット/ })).toBeVisible();
   await seller.goto("http://localhost:8082/collection");
   await seller
     .getByRole("button", { name: /の詳細を見る/ })
     .first()
     .click();
   await seller.getByRole("button", { name: "出品する", exact: true }).click();
-  await seller.getByRole("button", { name: "1時間", exact: true }).click();
+  await seller.getByRole("button", { name: "期間", exact: true }).click();
   await seller.getByRole("button", { name: "12時間", exact: true }).click();
   const startPrice = seller.getByRole("textbox", { name: "開始価格（pt）", exact: true });
   const submitListing = seller.getByRole("button", { name: "出品する", exact: true });
@@ -208,18 +199,14 @@ test("2人でオークション出品・入札・ポイント購入", async ({ b
   await buyerContext.close();
 });
 
-test("新規登録と未ログイン時の保護、Webとアプリの規約", async ({ page }) => {
+test("ゲスト開始、Webとアプリの規約", async ({ page }) => {
   await page.goto("/collection");
-  await expect(page.getByRole("textbox", { name: "メールアドレス" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /マイページ/ })).toBeVisible({ timeout: 30000 });
   for (const slug of ["terms", "privacy", "tokushoho", "payment-services"]) {
     await page.goto(`http://localhost:3001/legal/${slug}`);
     await expect(page.getByText(/最終更新日:/)).toBeVisible();
   }
-  await page.goto("http://localhost:8082/login");
-  await page.getByRole("textbox", { name: "ニックネーム" }).fill("新規登録テスト");
-  await page.getByRole("textbox", { name: "メールアドレス" }).fill(`${prefix}new@example.com`);
-  await page.getByRole("textbox", { name: "パスワード" }).fill("password1234");
-  await page.getByRole("button", { name: "登録する", exact: true }).click();
+  await page.goto("http://localhost:8082/packs");
   await expect(page.getByRole("button", { name: "基本パックを選ぶ", exact: true })).toBeVisible();
   const freePacks = page.getByRole("button", { name: "無料パック 残り10個", exact: true });
   await expect(freePacks).toHaveText("10");
@@ -236,4 +223,17 @@ test("新規登録と未ログイン時の保護、Webとアプリの規約", as
   await expect(page.getByText("ポイントが不足しています", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "ポイント購入へ", exact: true }).click();
   await expect(page).toHaveURL(/\/point$/);
+});
+
+test("マイページで表示言語を選び、再起動後に端末設定に戻せる", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: "マイページ" }).click();
+  await page.getByRole("button", { name: "言語切り替え" }).click();
+  await page.getByRole("radio", { name: "English" }).click();
+  await expect(page.getByRole("tab", { name: "Profile" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("radio", { name: "English" })).toBeChecked();
+  await page.getByRole("radio", { name: "Use device settings" }).click();
+  await expect(page.getByRole("radio", { name: "端末の設定に従う" })).toBeChecked();
+  await expect(page.getByRole("tab", { name: "マイページ" })).toBeVisible();
 });

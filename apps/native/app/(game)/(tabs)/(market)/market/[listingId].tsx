@@ -1,3 +1,5 @@
+import { auctionRefreshInterval } from "@/lib/auction";
+import { useTranslation } from "@/lib/i18n";
 import { Text, TextInput } from "@/components/typography";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -15,9 +17,21 @@ const panel = {
   boxShadow: "0 1px 2px #0000000d",
 };
 export default function Listing() {
+  const t = useTranslation();
   const { listingId } = useLocalSearchParams<{ listingId: string }>();
   const trpc = useTRPC();
-  const q = useQuery(trpc.market.get.queryOptions({ listingId }, { refetchInterval: 15000 }));
+  const q = useQuery(
+    trpc.market.get.queryOptions(
+      { listingId },
+      {
+        refetchInterval: (query) => {
+          const listing = query.state.data?.listing;
+          if (!listing?.endsAt || listing.status !== "active") return false;
+          return auctionRefreshInterval(listing.endsAt);
+        },
+      },
+    ),
+  );
   const bid = useMutation(trpc.market.bid.mutationOptions());
   const cancel = useMutation(trpc.market.cancelListing.mutationOptions());
   const action = useAction();
@@ -50,8 +64,10 @@ export default function Listing() {
               }}
             >
               <Text style={[muted, { fontWeight: "700" }]}>
-                {d.listing.format === "auction" ? "オークション" : "過去の取引"}・出品者{" "}
-                {d.listing.sellerName}
+                {t("seller", {
+                  format: d.listing.format === "auction" ? t("auction") : t("pastTrade"),
+                  name: d.listing.sellerName,
+                })}
               </Text>
               {!active && (
                 <Text
@@ -68,15 +84,17 @@ export default function Listing() {
                 >
                   {d.listing.status === "sold"
                     ? d.listing.isBuyer
-                      ? "あなたが購入しました"
-                      : "売り切れ"
-                    : "終了しました"}
+                      ? t("youBought")
+                      : t("soldOut")
+                    : t("ended")}
                 </Text>
               )}
             </View>
             <View>
               {d.listing.format === "auction" && (
-                <Text style={muted}>{d.listing.bidCount > 0 ? "現在価格" : "開始価格"}</Text>
+                <Text style={muted}>
+                  {d.listing.bidCount > 0 ? t("currentPrice") : t("startingPrice")}
+                </Text>
               )}
               <Text style={{ fontSize: 30, lineHeight: 36, fontWeight: "900", color: "#1e293b" }}>
                 {formatPt(
@@ -87,21 +105,21 @@ export default function Listing() {
               </Text>
               {active && d.listing.format === "auction" && (
                 <Text style={[muted, { fontWeight: "700", color: "#f43f5e" }]}>
-                  残り {formatDuration(new Date(d.listing.endsAt!).getTime() - now)}
+                  {t("timeLeft", {
+                    time: formatDuration(new Date(d.listing.endsAt!).getTime() - now),
+                  })}
                 </Text>
               )}
               {d.isLeading && (
                 <Text style={[muted, { marginTop: 4, fontWeight: "700", color: "#059669" }]}>
-                  あなたが最高額です
+                  {t("leading")}
                 </Text>
               )}
             </View>
             {active && d.listing.isMine && (
               <Button
                 secondary
-                title={
-                  d.listing.bidCount > 0 ? "入札があるため取り下げられません" : "出品を取り下げる"
-                }
+                title={d.listing.bidCount > 0 ? t("cannotWithdraw") : t("withdrawListing")}
                 disabled={d.listing.bidCount > 0}
                 style={{ height: 44 }}
                 textStyle={{ fontWeight: "800" }}
@@ -111,11 +129,11 @@ export default function Listing() {
             {active && !d.listing.isMine && d.listing.format === "auction" && !d.isLeading && (
               <View style={{ gap: 8 }}>
                 <Text style={[muted, { fontWeight: "700" }]}>
-                  入札額（{formatPt(d.minNextBid ?? 0)} 以上）
+                  {t("minBidLabel", { price: formatPt(d.minNextBid ?? 0) })}
                 </Text>
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   <TextInput
-                    accessibilityLabel={`入札額（${formatPt(d.minNextBid ?? 0)} 以上）`}
+                    accessibilityLabel={t("minBidLabel", { price: formatPt(d.minNextBid ?? 0) })}
                     testID="bid-amount"
                     keyboardType="number-pad"
                     placeholder={String(d.minNextBid ?? "")}
@@ -134,7 +152,7 @@ export default function Listing() {
                     }}
                   />
                   <Button
-                    title="入札"
+                    title={t("bid")}
                     style={{ height: 44, paddingHorizontal: 24 }}
                     textStyle={{ fontWeight: "800" }}
                     disabled={
@@ -152,7 +170,9 @@ export default function Listing() {
                 </View>
               </View>
             )}
-            <Text style={[muted, { color: "#94a3b8" }]}>残高 {formatPt(d.balance)}</Text>
+            <Text style={[muted, { color: "#94a3b8" }]}>
+              {t("balance", { points: formatPt(d.balance) })}
+            </Text>
           </View>
           {d.listing.format === "auction" && (
             <View style={[panel, { marginTop: 16 }]}>
@@ -165,10 +185,10 @@ export default function Listing() {
                   marginBottom: 8,
                 }}
               >
-                入札履歴
+                {t("bidHistory")}
               </Text>
               {d.bids.length === 0 ? (
-                <Text style={muted}>まだ入札はありません</Text>
+                <Text style={muted}>{t("noBids")}</Text>
               ) : (
                 <View style={{ gap: 4 }}>
                   {d.bids.map((b) => (
@@ -207,8 +227,8 @@ export default function Listing() {
           )}
           {confirm === "purchase" && (
             <Confirm
-              title="pt が足りません"
-              confirmLabel="pt を購入"
+              title={t("shortfall")}
+              confirmLabel={t("getPoints")}
               onCancel={() => setConfirm(null)}
               onConfirm={() => {
                 setConfirm(null);
@@ -216,15 +236,17 @@ export default function Listing() {
               }}
             >
               <Text style={{ textAlign: "center" }}>
-                {formatPt(amount)} で入札するには、あと {formatPt(Math.max(0, amount - d.balance))}{" "}
-                必要です。
+                {t("bidShortfall", {
+                  amount: formatPt(amount),
+                  missing: formatPt(Math.max(0, amount - d.balance)),
+                })}
               </Text>
             </Confirm>
           )}
           {(confirm === "cancel" || confirm === "bid") && (
             <Confirm
-              title={confirm === "cancel" ? "出品を取り下げます" : "入札します"}
-              confirmLabel={confirm === "cancel" ? "取り下げる" : "入札する"}
+              title={confirm === "cancel" ? t("confirmWithdrawal") : t("confirmBid")}
+              confirmLabel={confirm === "cancel" ? t("withdraw") : t("placeBid")}
               pending={action.pending}
               onCancel={() => setConfirm(null)}
               onConfirm={() =>
@@ -239,8 +261,8 @@ export default function Listing() {
             >
               <Text style={{ fontSize: 14, lineHeight: 20, color: "#475569", textAlign: "center" }}>
                 {confirm === "cancel"
-                  ? "カードは所持中に戻ります。"
-                  : `${formatPt(amount)} で入札します。入札額はすぐに残高から支払われ、ほかの人に抜かれたら戻ります。`}
+                  ? t("cardReturned")
+                  : t("bidTerms", { amount: formatPt(amount) })}
               </Text>
               {!!action.error && <Text accessibilityRole="alert">{action.error}</Text>}
             </Confirm>

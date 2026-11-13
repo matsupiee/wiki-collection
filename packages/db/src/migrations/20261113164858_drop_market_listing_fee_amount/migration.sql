@@ -1,0 +1,1 @@
+ALTER TABLE `market_listing` DROP COLUMN `fee_amount`;

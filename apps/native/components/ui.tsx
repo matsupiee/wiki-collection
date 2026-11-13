@@ -1,11 +1,12 @@
-import { publicErrorMessage } from "@wiki-collection/api/public-error";
+import { useTranslation, locale } from "@/lib/i18n";
+import { errorMessage } from "@/lib/error-message";
 import { rarityLabels } from "@/lib/rarity";
 import type { Rarity } from "@wiki-collection/db/enums";
 import { cardImageDisplayUrl } from "@wiki-collection/db/card-image";
 import { Text, TextInput } from "./typography";
 import { AppBackground } from "./app-background";
 import { Brand, CoinIcon } from "./brand";
-import { ChevronLeft, Gift } from "lucide-react-native";
+import { Bell, ChevronLeft, Gift } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import type { PropsWithChildren, ReactNode } from "react";
 import {
@@ -19,7 +20,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import type { TextInputProps, StyleProp, ViewStyle, TextStyle } from "react-native";
-import { router, useFocusEffect, useSegments } from "expo-router";
+import { router, useFocusEffect, useIsFocused, useSegments } from "expo-router";
 import { Platform } from "react-native";
 import { SafeAreaView } from "react-native-screens/experimental";
 
@@ -46,6 +47,24 @@ export const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     height: 56,
+  },
+  notificationBell: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: -8,
+  },
+  unreadDot: {
+    position: "absolute",
+    right: -2,
+    top: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#dc2626",
+    borderWidth: 1.5,
+    borderColor: "#fff",
   },
   title: { fontSize: 18, lineHeight: 28, fontWeight: "800", color: "#1e293b" },
   text: { color: "#334155", fontSize: 14, lineHeight: 22 },
@@ -173,6 +192,7 @@ export function Screen({
   contentStyle?: StyleProp<ViewStyle>;
   scroll?: boolean;
 }>) {
+  const t = useTranslation();
   const trpc = useTRPC();
   const [showFreePackInfo, setShowFreePackInfo] = useState(false);
   const [giftCenter, setGiftCenter] = useState(0);
@@ -184,6 +204,11 @@ export function Screen({
     Math.min(giftCenter - bubbleWidth / 2, headerWidth - bubbleWidth - 16),
   );
   useFocusEffect(useCallback(() => () => setShowFreePackInfo(false), []));
+  const focused = useIsFocused();
+  const unread = useQuery(trpc.notification.hasUnread.queryOptions(undefined, {
+    enabled: focused,
+    refetchInterval: 60_000,
+  }));
   const balance = useQuery(trpc.coin.getBalance.queryOptions());
   const packs = useQuery(
     trpc.pack.list.queryOptions(undefined, {
@@ -207,7 +232,7 @@ export function Screen({
               {back && (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="もどる"
+                  accessibilityLabel={t("back")}
                   onPress={() => (router.canGoBack() ? router.back() : router.replace("/packs"))}
                   style={{ marginLeft: -8, padding: 4, borderRadius: 999 }}
                 >
@@ -225,9 +250,11 @@ export function Screen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={
-                packs.data ? `無料パック 残り${packs.data.freePack.remaining}個` : "無料パック"
+                packs.data
+                  ? t("freeRemaining", { count: packs.data.freePack.remaining })
+                  : t("freePack")
               }
-              accessibilityHint="無料パックの回復について表示します"
+              accessibilityHint={t("freePackHint")}
               accessibilityState={{ expanded: showFreePackInfo }}
               onLayout={({ nativeEvent: { layout } }) => setGiftCenter(layout.x + layout.width / 2)}
               onPress={() => setShowFreePackInfo((open) => !open)}
@@ -248,7 +275,7 @@ export function Screen({
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="ポイント購入"
+              accessibilityLabel={t("buyPoints")}
               onPress={() => router.push("/point")}
               style={{
                 flexDirection: "row",
@@ -266,8 +293,20 @@ export function Screen({
             >
               <CoinIcon />
               <Text style={{ fontSize: 14, lineHeight: 20, fontWeight: "800", color: "#334155" }}>
-                {balance.data ? `${balance.data.total.toLocaleString("ja-JP")}pt` : "…"}
+                {balance.data ? `${balance.data.total.toLocaleString(locale)}pt` : "…"}
               </Text>
+            </Pressable>
+            <Pressable
+              testID="notification-bell"
+              accessibilityRole="button"
+              accessibilityLabel={unread.data ? t("notificationsUnread") : t("notifications")}
+              onPress={() => router.navigate("/me/notifications")}
+              style={styles.notificationBell}
+            >
+              <View>
+                <Bell size={22} color="#475569" />
+                {unread.data && <View style={styles.unreadDot} />}
+              </View>
             </Pressable>
           </View>
         </View>
@@ -285,7 +324,7 @@ export function Screen({
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="無料パックの説明を閉じる"
+              accessibilityLabel={t("closeFreeHint")}
               onPress={() => setShowFreePackInfo(false)}
               style={StyleSheet.absoluteFill}
             />
@@ -317,7 +356,7 @@ export function Screen({
                   }}
                 />
                 <Text accessibilityRole="alert" style={[styles.text, { color: "white" }]}>
-                  10分ごとに無料パックが1つ引けるようになる
+                  {t("freePackHelp")}
                 </Text>
               </View>
             </View>
@@ -334,16 +373,17 @@ export function Loading({
   error?: { message: string } | null;
   retry?: () => unknown;
 }) {
+  const t = useTranslation();
   return error ? (
     <Panel>
       <Text accessibilityRole="alert" style={styles.text}>
-        {publicErrorMessage(error.message, "読み込めませんでした。もう一度お試しください。")}
+        {errorMessage(error, t("loadFailed"))}
       </Text>
-      {retry && <Button title="再試行" onPress={() => void retry()} />}
+      {retry && <Button title={t("retry")} onPress={() => void retry()} />}
     </Panel>
   ) : (
     <ActivityIndicator
-      accessibilityLabel="読み込み中"
+      accessibilityLabel={t("loading")}
       size="large"
       color="#0ea5e9"
       style={{ margin: 32 }}
@@ -388,7 +428,6 @@ export function CardArt({
           style={{
             color: "white",
             fontSize: { xs: 20, sm: 36, md: 72, lg: 96 }[effectiveSize],
-            lineHeight: { xs: 28, sm: 40, md: 72, lg: 96 }[effectiveSize],
             fontWeight: "600",
           }}
         >
@@ -433,6 +472,7 @@ export function Card({
   onPress?: () => void;
   ownedCount?: number;
 }) {
+  const t = useTranslation();
   const effectiveSize = size ?? (small ? "sm" : "md");
   const showText = effectiveSize !== "xs";
   const art = <CardArt card={card} effectiveSize={effectiveSize} ownedCount={ownedCount} />;
@@ -460,7 +500,7 @@ export function Card({
       {onPress ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${card.title}の詳細を見る`}
+          accessibilityLabel={t("cardDetails", { title: card.title })}
           onPress={onPress}
         >
           {art}
@@ -474,7 +514,7 @@ export function Card({
             {onPress ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`${card.title}の詳細を見る`}
+                accessibilityLabel={t("cardDetails", { title: card.title })}
                 onPress={onPress}
                 style={{ flex: 1, minWidth: 0 }}
               >
@@ -508,6 +548,7 @@ export function Sheet({
   onClose,
   children,
 }: PropsWithChildren<{ visible: boolean; title: string; onClose: () => void }>) {
+  const t = useTranslation();
   if (!visible) return null;
   return (
     <Modal visible transparent animationType="none" onRequestClose={onClose}>
@@ -526,7 +567,7 @@ export function Sheet({
         >
           <View style={[styles.row, { justifyContent: "space-between", marginBottom: 16 }]}>
             <Text style={styles.title}>{title}</Text>
-            <Button title="閉じる" secondary onPress={onClose} />
+            <Button title={t("close")} secondary onPress={onClose} />
           </View>
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -545,7 +586,7 @@ export function Confirm({
   onConfirm,
   onCancel,
   pending,
-  confirmLabel = "確定する",
+  confirmLabel,
 }: PropsWithChildren<{
   title: string;
   onConfirm: () => void;
@@ -553,6 +594,7 @@ export function Confirm({
   pending?: boolean;
   confirmLabel?: string;
 }>) {
+  const t = useTranslation();
   return (
     <Modal visible transparent animationType="fade" onRequestClose={() => !pending && onCancel()}>
       <Pressable
@@ -584,7 +626,7 @@ export function Confirm({
           <View style={{ marginBottom: 24, gap: 8 }}>{children}</View>
           <View style={{ flexDirection: "row", gap: 12 }}>
             <Button
-              title="やめる"
+              title={t("cancel")}
               variant="outline"
               onPress={onCancel}
               disabled={pending}
@@ -592,7 +634,7 @@ export function Confirm({
               textStyle={{ fontWeight: "500" }}
             />
             <Button
-              title={pending ? "処理中…" : confirmLabel}
+              title={pending ? t("processing") : (confirmLabel ?? t("confirm"))}
               onPress={onConfirm}
               disabled={pending}
               style={{ flex: 1, height: 44, paddingVertical: 0, justifyContent: "center" }}

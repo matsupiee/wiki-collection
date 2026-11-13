@@ -1,0 +1,16 @@
+appId: com.matsupiee.wikicollection
+---
+- launchApp
+- tapOn:
+    text: "^(開く|Open)$"
+    optional: true
+- waitForAnimationToEnd
+- assertVisible: "アップデートが必要です"
+- assertVisible: "App Storeを開く"
+- openLink: "wiki-collection://packs"
+- tapOn:
+    text: "^(開く|Open)$"
+    optional: true
+- waitForAnimationToEnd
+- assertVisible: "最新版にアップデートしてご利用ください。"
+- assertNotVisible: "基本パックを選ぶ"

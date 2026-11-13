@@ -1,3 +1,4 @@
+import { useTranslation, locale } from "@/lib/i18n";
 import { rarityLabels } from "@/lib/rarity";
 import type { Rarity } from "@wiki-collection/db/enums";
 import { useEffect } from "react";
@@ -40,6 +41,7 @@ export function OpeningInspection({
   select,
   close,
 }: InspectionProps) {
+  const t = useTranslation();
   const zoom = useSharedValue(0);
   const cardWidth = Math.min(width * 0.656, height * 0.43);
   useEffect(() => {
@@ -64,7 +66,7 @@ export function OpeningInspection({
       <Pressable accessible={false} onPress={close} style={StyleSheet.absoluteFill} />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="カードを閉じる"
+        accessibilityLabel={t("closeCard")}
         onPress={close}
         style={[styles.back, { top: height * 0.05 }]}
       >
@@ -99,7 +101,7 @@ export function OpeningInspection({
         <View style={styles.pager}>
           {count > 1 && (
             <Pressable
-              accessibilityLabel="前のカード詳細"
+              accessibilityLabel={t("previousCard")}
               accessibilityRole="button"
               disabled={index === 0}
               style={styles.nav}
@@ -113,7 +115,7 @@ export function OpeningInspection({
           </Text>
           {count > 1 && (
             <Pressable
-              accessibilityLabel="次のカード詳細"
+              accessibilityLabel={t("nextCard")}
               accessibilityRole="button"
               disabled={index + 1 === count}
               style={styles.nav}
@@ -135,7 +137,7 @@ export function OpeningInspection({
           </Text>
         )}
         <Text style={styles.caption}>
-          月間閲覧数 {card.monthlyPageviews.toLocaleString("ja-JP")} 回
+          {t("viewCount", { views: card.monthlyPageviews.toLocaleString(locale) })}
         </Text>
         {isNew && <Text style={styles.newLabel}>NEW</Text>}
       </Animated.View>

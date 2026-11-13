@@ -31,7 +31,7 @@ describe("market/list-mine", () => {
 
     const mine = await giveCard(db, me.session.user.id, c.id);
     const selling = await createListingHandler({
-      input: { format: "auction", userCardId: mine.id, startPrice: 70, durationHours: 72 },
+      input: { format: "auction", userCardId: mine.id, startPrice: 70, durationHours: 23 },
       ctx: me,
     });
     const forSale = await giveCard(db, other.session.user.id, c.id);

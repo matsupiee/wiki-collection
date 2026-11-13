@@ -1,16 +1,18 @@
+import { useTranslation } from "@/lib/i18n";
 import { useGameSound } from "@/lib/game-sounds";
 import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { Gift, BookOpen, Store, Trophy, User } from "lucide-react-native";
 import { Text } from "./typography";
 export const tabs = [
-  ["packs", "パック", Gift],
-  ["collection", "コレクション", BookOpen],
-  ["asset-ranking", "ランキング", Trophy],
-  ["market", "マーケット", Store],
-  ["me", "マイページ", User],
+  ["packs", "packs", Gift],
+  ["collection", "collection", BookOpen],
+  ["asset-ranking", "rankings", Trophy],
+  ["market", "market", Store],
+  ["me", "profile", User],
 ] as const;
 export function BottomNav({ activeTab }: { activeTab: string }) {
+  const t = useTranslation();
   const playSound = useGameSound();
   return (
     <View
@@ -34,7 +36,7 @@ export function BottomNav({ activeTab }: { activeTab: string }) {
           return (
             <Pressable
               accessibilityRole="tab"
-              accessibilityLabel={label}
+              accessibilityLabel={t(label)}
               accessibilityState={{ selected: active }}
               key={route}
               onPress={() => {
@@ -58,7 +60,7 @@ export function BottomNav({ activeTab }: { activeTab: string }) {
                   color: active ? "#0369a1" : "#64748b",
                 }}
               >
-                {label}
+                {t(label)}
               </Text>
             </Pressable>
           );

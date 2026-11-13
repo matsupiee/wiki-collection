@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, setSystemTime, test } from "bun:test";
 import type { Database } from "@wiki-collection/db";
 
-import { marketListing, userCard } from "@wiki-collection/db/schema/index";
+import { coinDeposit, marketListing, userCard } from "@wiki-collection/db/schema/index";
 import { eq } from "drizzle-orm";
 
 import { getCoinBalance } from "../../../../shared/coin/get-coin-balance";
@@ -90,8 +90,18 @@ describe("market/list", () => {
       status: "sold",
       buyerId: bidder.session.user.id,
       soldPrice: 200,
-      feeAmount: 20,
     });
+    const deposits = await db
+      .select({
+        userId: coinDeposit.userId,
+        amount: coinDeposit.amount,
+        source: coinDeposit.source,
+      })
+      .from(coinDeposit)
+      .where(eq(coinDeposit.marketListingId, soldListing.listingId));
+    expect(deposits).toEqual([
+      { userId: seller.session.user.id, amount: 200, source: "market_sale" },
+    ]);
     const [unsoldAfter] = await db
       .select()
       .from(marketListing)
@@ -101,11 +111,17 @@ describe("market/list", () => {
     expect(soldCard).toMatchObject({ userId: bidder.session.user.id, status: "owned" });
     const [unsoldCard] = await db.select().from(userCard).where(eq(userCard.id, unsold.id));
     expect(unsoldCard).toMatchObject({ userId: seller.session.user.id, status: "owned" });
-    expect((await getCoinBalance(db, seller.session.user.id)).total).toBe(180);
+    expect(await getCoinBalance(db, seller.session.user.id)).toMatchObject({
+      free: 200,
+      total: 200,
+    });
     expect((await getCoinBalance(db, bidder.session.user.id)).total).toBe(300);
 
     // 2回締めても売上は二重に入らない
     await handler({ input: { format: "auction" }, ctx: bidder });
-    expect((await getCoinBalance(db, seller.session.user.id)).total).toBe(180);
+    expect(await getCoinBalance(db, seller.session.user.id)).toMatchObject({
+      free: 200,
+      total: 200,
+    });
   });
 });

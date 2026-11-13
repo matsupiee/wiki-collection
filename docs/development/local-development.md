@@ -19,7 +19,7 @@ bun run dev:local  # http://localhost:3001 で起動する
 - ローカルの D1 は `.wrangler/state/v3/d1/` に保存される（git には入らない）。`db:seed:local` も同じ DB に書く。
 - 既存データで起動するときは `bun run dev:local` だけを実行する。`db:seed:local` は全データを消してサンプルを作り直すため、起動のたびに実行しない。
 - 以前の Alchemy 開発用 DB（`packages/infra/.alchemy/local/d1/`）は使わない。そこに作ったアカウントやデータは自動移行されない。旧 DB のファイルは削除しない。
-- `wrangler.local.jsonc` の `PAYMENT_MODE=mock` により、ショップで支払いなしに pt を購入できる。本番（Alchemy の設定）には入れていない。
+- ローカル開発サーバーでは、XcodeのStoreKitテストとブラウザーの模擬購入を使える。
 
 ## 開発用のカードとストーリーの確認
 

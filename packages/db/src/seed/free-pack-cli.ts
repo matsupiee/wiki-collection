@@ -11,7 +11,7 @@ try {
   const fullAt = Date.now() + 90 * 60_000 + 15_000;
   await db
     .insert(freePackAllowance)
-    .values({ userId, initialRemaining: 0, fullAt })
+    .values({ userId, fullAt })
     .onConflictDoUpdate({ target: freePackAllowance.userId, set: { fullAt } });
   console.log("shiro@example.com の無料パックは残り0です。15秒後に1パック回復します。");
 } finally {

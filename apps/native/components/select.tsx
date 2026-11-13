@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { useState } from "react";
 import { Modal, Pressable, ScrollView, View, type StyleProp, type ViewStyle } from "react-native";
 import { ChevronDown, Check } from "lucide-react-native";
@@ -15,12 +16,14 @@ export function Select({
   onChange: (value: string) => void;
   style?: StyleProp<ViewStyle>;
 }) {
+  const t = useTranslation();
   const [open, setOpen] = useState(false);
   return (
     <>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}
+        accessibilityValue={{ text: options.find((o) => o.value === value)?.label }}
         onPress={() => setOpen(true)}
         style={[
           {
@@ -38,16 +41,18 @@ export function Select({
         ]}
       >
         <Text numberOfLines={1} style={{ flex: 1, fontSize: 14, lineHeight: 20, color: "#334155" }}>
-          {options.find((o) => o.value === value)?.label ?? "カードを選ぶ"}
+          {options.find((o) => o.value === value)?.label ?? t("chooseCard")}
         </Text>
         <ChevronDown size={16} color="#64748b" />
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable
+          accessible={false}
           onPress={() => setOpen(false)}
           style={{ flex: 1, backgroundColor: "#0f172a66", justifyContent: "center", padding: 24 }}
         >
           <Pressable
+            accessible={false}
             onPress={() => {}}
             style={{
               maxWidth: 400,

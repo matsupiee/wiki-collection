@@ -2,6 +2,7 @@ import { card, genre, pack, packOpening, userCard } from "@wiki-collection/db/sc
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 
+import { compareRarity } from "../../../../shared/card/compare-rarity";
 import type { ProtectedContext } from "../../../../context";
 import type { OpeningGetInput, OpeningGetOutput } from "./route";
 
@@ -26,8 +27,6 @@ export async function handler({
   const cards = await ctx.db
     .select({
       userCardId: userCard.id,
-      slot: userCard.slot,
-      isNew: userCard.isNewOnAcquire,
       card: {
         id: card.id,
         title: card.title,
@@ -43,7 +42,7 @@ export async function handler({
     .innerJoin(card, eq(card.id, userCard.cardId))
     .innerJoin(genre, eq(genre.id, card.genreId))
     .where(eq(userCard.packOpeningId, found.opening.id))
-    .orderBy(asc(userCard.slot));
+    .orderBy(asc(userCard.id));
 
   return {
     opening: {
@@ -52,6 +51,6 @@ export async function handler({
       revealedAt: found.opening.revealedAt?.toISOString() ?? null,
     },
     pack: found.pack,
-    cards: cards.map((c) => ({ ...c, slot: c.slot ?? 0 })),
+    cards: cards.sort((a, b) => compareRarity(a.card.rarity, b.card.rarity)),
   };
 }

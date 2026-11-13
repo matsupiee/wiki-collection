@@ -179,20 +179,16 @@ export const basicRates: Record<Rarity, number>[] = [
 ];
 
 export const coinProducts = [
-  { sku: "coins_500", name: "500pt", priceAmount: 500, currency: "USD", coins: 500, sortOrder: 1 },
+  { sku: "coins_500", name: "500pt", coins: 500, sortOrder: 1 },
   {
     sku: "coins_1000",
     name: "1,000pt",
-    priceAmount: 1000,
-    currency: "USD",
     coins: 1000,
     sortOrder: 2,
   },
   {
     sku: "coins_5000",
     name: "5,000pt",
-    priceAmount: 5000,
-    currency: "USD",
     coins: 5000,
     sortOrder: 3,
   },

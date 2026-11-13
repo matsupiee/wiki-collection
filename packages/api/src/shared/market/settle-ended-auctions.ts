@@ -9,7 +9,6 @@ import {
 import { and, asc, eq, lte } from "drizzle-orm";
 
 import { runBatch } from "../coin/run-batch";
-import { calculateMarketFee } from "./calculate-market-fee";
 
 // 終了時刻を過ぎたオークションを締める。入札があれば最高額の入札者が落札し、なければ期限切れにしてカードを出品者に戻す。
 // 一覧や詳細を開いたときに呼ぶ。同じ出品を二重に締めないよう、status = 'active' を条件に更新してから書き込む
@@ -33,6 +32,12 @@ export async function settleEndedAuctions(
     .limit(20);
 
   for (const listing of ended) {
+    const canSettle = and(
+      eq(marketListing.id, listing.id),
+      eq(marketListing.status, "active"),
+      lte(marketListing.endsAt, now),
+      eq(marketListing.bidCount, listing.bidCount),
+    );
     const [leading] = await db
       .select()
       .from(auctionBid)
@@ -42,24 +47,22 @@ export async function settleEndedAuctions(
       const claimed = await db
         .update(marketListing)
         .set({ status: "expired" })
-        .where(and(eq(marketListing.id, listing.id), eq(marketListing.status, "active")))
+        .where(canSettle)
         .returning({ id: marketListing.id });
       if (claimed.length === 0) continue;
       await db.update(userCard).set({ status: "owned" }).where(eq(userCard.id, listing.userCardId));
       continue;
     }
 
-    const feeAmount = calculateMarketFee(leading.amount);
     const claimed = await db
       .update(marketListing)
       .set({
         status: "sold",
         buyerId: leading.bidderId,
         soldPrice: leading.amount,
-        feeAmount,
         soldAt: listing.endsAt,
       })
-      .where(and(eq(marketListing.id, listing.id), eq(marketListing.status, "active")))
+      .where(canSettle)
       .returning({ id: marketListing.id });
     if (claimed.length === 0) continue;
 
@@ -78,7 +81,7 @@ export async function settleEndedAuctions(
         userId: listing.sellerId,
         source: "market_sale",
         isPaid: false,
-        amount: leading.amount - feeAmount,
+        amount: leading.amount,
         marketListingId: listing.id,
       }),
     ]);

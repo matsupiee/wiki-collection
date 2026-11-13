@@ -1,3 +1,6 @@
+import { packText } from "@/lib/pack-text";
+import { errorReason } from "@/lib/error-message";
+import { useTranslation } from "@/lib/i18n";
 import { useGameSound } from "@/lib/game-sounds";
 import { Text } from "@/components/typography";
 import { useState, useRef, useMemo, useEffect, type ComponentProps } from "react";
@@ -82,6 +85,7 @@ function CarouselItem({
 }
 
 export default function Packs() {
+  const t = useTranslation();
   const playSound = useGameSound();
   const trpc = useTRPC();
   const packs = useQuery(trpc.pack.list.queryOptions());
@@ -159,7 +163,11 @@ export default function Packs() {
                     position={position}
                     slug={pack.slug}
                     accessibilityRole="button"
-                    accessibilityLabel={offset === 0 ? `${pack.name}を選ぶ` : pack.name}
+                    accessibilityLabel={
+                      offset === 0
+                        ? t("selectPackNamed", { name: packText(pack.slug, "name", pack.name) })
+                        : packText(pack.slug, "name", pack.name)
+                    }
                     accessibilityState={{ selected: offset === 0 }}
                     disabled={action.pending}
                     onPress={() => {
@@ -175,7 +183,7 @@ export default function Packs() {
               <Pressable
                 key={pack.id}
                 accessibilityRole="button"
-                accessibilityLabel={`${pack.name}へ`}
+                accessibilityLabel={t("goToPack", { name: packText(pack.slug, "name", pack.name) })}
                 onPress={() => selectPack(i)}
                 style={{
                   width: i === index ? 24 : 8,
@@ -188,10 +196,10 @@ export default function Packs() {
           </View>
           <View style={{ marginTop: 16, alignItems: "center" }}>
             <Text style={{ fontSize: 14, lineHeight: 20, fontWeight: "800", color: "#1e293b" }}>
-              {p?.name}
+              {p && packText(p.slug, "name", p.name)}
             </Text>
             <Text style={{ fontSize: 14, lineHeight: 20, color: "#475569", textAlign: "center" }}>
-              {p?.description}
+              {p && packText(p.slug, "description", p.description)}
             </Text>
           </View>
           {!!action.error && (
@@ -206,16 +214,18 @@ export default function Packs() {
             <View style={{ marginTop: "auto", paddingTop: 20, gap: 8 }}>
               {freePack && !freePack.nextRefillAt && (
                 <Text style={[styles.muted, { textAlign: "center" }]}>
-                  10分で1パック回復（最大{freePack.limit}パック）
+                  {t("refillLimit", { limit: freePack.limit })}
                 </Text>
               )}
               <Button
                 title={
                   waitingForRefill && freePack.nextRefillAt
-                    ? `次の無料パックまで ${formatClock(Date.parse(freePack.nextRefillAt) - now)}`
+                    ? t("nextFreePack", {
+                        time: formatClock(Date.parse(freePack.nextRefillAt) - now),
+                      })
                     : freePack
-                      ? "無料で開封する"
-                      : `${formatPt(p.priceCoins ?? 0)} で開封する`
+                      ? t("openFree")
+                      : t("openPaid", { price: formatPt(p.priceCoins ?? 0) })
                 }
                 icon={freePack ? undefined : <CoinIcon />}
                 disabled={action.pending || waitingForRefill}
@@ -223,9 +233,15 @@ export default function Packs() {
                   void action.run(async () => {
                     try {
                       const result = await open.mutateAsync({ packId: p.id });
-                      router.push(`/openings/${result.openingId}`);
+                      router.push({
+                        pathname: "/openings/[openingId]",
+                        params: {
+                          openingId: result.openingId,
+                          newIds: result.newUserCardIds.join(","),
+                        },
+                      });
                     } catch (error) {
-                      if (error instanceof Error && error.message === "pt が足りません") {
+                      if (errorReason(error).key === "shortfall") {
                         setRequiredPoints(p.priceCoins ?? 0);
                         return;
                       }
@@ -238,17 +254,15 @@ export default function Packs() {
           )}
           {requiredPoints !== null && (
             <Confirm
-              title="ポイントが不足しています"
-              confirmLabel="ポイント購入へ"
+              title={t("insufficientPoints")}
+              confirmLabel={t("goBuyPoints")}
               onCancel={() => setRequiredPoints(null)}
               onConfirm={() => {
                 setRequiredPoints(null);
                 router.push("/point");
               }}
             >
-              <Text style={styles.text}>
-                このパックの開封には{formatPt(requiredPoints)}が必要です。
-              </Text>
+              <Text style={styles.text}>{t("packCost", { price: formatPt(requiredPoints) })}</Text>
             </Confirm>
           )}
         </>

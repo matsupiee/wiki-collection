@@ -15,12 +15,12 @@ export const openingListOutputSchema = z.object({
       payment: z.enum(packPayments),
       coinsSpent: z.number(),
       packName: z.string(),
+      packSlug: z.string(),
       cards: z.array(
         z.object({
           cardId: z.string(),
           title: z.string(),
           rarity: z.enum(rarities),
-          isNew: z.boolean(),
         }),
       ),
     }),

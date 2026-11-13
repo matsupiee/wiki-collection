@@ -16,13 +16,12 @@ bun run dev:local
 別のターミナルで実行する。
 
 ```sh
-bun packages/db/src/seed/native-cli.ts
 bun run dev:native:web
 ```
 
 Expo Webは `http://localhost:8082`。既存のmeigen-widgetの8081と競合しないようにする。APIは `http://localhost:3001`。ポートが使用中の場合は、既存のこのリポジトリのサーバーを利用するか、API URLを変更する。
 
-seedは既存のマスターカードを使い、`native1@example.com` と `native2@example.com` を追加する。パスワードは `password1234`。カードと2,000無償ptがあり、再実行で重複付与しない。マスターが空の場合は先に `bun run db:seed:local` を行う。`db:seed:local` はローカルデータをリセットするため、既存データを残したい環境では実行しない。
+初回起動でゲストを自動作成する。マイページに表示されたゲスト名を指定して `bun packages/db/src/seed/guest-history-cli.ts ゲスト名` を実行すると、カード1枚と2,000無償ptを付与する。再実行しても重複しない。カードマスターが必要。
 
 ## iOS・Android
 
@@ -41,9 +40,11 @@ SDK 58対応のExpo Goがない環境では、上記のローカル開発ビル�
 
 アプリのschemeは `wiki-collection`。Better AuthのExpoプラグインをサーバー・クライアントの両方で使い、SecureStore内のCookieをtRPCにも渡す。
 
+iOSでAppleの認証を試すには、App ID `com.matsupiee.wikicollection` のSign in with Apple capabilityを有効にした署名用プロファイルと、Apple Accountでサインインした端末を使う。サーバーはAppleの公開鍵でIDトークンの署名、発行元、有効期限、アプリID、セッションに結びついた一度限りのnonceを検証する。
+
 Expo Webの別オリジンを許可するのは、APIの設定URLがlocalhost / 127.0.0.1の場合だけ。許可するWebポートは8081と8082に限定する。ViteのCORSは無効にし、APIルートでプリフライトと資格情報を含むヘッダーを処理する。本番のブラウザー用CORSを無制限に広げない。
 
-公開ビルドには `EXPO_PUBLIC_API_URL` に本番APIのHTTPS URLを指定する。値はアプリに埋め込まれるため秘密情報を入れない。ストア課金は未実装で、本番APIではpt購入が無効になる。ストア申請・配信はこの変更には含めない。
+公開ビルドには `EXPO_PUBLIC_API_URL` に本番APIのHTTPS URLを指定する。値はアプリに埋め込まれるため秘密情報を入れない。TestFlight版とApp Store版は同じAPIでptを購入できる。ストア申請・配信はこの変更には含めない。
 
 ## 規約ページ
 
@@ -74,3 +75,14 @@ bun run test:native:e2e
 - [Expo SecureStore](https://docs.expo.dev/versions/latest/sdk/securestore/)
 
 - [Expo WebBrowser](https://docs.expo.dev/versions/latest/sdk/webbrowser/)
+
+## 強制アップデートの設定
+
+D1のマイグレーションとAPIを先にリリースし、判定機能を含むアプリを配信する。最低バージョンの初期設定は空。ストアで更新先をダウンロードできるようになったら、対象環境のD1で最低バージョンを設定する。次はiOSで1.2.0を必須にする例。
+
+```sql
+INSERT INTO app_update_policy (platform, minimum_version) VALUES ('ios', '1.2.0')
+ON CONFLICT (platform) DO UPDATE SET minimum_version = excluded.minimum_version;
+```
+
+Androidは `android` を指定する。バージョンはストアの表示バージョンで、数字をピリオドで区切った1〜3要素を使う。解除するには対象OSの行を削除する。判定機能を導入する前に配信したバイナリには更新画面を表示できない。

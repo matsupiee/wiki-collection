@@ -1,6 +1,6 @@
 import { cardDiscovery, pack, packOpening, userCard } from "@wiki-collection/db/schema/index";
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 
 import type { ProtectedContext } from "../../../../context";
@@ -40,6 +40,7 @@ export async function handler({
   const drawn = await drawPackCards(ctx.db, found, random);
   const payment = found.type === "free_basic" ? await consumeFreePack(ctx.db, userId, now) : "coin";
 
+  let newUserCardIds: string[];
   let openingId: string | undefined;
   try {
     const [opening] = await ctx.db
@@ -48,41 +49,15 @@ export async function handler({
       .returning({ id: packOpening.id });
     openingId = opening!.id;
 
-    const discovered = await ctx.db
-      .select({ cardId: cardDiscovery.cardId })
-      .from(cardDiscovery)
-      .where(
-        and(
-          eq(cardDiscovery.userId, userId),
-          inArray(
-            cardDiscovery.cardId,
-            drawn.map((d) => d.cardId),
-          ),
-        ),
-      );
-    // すでに持っていたカードと、同じパックの2枚目以降は NEW にしない
-    const seen = new Set(discovered.map((d) => d.cardId));
-    const rows = drawn.map((d, index) => {
-      const isNew = !seen.has(d.cardId);
-      seen.add(d.cardId);
-      return {
-        userId,
-        cardId: d.cardId,
-        packOpeningId: openingId,
-        slot: index + 1,
-        isNewOnAcquire: isNew,
-      };
-    });
-
-    const discoveries = rows
-      .filter((r) => r.isNewOnAcquire)
-      .map((r) => ({ userId, cardId: r.cardId, firstAcquiredAt: now }));
-    const queries: BatchItem<"sqlite">[] = [ctx.db.insert(userCard).values(rows)];
-    if (discoveries.length > 0) {
-      queries.push(ctx.db.insert(cardDiscovery).values(discoveries).onConflictDoNothing());
-    }
+    const rows = drawn.map(({ cardId }) => ({ userId, cardId, packOpeningId: opening!.id }));
+    const discoveries = [...new Set(drawn.map((d) => d.cardId))].map((cardId) => ({
+      userId,
+      cardId,
+      firstAcquiredAt: now,
+    }));
+    const payments: BatchItem<"sqlite">[] = [];
     if (price > 0) {
-      queries.push(
+      payments.push(
         ...(await prepareCoinWithdraw(ctx.db, {
           userId,
           amount: price,
@@ -91,7 +66,21 @@ export async function handler({
         })),
       );
     }
-    await runBatch(ctx.db, queries);
+    const [acquired, discovered] = await runBatch(ctx.db, [
+      ctx.db.insert(userCard).values(rows).returning({ id: userCard.id, cardId: userCard.cardId }),
+      ctx.db
+        .insert(cardDiscovery)
+        .values(discoveries)
+        .onConflictDoNothing()
+        .returning({ cardId: cardDiscovery.cardId }),
+      ...payments,
+    ]);
+    const newCards = new Set(discovered.map((row) => row.cardId));
+    // 開封詳細と同じ ID 昇順で、重複カードの先頭だけに NEW を付ける。
+    newUserCardIds = acquired
+      .sort((a, b) => (a.id < b.id ? -1 : 1))
+      .filter((row) => newCards.delete(row.cardId))
+      .map((row) => row.id);
   } catch (error) {
     if (openingId) await ctx.db.delete(packOpening).where(eq(packOpening.id, openingId));
     if (payment !== "coin") await restoreFreePack(ctx.db, userId);
@@ -100,5 +89,5 @@ export async function handler({
 
   const commonIds = [...new Set(drawn.filter((c) => c.rarity === "common").map((c) => c.cardId))];
   if (commonIds.length) ctx.cacheCommonImages?.(commonIds);
-  return { openingId };
+  return { openingId, newUserCardIds };
 }

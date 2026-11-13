@@ -1,30 +1,33 @@
+import { useTranslation } from "@/lib/i18n";
 import { Text } from "@/components/typography";
 import { View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/client";
 import { Loading, Screen } from "@/components/ui";
 import { formatDateTime, formatPt } from "@/lib/format";
-const labels: Record<string, string> = {
-  purchase: "購入",
-  market_sale: "マーケットの売上",
-  bid_refund: "入札の返金",
-  admin_grant: "運営からの付与",
-  pack_open: "パックの開封",
-  market_buy: "マーケットで購入",
-  auction_bid: "オークションに入札",
-  admin_revoke: "運営による調整",
-};
+
 const panel = {
   borderRadius: 24,
   backgroundColor: "rgba(255,255,255,.9)",
   boxShadow: "0 1px 2px #0000000d",
 };
 export default function Wallet() {
+  const t = useTranslation();
+  const labels: Record<string, string> = {
+    purchase: t("purchaseSource"),
+    market_sale: t("saleSource"),
+    bid_refund: t("bidRefund"),
+    admin_grant: t("grant"),
+    pack_open: t("packSpend"),
+    market_buy: t("marketSpend"),
+    auction_bid: t("auctionSpend"),
+    admin_revoke: t("adjustment"),
+  };
   const trpc = useTRPC();
   const q = useQuery(trpc.coin.listHistory.queryOptions());
   const b = useQuery(trpc.coin.getBalance.queryOptions());
   return (
-    <Screen title="pt の履歴" back>
+    <Screen title={t("pointHistory")} back>
       {!b.data || !q.data ? (
         <Loading
           error={b.error ?? q.error}
@@ -40,7 +43,7 @@ export default function Wallet() {
               {formatPt(b.data.total)}
             </Text>
             <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>
-              有償 {formatPt(b.data.paid)}・無償 {formatPt(b.data.free)}
+              {t("paidAndFree", { paid: formatPt(b.data.paid), free: formatPt(b.data.free) })}
             </Text>
           </View>
           <View style={[panel, { overflow: "hidden" }]}>
@@ -54,7 +57,7 @@ export default function Wallet() {
                   color: "#94a3b8",
                 }}
               >
-                履歴はありません
+                {t("noHistory")}
               </Text>
             ) : (
               q.data.entries.map((e, i) => (
@@ -79,8 +82,8 @@ export default function Wallet() {
                     <Text style={{ fontSize: 11, lineHeight: 16.5, color: "#94a3b8" }}>
                       {formatDateTime(e.createdAt)}
                       {e.kind === "deposit"
-                        ? `・${e.isPaid ? "有償" : "無償"}`
-                        : `・有償 ${e.paidAmount} / 無償 ${e.freeAmount}`}
+                        ? `・${e.isPaid ? t("paid") : t("free")}`
+                        : t("splitPoints", { paid: e.paidAmount, free: e.freeAmount })}
                     </Text>
                   </View>
                   <Text

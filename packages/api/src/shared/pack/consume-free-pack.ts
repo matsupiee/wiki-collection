@@ -14,7 +14,7 @@ export async function consumeFreePack(
   // 満杯ならここから回復を開始し、回復中なら途中まで経った時間を引き継ぐ。
   const [used] = await db
     .insert(freePackAllowance)
-    .values({ userId, initialRemaining: 0, fullAt: time + FREE_PACK_INTERVAL_MS })
+    .values({ userId, fullAt: time + FREE_PACK_INTERVAL_MS })
     .onConflictDoUpdate({
       target: freePackAllowance.userId,
       set: { fullAt: sql`max(${freePackAllowance.fullAt}, ${time}) + ${FREE_PACK_INTERVAL_MS}` },

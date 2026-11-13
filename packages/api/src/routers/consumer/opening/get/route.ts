@@ -17,8 +17,6 @@ export const openingGetOutputSchema = z.object({
   cards: z.array(
     z.object({
       userCardId: z.string(),
-      slot: z.number(),
-      isNew: z.boolean(),
       card: z.object({
         id: z.string(),
         title: z.string(),

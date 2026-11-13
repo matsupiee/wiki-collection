@@ -13,23 +13,18 @@ appId: com.matsupiee.wikicollection
 - assertVisible: "封を切る"
 - swipe:
     start: "50%,56%"
-    end: "87%,56%"
-    duration: 400
-- assertVisible: "封を切る"
-- swipe:
-    start: "15%,56%"
-    end: "52%,56%"
+    end: "54%,56%"
     duration: 450
 - assertVisible: "封を切る"
 - swipe:
-    start: "15%,56%"
-    end: "85%,68%"
+    start: "50%,56%"
+    end: "53%,68%"
     duration: 600
 - assertVisible: "封を切る"
 - swipe:
-    start: "15%,56%"
-    end: "87%,56%"
-    duration: 650
+    start: "50%,56%"
+    end: "67%,58%"
+    duration: 800
 - extendedWaitUntil:
     visible: ".*、C、めくる"
     timeout: 12000

@@ -28,9 +28,9 @@ export const coinPurchase = sqliteTable(
       .references(() => coinProduct.id),
     provider: text("provider", { enum: purchaseProviders }).notNull(),
     providerPaymentId: text("provider_payment_id").notNull(),
-    // 商品の価格改定に影響されないよう、支払われた額と付与した pt を複製して持つ
-    amount: integer("amount").notNull(),
-    currency: text("currency").notNull(),
+    // App Store の取引に価格と通貨がそろっている場合に記録する。
+    amount: integer("amount"),
+    currency: text("currency"),
     coins: integer("coins").notNull(),
     status: text("status", { enum: purchaseStatuses }).notNull(),
     completedAt: integer("completed_at", { mode: "timestamp_ms" }),

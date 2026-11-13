@@ -56,8 +56,6 @@ try {
           userId,
           cardId: c.id,
           packOpeningId: id,
-          slot,
-          isNewOnAcquire: slot % 2 === 0,
         })
         .onConflictDoUpdate({ target: userCard.id, set: { cardId: c.id } });
     }

@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { Text } from "@/components/typography";
 import { useEffect, useState } from "react";
 import { View, Pressable } from "react-native";
@@ -6,8 +7,15 @@ import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/client";
 import { Loading, Screen, marks } from "@/components/ui";
 import { formatDuration, formatPt } from "@/lib/format";
-const labels = { active: "出品中", sold: "取引成立", cancelled: "取り下げ", expired: "期限切れ" };
+
 export default function Trades() {
+  const t = useTranslation();
+  const labels = {
+    active: t("active"),
+    sold: t("sold"),
+    cancelled: t("cancelled"),
+    expired: t("expired"),
+  };
   const trpc = useTRPC();
   const q = useQuery(trpc.market.listMine.queryOptions());
   const [now, setNow] = useState(Date.now());
@@ -16,15 +24,15 @@ export default function Trades() {
     return () => clearInterval(t);
   }, []);
   return (
-    <Screen title="出品・入札の管理" back>
+    <Screen title={t("manageTrades")} back>
       {!q.data ? (
         <Loading error={q.error} retry={q.refetch} />
       ) : (
         (
           [
-            ["selling", "出品したもの"],
-            ["bidding", "入札中"],
-            ["bought", "買ったもの"],
+            ["selling", t("selling")],
+            ["bidding", t("bidding")],
+            ["bought", t("bought")],
           ] as const
         ).map(([key, label]) => (
           <View key={key}>
@@ -51,7 +59,7 @@ export default function Trades() {
                   color: "#94a3b8",
                 }}
               >
-                ありません
+                {t("empty")}
               </Text>
             ) : (
               <View style={{ gap: 8 }}>
@@ -92,11 +100,17 @@ export default function Trades() {
                         </Text>
                       </Text>
                       <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>
-                        {l.format === "auction" ? "オークション" : "過去の取引"}・{labels[l.status]}
+                        {l.format === "auction" ? t("auction") : t("pastTrade")}・{labels[l.status]}
                         {l.status === "active" && l.endsAt
-                          ? `・残り ${formatDuration(new Date(l.endsAt).getTime() - now)}`
+                          ? t("remainingSuffix", {
+                              time: formatDuration(new Date(l.endsAt).getTime() - now),
+                            })
                           : ""}
-                        {"isLeading" in l ? (l.isLeading ? "・最高額" : "・抜かれました") : ""}
+                        {"isLeading" in l
+                          ? l.isLeading
+                            ? t("leadingSuffix")
+                            : t("outbidSuffix")
+                          : ""}
                       </Text>
                     </View>
                     <Text

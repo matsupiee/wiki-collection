@@ -1,0 +1,13 @@
+appId: com.matsupiee.wikicollection
+---
+# 日本語・未連携のゲストで実行する。
+- extendedWaitUntil:
+    visible: "マイページ"
+    timeout: 90000
+- tapOn: "マイページ"
+- assertVisible: "ゲスト-[a-f0-9]{8}"
+- assertVisible: "Appleと連携する"
+- tapOn: "Appleで引き継ぐ"
+- assertVisible: "以前のデータに切り替えます。.*"
+- tapOn: "やめる"
+- assertVisible: "ゲスト-[a-f0-9]{8}"

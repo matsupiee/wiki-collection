@@ -1,40 +1,32 @@
 # pt を購入する
 
-> ステータス: ローカル開発でだけ実装済み。決済サービス（Stripe など）との連携は未実装で、本番では購入できない。
+> ステータス: iOSのApp Store決済を実装。ストアへの商品登録とアプリの配信は別途必要。
 
 ## ストーリー
 
-確定ガチャを開けたい、マーケットでカードを買いたいユーザーとして、pt を購入したい。
-10ドルで 1,000pt のように、分かりやすい単位で買える。
+確定ガチャを開けたり、マーケットで入札したりするために、有償ptを購入したい。
 
 ## 動作確認の手順
 
-`bun packages/db/src/seed/index.ts` を実行し、`bun run dev:local` で起動しておく。ローカルでは `PAYMENT_MODE=mock` なので、支払いなしで購入が完了する。
-
-1. `taro@example.com` でログインし、ヘッダーの pt 残高を押してポイント購入を開く。
-   - ヘッダーのコインアイコンは、淡いゴールド、控えめな厚みと内側のリングで表現し、文字や刻印を表示しない。隣の残高には pt の単位が付く。
-   - URL が `/point` になり、ページの見出しとブラウザのタイトルに「ポイント購入」が表示される。
-   - 残高と、その内訳（有償・無償）が出る。
-   - 500pt $5、1,000pt $10、5,000pt $50 の商品が出る。
-   - 「開発環境のため、実際の支払いは行われません」と出る。
-   - 払い戻しできないこと、無償 pt から先に使われることが書いてある。
-   - 特定商取引法に基づく表記と、資金決済法に基づく表示へのリンクがある。
-2. 「1,000pt」を押す。
-   - 確認ダイアログが出る。
-3. 「購入する」を押す。
-   - 「1,000pt を購入しました」と出て、残高の有償 pt が 1,000 増える。
-4. ヘッダーの残高を押す。
-   - ポイント購入に移動する。
-5. 本番と同じ設定（`PAYMENT_MODE` を指定しない）で開く。
-   - 「現在 pt は購入できません」と出て、商品を押せない。
+1. [StoreKitの開発手順](../development/point-purchases.md)に従い、ログインしてヘッダーの残高を押す。
+   - 「ポイント購入」に有償・無償の残高と500pt、1,000pt、5,000ptのストア価格が出る。
+   - 特定商取引法と資金決済法の表示を開ける。
+2. 商品を選び「購入する」を押して、App Storeの確認画面でキャンセルする。
+   - 残高は変わらず、再度購入できる。
+3. 1,000ptを選んで支払いを完了する。
+   - 完了メッセージが出て、有償残高だけが1,000pt増える。TestFlightで得たptも、App Store版で同じユーザーとしてログインすると使える。
+4. 購入直後の通信切断を解除し、アプリを開き直す。
+   - 同じ利用者で未反映の購入が再処理され、同一取引での付与は1回だけになる。
 
 ## データの持ち方
 
-- `coin_product`: 商品。価格は最小通貨単位（セント）で持つ。
-- `coin_purchase`: 購入の記録。`(provider, providerPaymentId)` の unique 制約で、Webhook が二重に届いても二重に付与しない。
-- `coin_deposit`: 購入した pt。`source = purchase`、`isPaid = true`（有償）。
+- coin_product.skuとApp Storeの商品IDを対応させる。
+- 表示価格はStoreKitから取得する。購入履歴にはApp Storeの取引で金額と通貨を両方取得できた場合に記録し、片方でも欠ける場合や模擬購入では両方をNULLにする。
+- coin_purchaseと有償のcoin_depositを同じバッチで作る。購入元と取引IDの組み合わせは一意とする。
 
 ## 対応するテスト
 
-- `packages/api/src/routers/consumer/shop/list-products/handler.integration.test.ts`
-- `packages/api/src/routers/consumer/shop/purchase/handler.integration.test.ts`
+- packages/api/src/routers/consumer/shop/list-products/handler.integration.test.ts
+- packages/api/src/routers/consumer/shop/purchase/handler.integration.test.ts
+- packages/api/src/shared/shop/app-store.test.ts
+- tests/ios/buy-points.yaml

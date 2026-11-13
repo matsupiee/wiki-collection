@@ -55,30 +55,50 @@ export async function handler({
     eq(auctionBid.listingId, listing.id),
     eq(auctionBid.sequence, sequence),
   )})`;
+  const withdraw = await prepareCoinWithdraw(ctx.db, {
+    userId: bidderId,
+    amount: input.amount,
+    purpose: "auction_bid",
+    marketListingId: listing.id,
+    auctionBidId: bidId,
+  });
+  const refund = leading ? await prepareBidRefund(ctx.db, leading) : [];
+  const acceptedAt = Date.now();
+  const remaining = listing.endsAt.getTime() - acceptedAt;
+  if (remaining <= 0) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "このオークションには入札できません",
+    });
+  }
+  // 取り下げや精算が先に成立した場合は listing_id の NOT NULL 制約で batch 全体を戻す。
+  const activeListingId = sql`(select ${marketListing.id} from ${marketListing} where ${and(
+    eq(marketListing.id, listing.id),
+    eq(marketListing.status, "active"),
+  )})`;
   await runBatch(ctx.db, [
     ...(leading
       ? [
           ctx.db.update(auctionBid).set({ status: "outbid" }).where(eq(auctionBid.id, leading.id)),
-          ...(await prepareBidRefund(ctx.db, leading)),
+          ...refund,
         ]
       : []),
     ctx.db.insert(auctionBid).values({
-      listingId: listing.id,
+      listingId: activeListingId,
+      createdAt: new Date(acceptedAt),
       bidderId,
       sequence,
       amount: input.amount,
       status: "leading",
     }),
-    ...(await prepareCoinWithdraw(ctx.db, {
-      userId: bidderId,
-      amount: input.amount,
-      purpose: "auction_bid",
-      marketListingId: listing.id,
-      auctionBidId: bidId,
-    })),
+    ...withdraw,
     ctx.db
       .update(marketListing)
-      .set({ currentPrice: input.amount, bidCount: sequence })
+      .set({
+        currentPrice: input.amount,
+        bidCount: sequence,
+        endsAt: remaining <= 10_000 ? new Date(acceptedAt + 60_000) : listing.endsAt,
+      })
       .where(eq(marketListing.id, listing.id)),
   ]);
   return { currentPrice: input.amount };

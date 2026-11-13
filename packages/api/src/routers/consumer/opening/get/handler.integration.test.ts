@@ -30,13 +30,12 @@ describe("opening/get", () => {
 
     expect(result.pack.id).toBe(p.id);
     expect(result.opening.revealedAt).toBeNull();
-    expect(result.cards.map((c) => c.slot)).toEqual([1, 2, 3, 4, 5]);
+    expect(result.cards).toHaveLength(5);
     expect(result.cards[4]?.card).toMatchObject({
       title: "相対性理論",
       rarity: "rare",
       genreName: "科学",
     });
-    expect(result.cards[0]?.isNew).toBe(true);
   });
 
   test("他人の開封は見られない", async () => {

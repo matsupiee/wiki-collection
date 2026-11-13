@@ -18,6 +18,8 @@ erDiagram
   user ||--o{ user_card : "所持"
   user ||--o{ card_discovery : "初獲得の記録"
   user ||--o{ market_listing : "出品"
+  user ||--o{ notification_user : "通知の配信先"
+  notification ||--o{ notification_user : "通知の内容"
   user ||--o{ auction_bid : "入札"
 
   coin_deposit ||--o{ coin_deposit_withdraw : ""
@@ -39,11 +41,12 @@ erDiagram
   coin_purchase ||--o| coin_deposit : ""
 ```
 
-テーブルは役割ごとに4つに分かれる。
+テーブルは役割ごとに5つに分かれる。
 
 - マスタ（運営が作る）: `genre`、`card`、`rarity_threshold`、`pack`、`pack_slot_rate`、`coin_product`
 - 所持と開封: `user_card`、`card_discovery`、`pack_opening`、`free_pack_allowance`
 - 通貨: `coin_deposit`、`coin_withdraw`、`coin_deposit_withdraw`、`coin_purchase`
+- 通知: `notification` はタイトルと本文、`notification_user` は宛先と既読状態を保持する。同じ通知・利用者の組み合わせは1件に限る。
 - マーケット: `market_listing`、`auction_bid`
 
 ## enum
@@ -175,8 +178,6 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 | ----------- | ----------- | --------------------------------------- |
 | sku         | text unique | 各ストアの商品 ID と対応させる          |
 | name        | text        | 「1,000pt」など                         |
-| priceAmount | integer     | 最小通貨単位。10ドルなら 1000（セント） |
-| currency    | text        | `USD`、`JPY`                            |
 | coins       | integer     | 付与する有償 pt                         |
 | isActive    | boolean     |                                         |
 | sortOrder   | integer     |                                         |
@@ -205,8 +206,6 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 | 列                             | 型                  | 説明                                               |
 | ------------------------------ | ------------------- | -------------------------------------------------- |
 | userId                         | text unique → user  |                                                    |
-| initialRemaining               | integer             | 廃止した登録特典の旧残高。新規作成は 0。利用対象外 |
-| dailyUsedDate / dailyUsedCount | text null / integer | 移行前の日次枠の利用記録                           |
 | fullAt                         | integer             | 10回分まで回復する時刻（Unixミリ秒）               |
 
 - 行がないユーザーは満杯。開封時は現在時刻と満杯になる時刻の遅い方に10分を足す。
@@ -224,11 +223,8 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 | cardId         | text → card              |                                                              |
 | status         | user_card_status         | `owned` 所持中、`listed` 出品中、`archived` 履歴のみ         |
 | packOpeningId  | text null → pack_opening | どの開封で出たか                                             |
-| slot           | integer null             | 開封演出でめくる順番。抽選後にレアリティの低い順に並べてある |
-| isNewOnAcquire | boolean                  | 手に入れた時点で初めてのカードだったか。NEW バッジに使う     |
 
 - `(userId, status, cardId)` に index をつける。コレクション画面で所持中のカードをまとめて数えるため。
-- 同じパックで同じカードが2枚出たときは、1枚目だけを NEW にする。
 
 ### card_discovery
 
@@ -317,14 +313,14 @@ pt を消費した記録。
 | coinProductId            | text → coin_product |                                                            |
 | provider                 | purchase_provider   | `mock` はローカル開発用の支払いなしの購入                  |
 | providerPaymentId        | text                | Stripe の Checkout Session ID、ストアのトランザクション ID |
-| amount / currency        | integer / text      | 実際に払われた額。商品の価格改定に影響されないよう複製する |
+| amount / currency        | integer null / text null | App Storeの取引金額（通貨の最小単位）と通貨。どちらかが未取得なら両方NULL |
 | coins                    | integer             | 付与した pt                                                |
 | status                   | purchase_status     |                                                            |
 | completedAt / refundedAt | timestamp null      |                                                            |
 
 - `(provider, providerPaymentId)` に unique 制約をつける。Webhook が二重に届いても pt を二重に付与しないため。
 - 購入が完了したら、`isPaid = true` の `coin_deposit` を作る。
-- 決済サービスとの連携（Stripe Checkout と Webhook）は未実装。いまはローカル開発（`PAYMENT_MODE=mock`）でだけ、支払いなしで購入を完了できる。
+- iOSの購入はApp Storeの取引を検証し、購入と有償pt付与を同じD1バッチで記録する。
 
 ## マーケット
 
@@ -346,7 +342,6 @@ pt を消費した記録。
 | endsAt       | timestamp null   | オークションの終了日時         |
 | buyerId      | text null → user | 成立したときの買い手           |
 | soldPrice    | integer null     | 成立価格                       |
-| feeAmount    | integer null     | 手数料（成立価格の 10%）       |
 | soldAt       | timestamp null   |                                |
 
 - `userCardId` に `status = 'active'` の部分 unique index をつける。同じカードを二重に出品させないため。

@@ -20,7 +20,7 @@ const nextId = () => `${Date.now().toString(36)}${(counter++).toString(36)}`;
 export async function createUserContext(
   db: Database,
   name = "テストユーザー",
-  paymentMode: ProtectedContext["paymentMode"] = "mock",
+  localDevelopment = false,
 ): Promise<ProtectedContext> {
   const id = `user_${nextId()}`;
   const now = new Date();
@@ -30,7 +30,7 @@ export async function createUserContext(
     .returning();
   return {
     db,
-    paymentMode,
+    localDevelopment,
     session: {
       user: created!,
       session: {
@@ -133,8 +133,6 @@ export async function createCoinProduct(db: Database, coins = 1000) {
     .values({
       sku: `sku-${nextId()}`,
       name: `${coins}pt`,
-      priceAmount: 1000,
-      currency: "USD",
       coins,
     })
     .returning();

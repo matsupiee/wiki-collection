@@ -1,0 +1,13 @@
+appId: com.matsupiee.wikicollection
+---
+- launchApp:
+    stopApp: false
+- openLink: wiki-collection://point
+- runFlow:
+    when:
+      visible: '“Wiki Collection”で開きますか\?'
+    commands:
+      - tapOn: 開く
+- tapOn: '1,000pt .*'
+- tapOn: 購入する
+- assertVisible: '1,000pt を購入しました'

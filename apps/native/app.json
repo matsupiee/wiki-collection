@@ -12,12 +12,9 @@
       "bundleIdentifier": "com.matsupiee.wikicollection",
       "infoPlist": {
         "CFBundleDevelopmentRegion": "ja",
-        "CFBundleLocalizations": [
-          "ja",
-          "ja"
-        ],
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.matsupiee.wikicollection"
@@ -38,7 +35,17 @@
           "recordAudioAndroid": false,
           "enableBackgroundPlayback": false
         }
-      ]
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": [
+            "ja",
+            "en"
+          ]
+        }
+      ],
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true

@@ -29,6 +29,7 @@ describe("opening/list", () => {
 
     expect(result.openings.map((o) => o.id)).toEqual([second.openingId, first.openingId]);
     expect(result.openings.map((o) => o.revealed)).toEqual([false, true]);
+    expect(result.openings[0]?.packSlug).toBe(p.slug);
     expect(result.openings[0]?.cards).toHaveLength(5);
   });
 });

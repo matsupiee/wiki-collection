@@ -12,6 +12,8 @@ import {
   freePackAllowance,
   genre,
   marketListing,
+  notification,
+  notificationUser,
   pack,
   packOpening,
   packSlotRate,
@@ -25,6 +27,8 @@ import {
 export async function reset(db: Database) {
   // 外部キーの参照先より先に参照元を消す
   for (const table of [
+    notificationUser,
+    notification,
     coinDepositWithdraw,
     coinWithdraw,
     coinDeposit,

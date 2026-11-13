@@ -1,3 +1,5 @@
+import { packText } from "@/lib/pack-text";
+import { useTranslation } from "@/lib/i18n";
 import { Text } from "@/components/typography";
 import { View, Pressable } from "react-native";
 import { router } from "expo-router";
@@ -6,10 +8,11 @@ import { useTRPC } from "@/lib/client";
 import { Loading, Screen, marks } from "@/components/ui";
 import { formatDateTime } from "@/lib/format";
 export default function Openings() {
+  const t = useTranslation();
   const trpc = useTRPC();
   const q = useQuery(trpc.opening.list.queryOptions());
   return (
-    <Screen title="開封履歴" back contentStyle={{ gap: 8 }}>
+    <Screen title={t("openingHistory")} back contentStyle={{ gap: 8 }}>
       {!q.data ? (
         <Loading error={q.error} retry={q.refetch} />
       ) : !q.data.openings.length ? (
@@ -24,7 +27,7 @@ export default function Openings() {
             color: "#94a3b8",
           }}
         >
-          まだ開封していません
+          {t("noOpenings")}
         </Text>
       ) : (
         q.data.openings.map((o) => (
@@ -45,7 +48,7 @@ export default function Openings() {
               }}
             >
               <Text style={{ fontSize: 14, lineHeight: 20, fontWeight: "800", color: "#1e293b" }}>
-                {o.packName}
+                {packText(o.packSlug, "name", o.packName)}
               </Text>
               <Text style={{ fontSize: 11, lineHeight: 16.5, color: "#94a3b8" }}>
                 {formatDateTime(o.createdAt)}
@@ -95,7 +98,7 @@ export default function Openings() {
                   color: o.revealed ? "#0284c7" : "#7c3aed",
                 }}
               >
-                {o.revealed ? "結果を見る ›" : "続きを見る ›"}
+                {o.revealed ? t("viewResults") : t("resume")}
               </Text>
             </Pressable>
           </View>

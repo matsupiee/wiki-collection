@@ -1,3 +1,4 @@
+import { installationAuth } from "./installation";
 import { expo } from "@better-auth/expo";
 import { browserOrigins } from "./origins";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter/relations-v2";
@@ -11,18 +12,22 @@ export type AuthConfig = {
   BETTER_AUTH_SECRET: string;
 };
 
-export function createAuth(env: AuthConfig, database: Database) {
+export function createAuth(
+  env: AuthConfig,
+  database: Database,
+  verifyAppleToken?: Parameters<typeof installationAuth>[1],
+) {
   return betterAuth({
     database: drizzleAdapter(database, {
       provider: "sqlite",
       schema,
     }),
     trustedOrigins: [...browserOrigins(env.BETTER_AUTH_URL), "wiki-collection://"],
-    emailAndPassword: { enabled: true },
+    disabledPaths: ["/update-user", "/change-email", "/delete-user"],
     advanced: { disableOriginCheck: false, disableCSRFCheck: false },
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
-    plugins: [expo(), tanstackStartCookies()],
+    plugins: [installationAuth(database, verifyAppleToken), expo(), tanstackStartCookies()],
   });
 }
 

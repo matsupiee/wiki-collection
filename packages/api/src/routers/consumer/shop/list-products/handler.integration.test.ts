@@ -14,16 +14,19 @@ beforeAll(async () => ({ db, dispose } = await createTestDb()));
 afterAll(() => dispose());
 
 describe("shop/list-products", () => {
-  test("販売中の商品だけを返す。決済の準備ができていなければ購入できない", async () => {
+  test("販売中の商品を返し、公開環境ではストア購入だけを有効にする", async () => {
     const product = await createCoinProduct(db, 1000);
     const stopped = await createCoinProduct(db, 500);
     await db.update(coinProduct).set({ isActive: false }).where(eq(coinProduct.id, stopped.id));
 
-    const mock = await handler({ ctx: await createUserContext(db, "a", "mock") });
-    expect(mock.products.map((p) => p.id)).toEqual([product.id]);
+    const mock = await handler({ ctx: await createUserContext(db, "a", true) });
+    expect(mock.products).toEqual([
+      { id: product.id, sku: product.sku, name: product.name, coins: 1000 },
+    ]);
     expect(mock.purchasable).toBe(true);
 
-    const disabled = await handler({ ctx: await createUserContext(db, "b", "disabled") });
-    expect(disabled.purchasable).toBe(false);
+    const published = await handler({ ctx: await createUserContext(db, "b") });
+    expect(published.storeEnabled).toBe(true);
+    expect(published.purchasable).toBe(false);
   });
 });

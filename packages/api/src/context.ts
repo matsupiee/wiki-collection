@@ -5,8 +5,7 @@ export type Context = {
   cacheCommonImages?: (cardIds: string[]) => void;
   session: Session | null;
   db: Database;
-  // mock のときだけ、決済なしで pt を購入できる（ローカル開発用）
-  paymentMode: "mock" | "disabled";
+  localDevelopment?: boolean;
 };
 
 export type ProtectedContext = Context & { session: Session };

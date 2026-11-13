@@ -1,3 +1,4 @@
+import { StoreRecovery } from "@/lib/point-store";
 import { GameSoundProvider } from "@/lib/game-sounds";
 import { Redirect, Stack } from "expo-router";
 import { auth } from "../../lib/client";
@@ -9,6 +10,7 @@ export default function Layout() {
   if (!session.data) return <Redirect href="/login" />;
   return (
     <GameSoundProvider>
+      <StoreRecovery userId={session.data.user.id} />
       <Stack screenOptions={{ headerShown: false }}>
         {/* 切り口をなぞる操作とiOSの戻るスワイプを競合させない。 */}
         <Stack.Screen name="openings/[openingId]/index" options={{ gestureEnabled: false }} />

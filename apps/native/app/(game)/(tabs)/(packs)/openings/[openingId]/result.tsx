@@ -1,3 +1,5 @@
+import { packText } from "@/lib/pack-text";
+import { useTranslation } from "@/lib/i18n";
 import { useGameSound } from "@/lib/game-sounds";
 import { Text } from "@/components/typography";
 import { useEffect } from "react";
@@ -11,8 +13,9 @@ import { Button, Card, Loading } from "@/components/ui";
 import { AppBackground } from "@/components/app-background";
 import { SafeAreaView } from "react-native-screens/experimental";
 export default function Result() {
+  const t = useTranslation();
   const playSound = useGameSound();
-  const { openingId } = useLocalSearchParams<{ openingId: string }>();
+  const { openingId, newIds = "" } = useLocalSearchParams<{ openingId: string; newIds?: string }>();
   const trpc = useTRPC();
   const q = useQuery(trpc.opening.get.queryOptions({ openingId }));
   const reveal = useMutation(trpc.opening.reveal.mutationOptions());
@@ -48,7 +51,7 @@ export default function Result() {
                 color: "#334155",
               }}
             >
-              開封結果
+              {t("results")}
             </Text>
             <LinearGradient
               colors={["#7dd3fc", "#c4b5fd", "#fde68a"]}
@@ -65,7 +68,7 @@ export default function Result() {
                 marginTop: 8,
               }}
             >
-              {q.data.pack.name}
+              {packText(q.data.pack.slug, "name", q.data.pack.name)}
             </Text>
             <View style={{ marginTop: 24, gap: 16, alignItems: "center" }}>
               {[q.data.cards.slice(0, 3), q.data.cards.slice(3)].map((row, i) => (
@@ -80,7 +83,7 @@ export default function Result() {
                 >
                   {row.map((c) => (
                     <View key={c.userCardId} style={{ width: 112, maxWidth: "31.3%" }}>
-                      {c.isNew && (
+                      {newIds.split(",").includes(c.userCardId) && (
                         <View
                           style={{
                             position: "absolute",
@@ -127,7 +130,7 @@ export default function Result() {
                   style={{ flex: 1.12, flexBasis: 0, borderRadius: 999 }}
                 >
                   <Button
-                    title={action.pending ? "準備中…" : "もう1パック"}
+                    title={action.pending ? t("preparing") : t("oneMore")}
                     textStyle={{ fontSize: 12, fontWeight: "800" }}
                     disabled={action.pending}
                     style={{
@@ -138,14 +141,20 @@ export default function Result() {
                     onPress={() =>
                       void action.run(async () => {
                         const result = await open.mutateAsync({ packId: q.data!.pack.id });
-                        router.replace(`/openings/${result.openingId}`);
+                        router.replace({
+                          pathname: "/openings/[openingId]",
+                          params: {
+                            openingId: result.openingId,
+                            newIds: result.newUserCardIds.join(","),
+                          },
+                        });
                       })
                     }
                   />
                 </LinearGradient>
                 <Button
                   secondary
-                  title="コレクションへ"
+                  title={t("toCollection")}
                   textStyle={{ fontSize: 12, fontWeight: "800" }}
                   style={{
                     flex: 1,
@@ -159,7 +168,7 @@ export default function Result() {
               </View>
               <Button
                 variant="link"
-                title="パック選択にもどる"
+                title={t("toPacks")}
                 textStyle={{ fontSize: 12, color: "#64748b" }}
                 onPress={() => router.replace("/packs")}
               />

@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { useGameSound } from "@/lib/game-sounds";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -26,6 +27,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { cardImageDisplayUrl } from "@wiki-collection/db/card-image";
 import { apiUrl, useTRPC } from "../../../../lib/client";
+import type { Rarity } from "@wiki-collection/db/enums";
 import { highestOpeningRarity } from "../../../../lib/rarity";
 import { useAction } from "../../../../lib/mutation";
 import { Loading } from "../../../../components/ui";
@@ -51,11 +53,25 @@ import {
   SealGlint,
 } from "../../../../components/opening-stage";
 
-export default function Opening() {
-  const { openingId } = useLocalSearchParams<{ openingId: string }>();
-  return <OpeningScene key={openingId} openingId={openingId} />;
+function playCardFeedback(rarity: Rarity | undefined) {
+  if (!rarity || rarity === "common") return;
+  const feedback =
+    rarity === "legendary"
+      ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+      : Haptics.impactAsync(
+          rarity === "rare"
+            ? Haptics.ImpactFeedbackStyle.Medium
+            : Haptics.ImpactFeedbackStyle.Heavy,
+        );
+  void feedback.catch(() => {});
 }
-function OpeningScene({ openingId }: { openingId: string }) {
+
+export default function Opening() {
+  const { openingId, newIds = "" } = useLocalSearchParams<{ openingId: string; newIds?: string }>();
+  return <OpeningScene key={openingId} openingId={openingId} newIds={newIds} />;
+}
+function OpeningScene({ openingId, newIds }: { openingId: string; newIds: string }) {
+  const t = useTranslation();
   const playSound = useGameSound();
   const trpc = useTRPC();
   const query = useQuery(trpc.opening.get.queryOptions({ openingId }));
@@ -94,7 +110,6 @@ function OpeningScene({ openingId }: { openingId: string }) {
   const committed = useSharedValue(false);
   const shimmer = useSharedValue(0);
   const direction = useSharedValue(1);
-  const validStart = useSharedValue(false);
   const { width: w, height: h } = size;
   const pw = w * 0.48;
   const ph = pw * OPENING_PACK_RATIO;
@@ -135,6 +150,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
   function revealed() {
     if (!mounted.current) return;
     busy.current = false;
+    if (focused.current && !leaving.current) playCardFeedback(cards[0]?.card.rarity);
     setStage("revealed");
   }
   function readyToTrace() {
@@ -195,14 +211,20 @@ function OpeningScene({ openingId }: { openingId: string }) {
     playSound("card");
     setDetail(index);
   }
-  function finish() {
+  function finish(skipped = false) {
     if (leaving.current) return;
     leaving.current = true;
     void action
       .run(
         () => reveal.mutateAsync({ openingId }),
         () => {
-          if (mounted.current && focused.current) router.replace(`/openings/${openingId}/result`);
+          if (mounted.current && focused.current) {
+            if (skipped) playCardFeedback(highestOpeningRarity(cards));
+            router.replace({
+              pathname: "/openings/[openingId]/result",
+              params: { openingId, newIds },
+            });
+          }
         },
       )
       .finally(() => {
@@ -228,33 +250,23 @@ function OpeningScene({ openingId }: { openingId: string }) {
   const sealWidth = w * selectedWidth;
   const tear = Gesture.Pan()
     .enabled(!action.pending && stage === "tracing")
-    .minDistance(0)
+    .activeOffsetX([-6, 6])
+    .failOffsetY([-24, 24])
     .maxPointers(1)
-    .onBegin((e) => {
-      const margin = Math.min(32, sealWidth * 0.13);
-      validStart.set(!committed.get() && (e.x <= margin || e.x >= sealWidth - margin));
-      if (validStart.get()) {
-        direction.set(e.x < sealWidth / 2 ? 1 : -1);
-        cut.set(0);
-      }
-    })
     .onUpdate((e) => {
-      if (!validStart.get() || committed.get()) return;
-      if (Math.abs(e.y - 28) > 32 || e.numberOfPointers !== 1) {
-        validStart.set(false);
-        cut.set(withTiming(0, { duration: 160 }));
-        return;
-      }
+      if (committed.get() || e.numberOfPointers !== 1) return;
+      const travel = Math.abs(e.translationX);
+      if (travel < Math.abs(e.translationY)) return;
+      direction.set(e.translationX >= 0 ? 1 : -1);
       const distance = direction.get() === 1 ? e.x : sealWidth - e.x;
       cut.set(Math.max(0, Math.min(1, distance / sealWidth)));
-      if (distance >= sealWidth - 8) {
+      if (travel >= 48) {
         committed.set(true);
         scheduleOnRN(play);
       }
     })
     .onFinalize(() => {
       if (!committed.get()) cut.set(withTiming(0, { duration: 160 }));
-      validStart.set(false);
     });
   useEffect(() => {
     if (!packLaidOut || reduce || committed.get()) return;
@@ -346,11 +358,11 @@ function OpeningScene({ openingId }: { openingId: string }) {
           <Loading error={query.error} retry={query.refetch} />
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="パック一覧に戻る"
+            accessibilityLabel={t("backToPacks")}
             style={styles.next}
             onPress={() => router.replace("/packs")}
           >
-            <Text style={styles.nextText}>パック一覧に戻る</Text>
+            <Text style={styles.nextText}>{t("backToPacks")}</Text>
           </Pressable>
         </View>
       ) : (
@@ -370,8 +382,9 @@ function OpeningScene({ openingId }: { openingId: string }) {
                   enabled={stage === "revealed" && detail === null && !action.pending}
                   last={front + depth === cards.length - 1}
                   onTurn={() => {
-                    if (!mounted.current) return;
+                    if (!mounted.current || !focused.current || leaving.current) return;
                     playSound("card");
+                    playCardFeedback(cards[front + 1]?.card.rarity);
                     setFront(front + 1);
                     if (front === cards.length - 1) finish();
                   }}
@@ -433,7 +446,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
                     <GestureDetector gesture={carousel}>
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel="パックを選ぶ"
+                        accessibilityLabel={t("choosePack")}
                         onPress={() => selectPack()}
                         style={StyleSheet.absoluteFill}
                       />
@@ -444,8 +457,8 @@ function OpeningScene({ openingId }: { openingId: string }) {
                   <View
                     accessible={stage === "tracing"}
                     accessibilityRole="button"
-                    accessibilityLabel="封を切る"
-                    accessibilityHint="上端の光る線を端から端までなぞります"
+                    accessibilityLabel={t("tearSeal")}
+                    accessibilityHint={t("tearHint")}
                     onAccessibilityTap={play}
                     accessibilityActions={[{ name: "activate" }]}
                     onAccessibilityAction={(event) => {
@@ -454,9 +467,9 @@ function OpeningScene({ openingId }: { openingId: string }) {
                     style={{
                       position: "absolute",
                       left: (w - sealWidth) / 2,
-                      top: h * seamHeight - 28,
+                      top: h * seamHeight - 40,
                       width: sealWidth,
-                      height: 56,
+                      height: 80,
                       zIndex: 7,
                       justifyContent: "center",
                     }}
@@ -493,25 +506,23 @@ function OpeningScene({ openingId }: { openingId: string }) {
             )}
             {stage === "pack" && (
               <Text style={[styles.hint, { top: h * 0.86 }]} pointerEvents="none">
-                パックをタップして選ぶ
+                {t("tapPack")}
               </Text>
             )}
             {stage === "revealed" && !allTurned && (
               <View style={[styles.controls, { top: h * 0.81 }]}>
                 <Text style={styles.hintInline}>
                   {front + 1} / {cards.length}　
-                  {front + 1 === cards.length
-                    ? "めくって結果を見る"
-                    : "タップまたはスワイプでめくる"}
+                  {front + 1 === cards.length ? t("flipForResults") : t("flipHint")}
                 </Text>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="写真の詳細を見る"
+                  accessibilityLabel={t("photoDetails")}
                   onPress={() => selectDetail(front)}
                   disabled={action.pending}
                   style={styles.next}
                 >
-                  <Text style={styles.nextText}>写真の詳細を見る</Text>
+                  <Text style={styles.nextText}>{t("photoDetails")}</Text>
                 </Pressable>
               </View>
             )}
@@ -519,12 +530,12 @@ function OpeningScene({ openingId }: { openingId: string }) {
             {(!allTurned || !!action.error) && (
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={allTurned ? "結果を再読み込み" : "スキップ"}
-                onPress={finish}
+                accessibilityLabel={allTurned ? t("reloadResults") : t("skip")}
+                onPress={() => finish(!allTurned)}
                 disabled={action.pending}
                 style={styles.skip}
               >
-                <Text style={styles.skipText}>{allTurned ? "結果を再読み込み" : "スキップ"}</Text>
+                <Text style={styles.skipText}>{allTurned ? t("reloadResults") : t("skip")}</Text>
               </Pressable>
             )}
             {detail !== null && cards[detail] && (
@@ -533,7 +544,7 @@ function OpeningScene({ openingId }: { openingId: string }) {
                 count={front + 1}
                 select={selectDetail}
                 card={cards[detail].card}
-                isNew={cards[detail].isNew}
+                isNew={newIds.split(",").includes(cards[detail].userCardId)}
                 width={w}
                 height={h}
                 reduced={reduce}

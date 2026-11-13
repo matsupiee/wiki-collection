@@ -36,29 +36,46 @@ describe("market/create-listing", () => {
     ).toBe(false);
   });
 
-  test.each([1, 12, 24, 72, 168])("%i時間で出品し、終了日時を保存する", async (durationHours) => {
-    setSystemTime(new Date("2026-10-25T00:00:00Z"));
-    const ctx = await createUserContext(db);
-    const g = await createGenre(db);
-    const c = await createCard(db, { genreId: g.id, rarity: "rare" });
-    const owned = await giveCard(db, ctx.session.user.id, c.id);
-
-    const { listingId } = await handler({
-      input: marketCreateListingInputSchema.parse({
+  test.each([0, 1.5, 25, 72, 168])("%i時間の出品を拒否する", (durationHours) => {
+    expect(
+      marketCreateListingInputSchema.safeParse({
         format: "auction",
-        userCardId: owned.id,
-        startPrice: 50,
+        userCardId: "owned",
+        startPrice: 10,
         durationHours,
-      }),
-      ctx,
-    });
-
-    const [listing] = await db.select().from(marketListing).where(eq(marketListing.id, listingId));
-    expect(listing?.endsAt?.getTime()).toBe(Date.now() + durationHours * 3_600_000);
-    expect(listing?.startPrice).toBe(50);
-    const [copy] = await db.select().from(userCard).where(eq(userCard.id, owned.id));
-    expect(copy?.status).toBe("listed");
+      }).success,
+    ).toBe(false);
   });
+
+  test.each(Array.from({ length: 24 }, (_, i) => i + 1))(
+    "%i時間で出品し、終了日時を保存する",
+    async (durationHours) => {
+      setSystemTime(new Date("2026-10-25T00:00:00Z"));
+      const ctx = await createUserContext(db);
+      const g = await createGenre(db);
+      const c = await createCard(db, { genreId: g.id, rarity: "rare" });
+      const owned = await giveCard(db, ctx.session.user.id, c.id);
+
+      const { listingId } = await handler({
+        input: marketCreateListingInputSchema.parse({
+          format: "auction",
+          userCardId: owned.id,
+          startPrice: 50,
+          durationHours,
+        }),
+        ctx,
+      });
+
+      const [listing] = await db
+        .select()
+        .from(marketListing)
+        .where(eq(marketListing.id, listingId));
+      expect(listing?.endsAt?.getTime()).toBe(Date.now() + durationHours * 3_600_000);
+      expect(listing?.startPrice).toBe(50);
+      const [copy] = await db.select().from(userCard).where(eq(userCard.id, owned.id));
+      expect(copy?.status).toBe("listed");
+    },
+  );
 
   test("同じカードを二重に出品できず、他人のカードも出品できない", async () => {
     const ctx = await createUserContext(db);

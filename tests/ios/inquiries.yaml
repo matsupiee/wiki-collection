@@ -1,0 +1,20 @@
+appId: com.matsupiee.wikicollection
+---
+# 日本語でログインした利用者のマイページから送信する。
+- launchApp:
+    arguments:
+      RCT_jsLocation: "localhost:8082"
+- extendedWaitUntil:
+    visible: "マイページ"
+    timeout: 60000
+- openLink: wiki-collection://me
+- tapOn:
+    text: "開く|Open"
+    optional: true
+- tapOn: "お問い合わせ"
+- tapOn:
+    id: inquiry-input
+- inputText: "InquiryTest"
+- tapOn: "送信する"
+- assertVisible: "InquiryTest"
+- assertVisible: ".*受付済み"

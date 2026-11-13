@@ -40,7 +40,6 @@ export const marketListing = sqliteTable(
     endsAt: integer("ends_at", { mode: "timestamp_ms" }),
     buyerId: text("buyer_id").references(() => user.id),
     soldPrice: integer("sold_price"),
-    feeAmount: integer("fee_amount"),
     soldAt: integer("sold_at", { mode: "timestamp_ms" }),
   },
   (table) => [

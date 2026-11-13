@@ -1,0 +1,25 @@
+appId: com.matsupiee.wikicollection
+---
+# 通知seedを実行し、shiro@example.com でログインした状態で開始する。
+- launchApp:
+    arguments:
+      AppleLanguages: "(ja)"
+      AppleLocale: "ja_JP"
+      RCT_jsLocation: "localhost:8082"
+- extendedWaitUntil:
+    visible: "通知、未読あり"
+    timeout: 60000
+- tapOn:
+    id: "notification-bell"
+- assertVisible: "コレクションへようこそ、未読"
+- assertVisible: "通知、未読あり"
+- assertNotVisible: "ここであなた宛てのお知らせを確認できます。"
+- tapOn: "コレクションへようこそ、未読"
+- assertVisible: "ここであなた宛てのお知らせを確認できます。"
+- assertVisible: "コレクションへようこそ、既読"
+- assertNotVisible: "通知、未読あり"
+- tapOn: "もどる"
+- tapOn:
+    id: "notification-bell"
+- assertVisible: "コレクションへようこそ、既読"
+- assertNotVisible: "通知、未読あり"

@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { useGameSound } from "@/lib/game-sounds";
 import { Text } from "@/components/typography";
 import { useState } from "react";
@@ -10,12 +11,14 @@ import { useTRPC } from "@/lib/client";
 import { Button, Card, Loading, Screen } from "@/components/ui";
 import { rarities, type Rarity } from "@wiki-collection/db/enums";
 import { rarityLabels } from "@/lib/rarity";
-const sortOptions = [
-  ["acquired", "引いた順"],
-  ["monthlyPageviews", "閲覧数順"],
-  ["articleLength", "記事サイズ順"],
-] as const;
+
 export default function Collection() {
+  const t = useTranslation();
+  const sortOptions = [
+    ["acquired", t("sortAcquired")],
+    ["monthlyPageviews", t("sortViews")],
+    ["articleLength", t("sortLength")],
+  ] as const;
   const playSound = useGameSound();
   const trpc = useTRPC();
   const { width } = useWindowDimensions();
@@ -28,7 +31,7 @@ export default function Collection() {
     placeholderData: keepPreviousData,
   });
   return (
-    <Screen title="コレクション" contentStyle={{ gap: 0, paddingBottom: 24 }}>
+    <Screen title={t("collection")} contentStyle={{ gap: 0, paddingBottom: 24 }}>
       {!q.data ? (
         <Loading error={q.error} retry={q.refetch} />
       ) : (
@@ -43,7 +46,7 @@ export default function Collection() {
               {[undefined, ...rarities].map((r) => (
                 <Button
                   key={r ?? "all"}
-                  title={r ? rarityLabels[r] : "すべて"}
+                  title={r ? rarityLabels[r] : t("all")}
                   variant="chip"
                   style={{ backgroundColor: rarity === r ? "#1e293b" : "white" }}
                   textStyle={{ color: rarity === r ? "white" : "#64748b" }}
@@ -60,7 +63,7 @@ export default function Collection() {
             />
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="並び順"
+              accessibilityLabel={t("sortOrder")}
               onPress={() => setSortOpen(true)}
               style={{
                 flexDirection: "row",
@@ -88,11 +91,9 @@ export default function Collection() {
                 alignItems: "center",
               }}
             >
-              <Text style={{ fontSize: 14, lineHeight: 20, color: "#64748b" }}>
-                まだカードがありません。
-              </Text>
+              <Text style={{ fontSize: 14, lineHeight: 20, color: "#64748b" }}>{t("noCards")}</Text>
               <Button
-                title="パックを開けよう"
+                title={t("openFirstPack")}
                 variant="link"
                 onPress={() => router.push("/packs")}
                 style={{ marginTop: 8 }}
@@ -124,7 +125,7 @@ export default function Collection() {
                         color: "#d97706",
                       }}
                     >
-                      出品中{c.listedCount}
+                      {t("listedCount", { count: c.listedCount })}
                     </Text>
                   )}
                 </View>

@@ -1,3 +1,4 @@
+import { storagePrefix } from "./installation";
 import { createAuthClient } from "better-auth/react";
 import { expoClient } from "@better-auth/expo/client";
 import * as SecureStore from "expo-secure-store";
@@ -17,8 +18,20 @@ export const auth = createAuthClient({
   plugins: [
     expoClient({
       scheme: "wiki-collection",
-      storagePrefix: "wiki-collection",
-      storage: SecureStore,
+      storagePrefix,
+      // Keep session cookies off device backups as well as the installation secret.
+      storage: {
+        getItem: SecureStore.getItem,
+        getItemAsync: SecureStore.getItemAsync,
+        setItem: (key, value) =>
+          SecureStore.setItem(key, value, {
+            keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+          }),
+        setItemAsync: (key, value) =>
+          SecureStore.setItemAsync(key, value, {
+            keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+          }),
+      },
     }),
   ],
 });
@@ -26,7 +39,7 @@ export const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 15000 } },
 });
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
-const client = createTRPCClient<AppRouter>({
+export const client = createTRPCClient<AppRouter>({
   links: [
     httpBatchLink({
       url: `${apiUrl}/api/trpc`,

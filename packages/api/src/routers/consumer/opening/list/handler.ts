@@ -1,6 +1,7 @@
 import { card, pack, packOpening, userCard } from "@wiki-collection/db/schema/index";
 import { asc, desc, eq, inArray } from "drizzle-orm";
 
+import { compareRarity } from "../../../../shared/card/compare-rarity";
 import type { ProtectedContext } from "../../../../context";
 import type { OpeningListOutput } from "./route";
 
@@ -13,6 +14,7 @@ export async function handler({ ctx }: { ctx: ProtectedContext }): Promise<Openi
       payment: packOpening.payment,
       coinsSpent: packOpening.coinsSpent,
       packName: pack.name,
+      packSlug: pack.slug,
     })
     .from(packOpening)
     .innerJoin(pack, eq(pack.id, packOpening.packId))
@@ -27,7 +29,6 @@ export async function handler({ ctx }: { ctx: ProtectedContext }): Promise<Openi
       cardId: card.id,
       title: card.title,
       rarity: card.rarity,
-      isNew: userCard.isNewOnAcquire,
     })
     .from(userCard)
     .innerJoin(card, eq(card.id, userCard.cardId))
@@ -37,7 +38,7 @@ export async function handler({ ctx }: { ctx: ProtectedContext }): Promise<Openi
         openings.map((o) => o.id),
       ),
     )
-    .orderBy(asc(userCard.slot));
+    .orderBy(asc(userCard.id));
 
   return {
     openings: openings.map((o) => ({
@@ -47,9 +48,11 @@ export async function handler({ ctx }: { ctx: ProtectedContext }): Promise<Openi
       payment: o.payment,
       coinsSpent: o.coinsSpent,
       packName: o.packName,
+      packSlug: o.packSlug,
       cards: cards
         .filter((c) => c.openingId === o.id)
-        .map((c) => ({ cardId: c.cardId, title: c.title, rarity: c.rarity, isNew: c.isNew })),
+        .sort((a, b) => compareRarity(a.rarity, b.rarity))
+        .map((c) => ({ cardId: c.cardId, title: c.title, rarity: c.rarity })),
     })),
   };
 }

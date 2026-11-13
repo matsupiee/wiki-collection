@@ -7,7 +7,7 @@ import {
   packOpening,
   userCard,
 } from "@wiki-collection/db/schema/index";
-import { and, asc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { getCoinBalance } from "../../../../shared/coin/get-coin-balance";
 import { getFreePackStatus } from "../../../../shared/pack/get-free-pack-status";
@@ -19,6 +19,7 @@ import {
   createUserContext,
   grantCoins,
 } from "../../../../test/fixtures";
+import { handler as getOpening } from "../../opening/get/handler";
 import { handler } from "./handler";
 
 let db: Database;
@@ -42,26 +43,27 @@ describe("pack/open", () => {
     });
 
     const queued: string[][] = [];
-    const { openingId } = await handler({
+    const { openingId, newUserCardIds } = await handler({
       input: { packId: p.id },
       ctx: { ...ctx, cacheCommonImages: (ids) => queued.push(ids) },
     });
     expect(queued).toEqual([[common.id]]);
 
-    const cards = await db
-      .select()
-      .from(userCard)
-      .where(eq(userCard.packOpeningId, openingId))
-      .orderBy(asc(userCard.slot));
-    expect(cards.map((c) => c.cardId)).toEqual([
+    const { cards } = await getOpening({ ctx, input: { openingId } });
+    expect(cards.map((c) => c.card.id)).toEqual([
       common.id,
       common.id,
       common.id,
       common.id,
       legendary.id,
     ]);
-    // 同じパックの2枚目以降のコモンは NEW にしない
-    expect(cards.map((c) => c.isNewOnAcquire)).toEqual([true, false, false, false, true]);
+    expect(cards.map((c) => newUserCardIds.includes(c.userCardId))).toEqual([
+      true,
+      false,
+      false,
+      false,
+      true,
+    ]);
     const discoveries = await db
       .select()
       .from(cardDiscovery)
@@ -69,11 +71,17 @@ describe("pack/open", () => {
     expect(discoveries).toHaveLength(2);
 
     const second = await handler({ input: { packId: p.id }, ctx });
-    const secondCards = await db
-      .select()
-      .from(userCard)
-      .where(eq(userCard.packOpeningId, second.openingId));
-    expect(secondCards.every((c) => !c.isNewOnAcquire)).toBe(true);
+    expect(second.newUserCardIds).toEqual([]);
+  });
+
+  test("同時に開けた2パックで同じカードが初登場しても NEW は1枚だけ", async () => {
+    const ctx = await createUserContext(db);
+    const g = await createGenre(db);
+    await createCard(db, { genreId: g.id, rarity: "common" });
+    const p = await createPack(db, { genreId: g.id, type: "premium", priceCoins: 0 });
+    const open = () => handler({ ctx, input: { packId: p.id } });
+    const results = await Promise.all([open(), open()]);
+    expect(results.flatMap((result) => result.newUserCardIds)).toHaveLength(1);
   });
 
   test("同じレアリティの2枚は各枠で半分ずつの確率で選ばれる", async () => {
@@ -115,7 +123,12 @@ describe("pack/open", () => {
     await createCard(db, { genreId: g.id, rarity: "common" });
     const p = await createPack(db, { genreId: g.id });
 
-    for (let i = 0; i < 10; i++) await handler({ input: { packId: p.id }, ctx });
+    await handler({ input: { packId: p.id }, ctx });
+    expect(await getFreePackStatus(db, userId, new Date())).toMatchObject({
+      remaining: 9,
+      nextRefillAt: "2026-10-25T03:10:00.000Z",
+    });
+    for (let i = 1; i < 10; i++) await handler({ input: { packId: p.id }, ctx });
     const opened = await db.select().from(packOpening).where(eq(packOpening.userId, userId));
     expect(opened.filter((o) => o.payment === "free_daily")).toHaveLength(10);
     expect(opened.filter((o) => o.payment === "free_initial")).toHaveLength(0);
@@ -148,9 +161,7 @@ describe("pack/open", () => {
     const g = await createGenre(db);
     await createCard(db, { genreId: g.id, rarity: "common" });
     const p = await createPack(db, { genreId: g.id });
-    await db
-      .insert(freePackAllowance)
-      .values({ userId, initialRemaining: 20, fullAt: Date.now() + 85 * 60_000 });
+    await db.insert(freePackAllowance).values({ userId, fullAt: Date.now() + 85 * 60_000 });
     expect(await getFreePackStatus(db, userId, new Date())).toMatchObject({ remaining: 1 });
     const results = await Promise.allSettled([
       handler({ input: { packId: p.id }, ctx }),

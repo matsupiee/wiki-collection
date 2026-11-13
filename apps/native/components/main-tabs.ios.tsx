@@ -1,3 +1,4 @@
+import { locale, useTranslation } from "@/lib/i18n";
 import { useGameSound } from "@/lib/game-sounds";
 import { DynamicColorIOS } from "react-native";
 import { NativeTabs } from "expo-router/native-tabs";
@@ -12,9 +13,11 @@ const icons = {
 } as const;
 
 export default function MainTabs() {
+  const t = useTranslation();
   const playSound = useGameSound();
   return (
     <NativeTabs
+      key={locale}
       screenListeners={{ tabPress: () => playSound("tab") }}
       tintColor={DynamicColorIOS({ light: "#0369a1", dark: "#7dd3fc" })}
       labelStyle={{ color: DynamicColorIOS({ light: "#475569", dark: "#cbd5e1" }) }}
@@ -22,7 +25,7 @@ export default function MainTabs() {
       {tabs.map(([name, title]) => (
         <NativeTabs.Trigger key={name} name={`(${name})`} disableAutomaticContentInsets>
           <NativeTabs.Trigger.Icon sf={icons[name]} />
-          <NativeTabs.Trigger.Label>{title}</NativeTabs.Trigger.Label>
+          <NativeTabs.Trigger.Label>{t(title)}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>
       ))}
     </NativeTabs>

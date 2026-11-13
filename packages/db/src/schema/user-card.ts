@@ -30,9 +30,6 @@ export const userCard = sqliteTable(
       .references(() => card.id),
     status: text("status", { enum: userCardStatuses }).notNull().default("owned"),
     packOpeningId: text("pack_opening_id").references(() => packOpening.id),
-    // 開封演出でめくる順番。レアリティの低い順に並べてある
-    slot: integer("slot"),
-    isNewOnAcquire: integer("is_new_on_acquire", { mode: "boolean" }).notNull().default(false),
   },
   (table) => [
     index("user_card_user_status_card_idx").on(table.userId, table.status, table.cardId),

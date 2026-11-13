@@ -20,6 +20,5 @@
     "BETTER_AUTH_URL": "http://localhost:3001",
     // ローカル専用の値。本番の秘密鍵は Alchemy の BETTER_AUTH_SECRET から渡す
     "BETTER_AUTH_SECRET": "local-only-secret-not-for-production-0123456789",
-    "PAYMENT_MODE": "mock",
   },
 }

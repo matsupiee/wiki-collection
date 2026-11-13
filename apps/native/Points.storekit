@@ -1,0 +1,60 @@
+{
+  "identifier": "a7678d9c-f942-482f-8e50-ba17b9255de9",
+  "products": [
+    {
+      "displayPrice": "5",
+      "familyShareable": false,
+      "internalID": "1",
+      "localizations": [
+        {
+          "description": "500pt",
+          "displayName": "500pt",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "coins_500",
+      "referenceName": "500pt",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "10",
+      "familyShareable": false,
+      "internalID": "2",
+      "localizations": [
+        {
+          "description": "1000pt",
+          "displayName": "1,000pt",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "coins_1000",
+      "referenceName": "1000pt",
+      "type": "Consumable"
+    },
+    {
+      "displayPrice": "50",
+      "familyShareable": false,
+      "internalID": "3",
+      "localizations": [
+        {
+          "description": "5000pt",
+          "displayName": "5,000pt",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "coins_5000",
+      "referenceName": "5000pt",
+      "type": "Consumable"
+    }
+  ],
+  "settings": {
+    "_storefront": "USA",
+    "_locale": "en_US"
+  },
+  "subscriptionGroups": [],
+  "nonRenewingSubscriptions": [],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}

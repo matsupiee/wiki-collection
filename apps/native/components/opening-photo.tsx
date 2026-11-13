@@ -1,3 +1,4 @@
+import { useTranslation } from "@/lib/i18n";
 import { rarityLabels } from "@/lib/rarity";
 import type { Rarity } from "@wiki-collection/db/enums";
 import { Pressable } from "react-native";
@@ -37,6 +38,7 @@ export function OpeningPhoto({
   last: boolean;
   onTurn: () => void;
 }) {
+  const t = useTranslation();
   const size = Math.min(width * 0.69, height * 0.45);
   const offset = useSharedValue(0);
   const turning = useSharedValue(false);
@@ -105,7 +107,11 @@ export function OpeningPhoto({
             disabled={!active}
             accessible={active}
             accessibilityRole="button"
-            accessibilityLabel={`${card.title}、${rarityLabels[card.rarity]}、${last ? "開封結果を見る" : "めくる"}`}
+            accessibilityLabel={t("photoAction", {
+              title: card.title,
+              rarity: rarityLabels[card.rarity],
+              action: last ? t("seeResults") : t("flip"),
+            })}
             onPress={() => turn(-1)}
           >
             <CardArt card={card} />

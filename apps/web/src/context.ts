@@ -17,8 +17,7 @@ export async function createContext({ req }: { req: Request }): Promise<ApiConte
     db,
     session,
     cacheCommonImages: (ids) => waitUntil(cacheCommonImages(db, ids, ENV.CARD_IMAGES, ENV.IMAGES)),
-    // 決済サービスとの連携ができるまでは、ローカル開発（wrangler.local.jsonc で mock を指定）でだけ購入できる
-    paymentMode: (ENV as { PAYMENT_MODE?: string }).PAYMENT_MODE === "mock" ? "mock" : "disabled",
+    localDevelopment: import.meta.env.DEV && new URL(ENV.BETTER_AUTH_URL).hostname === "localhost",
   };
 }
 

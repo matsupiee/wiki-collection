@@ -79,6 +79,38 @@ describe("market/bid", () => {
     expect(listing).toMatchObject({ currentPrice: 110, bidCount: 2 });
   });
 
+  test("延長の境界と再延長、残高不足、締切時刻", async () => {
+    const start = new Date("2026-11-14T00:00:00Z").getTime();
+    setSystemTime(new Date(start));
+    const { listingId } = await setupAuction();
+    const end = start + 24 * 3_600_000;
+    const a = await createUserContext(db);
+    const b = await createUserContext(db);
+    await grantCoins(db, a.session.user.id, 200);
+    const deadline = async () => {
+      const [row] = await db.select().from(marketListing).where(eq(marketListing.id, listingId));
+      return row!.endsAt!.getTime();
+    };
+    setSystemTime(new Date(end - 10_001));
+    await handler({ input: { listingId, amount: 100 }, ctx: a });
+    expect(await deadline()).toBe(end);
+    setSystemTime(new Date(end - 10_000));
+    await expect(handler({ input: { listingId, amount: 110 }, ctx: b })).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+    });
+    expect(await deadline()).toBe(end);
+    await grantCoins(db, b.session.user.id, 200);
+    await handler({ input: { listingId, amount: 110 }, ctx: b });
+    expect(await deadline()).toBe(end + 50_000);
+    setSystemTime(new Date(end + 49_999));
+    await handler({ input: { listingId, amount: 120 }, ctx: a });
+    expect(await deadline()).toBe(end + 109_999);
+    setSystemTime(new Date(end + 109_999));
+    await expect(handler({ input: { listingId, amount: 130 }, ctx: b })).rejects.toMatchObject({
+      code: "PRECONDITION_FAILED",
+    });
+  });
+
   test.each([
     [10, 20],
     [990, 1000],

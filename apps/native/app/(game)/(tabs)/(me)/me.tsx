@@ -1,29 +1,36 @@
+import { useTranslation } from "@/lib/i18n";
 import { Text } from "@/components/typography";
 
-import { Pressable, View } from "react-native";
+import { AppleAccount } from "@/components/apple-account";
+import { Alert, Pressable, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
 import { router } from "expo-router";
-import { auth, queryClient } from "@/lib/client";
+import { auth } from "@/lib/client";
 import { useAction } from "@/lib/mutation";
 import { Button, Panel, Screen, styles } from "@/components/ui";
 import { openLegalPage, type LegalPath } from "@/lib/legal-browser";
-const menu = [
-  ["/me/trades", "出品・入札の管理"],
-  ["/me/wallet", "pt の履歴"],
-  ["/me/openings", "開封履歴"],
-  ["/legal/terms", "利用規約"],
-  ["/legal/privacy", "プライバシーポリシー"],
-  ["/legal/tokushoho", "特定商取引法に基づく表記"],
-  ["/legal/payment-services", "資金決済法に基づく表示"],
-] as const;
+
 export default function Me() {
+  const t = useTranslation();
+  const menu = [
+    ["/me/inquiries", t("inquiries")],
+    ["/me/notifications", t("notifications")],
+    ["/me/trades", t("manageTrades")],
+    ["/me/wallet", t("pointHistory")],
+    ["/me/openings", t("openingHistory")],
+    ["/me/language", t("language")],
+    ["/legal/terms", t("terms")],
+    ["/legal/privacy", t("privacy")],
+    ["/legal/tokushoho", t("commercialDisclosure")],
+    ["/legal/payment-services", t("paymentDisclosure")],
+  ] as const;
   const session = auth.useSession();
   const action = useAction();
   return (
-    <Screen title="マイページ">
-      <Panel style={{ padding: 20, gap: 0 }}>
+    <Screen title={t("profile")}>
+      <Panel style={{ padding: 20, gap: 8 }}>
         <Text style={[styles.title, { fontWeight: "900" }]}>{session.data?.user.name}</Text>
-        <Text style={[styles.muted, { lineHeight: 16 }]}>{session.data?.user.email}</Text>
+        {session.data && <AppleAccount userId={session.data.user.id} />}
       </Panel>
       <View
         style={{
@@ -40,7 +47,15 @@ export default function Me() {
             onPress={() =>
               url.startsWith("/legal/")
                 ? void action.run(() => openLegalPage(url as LegalPath))
-                : router.push(url as "/me/trades" | "/me/wallet" | "/me/openings")
+                : router.push(
+                    url as
+                      | "/me/inquiries"
+                      | "/me/notifications"
+                      | "/me/trades"
+                      | "/me/wallet"
+                      | "/me/openings"
+                      | "/me/language",
+                  )
             }
             style={{
               flexDirection: "row",
@@ -60,18 +75,25 @@ export default function Me() {
         ))}
       </View>
       <Button
-        title="ログアウト"
+        title={t("deleteAccount")}
         variant="link"
-        style={{ marginTop: 8 }}
-        textStyle={{ color: "#f43f5e" }}
         disabled={action.pending}
         onPress={() =>
-          void action.run(async () => {
-            const result = await auth.signOut();
-            if (result.error) throw new Error();
-            queryClient.clear();
-            router.replace("/login");
-          })
+          Alert.alert(t("deleteAccount"), t("deleteExplanation"), [
+            { text: t("cancel"), style: "cancel" },
+            {
+              text: t("requestDelete"),
+              style: "destructive",
+              onPress: () =>
+                void action.run(async () => {
+                  const result = await auth.$fetch("/installation/request-deletion", {
+                    method: "POST",
+                  });
+                  if (result.error) throw result.error;
+                  Alert.alert(t("deletionRequested"));
+                }),
+            },
+          ])
         }
       />
       {!!action.error && <Text accessibilityRole="alert">{action.error}</Text>}
