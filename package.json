@@ -34,6 +34,7 @@
     "dev:local": "bun run --cwd apps/web dev:local",
     "test": "bun run --cwd packages/auth test && bun run --cwd packages/api test && bun run --cwd packages/wiki-import test && bun run --cwd apps/web test && bun run --cwd apps/native test",
     "dev:native": "bun run --cwd apps/native start",
+    "release:ios": "cd apps/native && npx --yes eas-cli@latest build --platform ios --profile production --auto-submit",
     "dev:native:web": "bun run --cwd apps/native web",
     "test:native:e2e": "playwright test --config playwright.native.config.ts",
     "wiki:dump": "bun packages/wiki-import/src/dump-cli.ts",
