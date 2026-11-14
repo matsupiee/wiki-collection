@@ -39,7 +39,7 @@ test("一覧はログインユーザーのみ。閲覧だけでは付与せず�
   await giveCard(db, ctx.session.user.id, c.id);
   const api = appRouter.createCaller(ctx);
   const before = await api.quest.list();
-  expect(before.quests).toHaveLength(15);
+  expect(before.quests).toHaveLength(17);
   expect(before.quests.every((q) => q.progress === 0 && q.completedAt === null)).toBe(true);
   expect((await getCoinBalance(db, ctx.session.user.id)).total).toBe(0);
   await expect(
@@ -120,18 +120,18 @@ test("R・SR・レジェンドはそれぞれ初獲得のみで、上位レア�
   }
 });
 
-test("500開封・1000種類・25ジャンルの全段階を付与し、再実行しても増えない", async () => {
+test("1000開封・2500種類・25ジャンルの全段階を付与し、再実行しても増えない", async () => {
   const ctx = await createUserContext(db);
-  await seedQuestHistory(db, ctx.session.user.id, { openings: 500, cards: 1000, genres: 25 });
+  await seedQuestHistory(db, ctx.session.user.id, { openings: 1000, cards: 2500, genres: 25 });
   const before = await listQuests(db, ctx.session.user.id);
-  expect(before.filter((q) => q.progress === q.target)).toHaveLength(12);
+  expect(before.filter((q) => q.progress === q.target)).toHaveLength(14);
   await grant(ctx.session.user.id);
-  expect((await getCoinBalance(db, ctx.session.user.id)).total).toBe(480);
+  expect((await getCoinBalance(db, ctx.session.user.id)).total).toBe(980);
   const entries = await db
     .select()
     .from(coinDeposit)
     .where(eq(coinDeposit.userId, ctx.session.user.id));
-  expect(entries).toHaveLength(12);
+  expect(entries).toHaveLength(14);
   for (const q of questDefinitions.filter((q) => q.group !== "rare")) {
     expect(entries.find((e) => e.note === q.id)?.amount).toBe(q.reward);
   }
@@ -139,7 +139,7 @@ test("500開封・1000種類・25ジャンルの全段階を付与し、再実�
   expect(
     await db.select().from(coinDeposit).where(eq(coinDeposit.userId, ctx.session.user.id)),
   ).toEqual(entries);
-  expect(questDefinitions.reduce((sum, q) => sum + q.reward, 0)).toBe(555);
+  expect(questDefinitions.reduce((sum, q) => sum + q.reward, 0)).toBe(1055);
 }, 60000);
 
 test("報酬の入金失敗時には開封・達成・カード・無料枠を戻し、再試行で正常付与する", async () => {

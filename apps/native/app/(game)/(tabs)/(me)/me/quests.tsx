@@ -32,7 +32,7 @@ export default function Quests() {
               >
                 <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 12 }}>
                   <Text style={{ flex: 1, color: "#1e293b", fontWeight: "700" }}>
-                    {questTitle(quest.group)}
+                    {questTitle(quest.group, quest.target, quest.metric)}
                   </Text>
                   <Text style={{ color: "#047857", fontWeight: "700" }}>
                     +{formatPt(quest.reward)}

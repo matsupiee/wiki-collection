@@ -2,7 +2,7 @@
 
 ## 構成
 
-`packages/db/src/quests/definitions.ts` に15段階を定義する。アプリはAPIから条件・進捗を取得する。クエスト定義や進捗カウンターのテーブルは作らない。
+`packages/db/src/quests/definitions.ts` に17段階を定義する。アプリはAPIから条件・進捗を取得する。クエスト定義や進捗カウンターのテーブルは作らない。
 
 `prepareQuestRewards` の条件付きinsertを開封保存のbatchに含める。SQLの集計はbatch実行時に行い、処理前に読んだ古い進捗で判定しない。達成の `(user_id, quest_key)` と入金の `quest_completion_id` のunique制約で二重付与を防ぐ。支払いを先に実行するため、今回もらう報酬を開封前の不足分に使うことはできない。
 

@@ -5,6 +5,7 @@ export const questDefinitions = [
     [50, 20],
     [100, 30],
     [500, 100],
+    [1000, 200],
   ].map(([target, reward]) => ({
     id: `packs_${target}`,
     group: "packs",
@@ -17,6 +18,7 @@ export const questDefinitions = [
     [100, 20],
     [250, 50],
     [1000, 150],
+    [2500, 300],
   ].map(([target, reward]) => ({
     id: `cards_${target}`,
     group: "cards",

@@ -216,11 +216,6 @@ export default function Packs() {
           )}
           {p && (
             <View style={{ marginTop: "auto", paddingTop: 20, gap: 8 }}>
-              {freePack && !freePack.nextRefillAt && (
-                <Text style={[styles.muted, { textAlign: "center" }]}>
-                  {t("refillLimit", { limit: freePack.limit })}
-                </Text>
-              )}
               <Button
                 title={
                   waitingForRefill && freePack.nextRefillAt
