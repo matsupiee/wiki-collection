@@ -2,35 +2,48 @@ appId: com.matsupiee.wikicollection
 ---
 # iPhone 17e, portrait. Seed/login prerequisites match opening-juice.yaml.
 - stopApp
-- openLink: wiki-collection://openings/opening-juice-all-rarities
+- openLink: "wiki-collection://openings/${typeof OPENING_PREFIX === 'undefined' ? 'opening-juice' : OPENING_PREFIX}-all-rarities"
 - tapOn:
+    waitToSettleTimeoutMs: 1000
     text: "開く"
     optional: true
-- tapOn: "パックを選ぶ"
+- tapOn:
+    text: "パックを選ぶ"
+    waitToSettleTimeoutMs: 1000
 - assertVisible: "封を切る"
 - tapOn:
+    waitToSettleTimeoutMs: 1000
     point: "50%,56%"
 - assertVisible: "封を切る"
 - swipe:
+    waitToSettleTimeoutMs: 1000
     start: "50%,56%"
     end: "54%,56%"
     duration: 450
 - assertVisible: "封を切る"
 - swipe:
+    waitToSettleTimeoutMs: 1000
     start: "50%,56%"
     end: "53%,68%"
     duration: 600
 - assertVisible: "封を切る"
 - swipe:
+    waitToSettleTimeoutMs: 1000
     start: "50%,56%"
     end: "67%,58%"
     duration: 800
 - extendedWaitUntil:
     visible: ".*、C、めくる"
     timeout: 12000
-- tapOn: "スキップ"
+- tapOn:
+    text: "スキップ"
+    waitToSettleTimeoutMs: 1000
 - assertVisible: "開封結果"
-- tapOn: "もう1パック"
+- tapOn:
+    text: "もう1パック"
+    waitToSettleTimeoutMs: 1000
 - assertVisible: "パックを選ぶ"
-- tapOn: "スキップ"
+- tapOn:
+    text: "スキップ"
+    waitToSettleTimeoutMs: 1000
 - assertVisible: "開封結果"

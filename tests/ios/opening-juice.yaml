@@ -1,17 +1,23 @@
 appId: com.matsupiee.wikicollection
 ---
-# Run bun packages/db/src/seed/opening-juice-cli.ts and sign in as opening-juice1@example.com.
+# Seed the current guest and pass the printed OPENING_PREFIX with maestro -e.
 - stopApp
-- openLink: wiki-collection://openings/opening-juice-all-rarities
+- openLink: "wiki-collection://openings/${typeof OPENING_PREFIX === 'undefined' ? 'opening-juice' : OPENING_PREFIX}-all-rarities"
 - tapOn:
+    waitToSettleTimeoutMs: 1000
     text: "開く"
     optional: true
 - extendedWaitUntil:
     visible: "パックを選ぶ"
     timeout: 15000
-- tapOn: "パックを選ぶ"
+- takeScreenshot: test-results/ios/opening-pack
+- tapOn:
+    text: "パックを選ぶ"
+    waitToSettleTimeoutMs: 1000
 - assertVisible: "封を切る"
+- takeScreenshot: test-results/ios/opening-seal
 - swipe:
+    waitToSettleTimeoutMs: 1000
     start: "52%,55%"
     end: "33%,54%"
     duration: 650
@@ -19,34 +25,54 @@ appId: com.matsupiee.wikicollection
     visible: ".*、C、めくる"
     timeout: 12000
 - assertNotVisible: ".*、R、めくる"
+- takeScreenshot: test-results/ios/opening-first-card
 - swipe:
+    waitToSettleTimeoutMs: 1000
     start: "55%,47%"
     end: "61%,47%"
     duration: 500
 - assertVisible: ".*、C、めくる"
 - swipe:
+    waitToSettleTimeoutMs: 1000
     start: "70%,47%"
     end: "28%,47%"
     duration: 500
 - assertVisible: ".*、R、めくる"
-- tapOn: "写真の詳細を見る"
+- tapOn:
+    text: "写真の詳細を見る"
+    waitToSettleTimeoutMs: 1000
 - assertVisible: "2 / 2"
-- tapOn: "前のカード詳細"
+- takeScreenshot: test-results/ios/opening-inspection
+- tapOn:
+    text: "前のカード詳細"
+    waitToSettleTimeoutMs: 1000
 - assertVisible: "1 / 2"
-- tapOn: "カードを閉じる"
-- tapOn: ".*、R、めくる"
-- tapOn: ".*、R、めくる"
-- tapOn: ".*、SR、めくる"
+- tapOn:
+    text: "カードを閉じる"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    text: ".*、R、めくる"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    text: ".*、R、めくる"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    text: ".*、SR、めくる"
+    waitToSettleTimeoutMs: 1000
 - assertVisible: ".*、レジェンド、開封結果を見る"
 - swipe:
+    waitToSettleTimeoutMs: 1000
     start: "70%,47%"
     end: "28%,47%"
     duration: 500
 - assertVisible: "開封結果"
-- openLink: wiki-collection://openings/opening-juice-skip
+- openLink: "wiki-collection://openings/${typeof OPENING_PREFIX === 'undefined' ? 'opening-juice' : OPENING_PREFIX}-skip"
 - tapOn:
+    waitToSettleTimeoutMs: 1000
     text: "開く"
     optional: true
 - assertVisible: "パックを選ぶ"
-- tapOn: "スキップ"
+- tapOn:
+    text: "スキップ"
+    waitToSettleTimeoutMs: 1000
 - assertVisible: "開封結果"

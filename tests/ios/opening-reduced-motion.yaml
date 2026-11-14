@@ -1,0 +1,45 @@
+appId: com.matsupiee.wikicollection
+---
+# Enable iOS Reduce Motion first. Seed the current guest and pass OPENING_PREFIX.
+- stopApp
+- openLink: "wiki-collection://openings/${typeof OPENING_PREFIX === 'undefined' ? 'opening-juice' : OPENING_PREFIX}-reduced"
+- extendedWaitUntil:
+    visible: "パックを選ぶ"
+    timeout: 15000
+- takeScreenshot: test-results/ios/opening-reduced-pack
+- tapOn:
+    text: "パックを選ぶ"
+    waitToSettleTimeoutMs: 1000
+- assertVisible: "封を切る"
+- swipe:
+    start: "50%,56%"
+    end: "70%,56%"
+    duration: 650
+    waitToSettleTimeoutMs: 1000
+- assertVisible: ".*、C、めくる"
+- takeScreenshot: test-results/ios/opening-reduced-card
+- tapOn:
+    text: "写真の詳細を見る"
+    waitToSettleTimeoutMs: 1000
+- assertVisible: "1 / 1"
+- takeScreenshot: test-results/ios/opening-reduced-inspection
+- tapOn:
+    text: "カードを閉じる"
+    waitToSettleTimeoutMs: 1000
+- assertVisible: ".*、C、めくる"
+- tapOn:
+    text: ".*、C、めくる"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    text: ".*、R、めくる"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    text: ".*、R、めくる"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    text: ".*、SR、めくる"
+    waitToSettleTimeoutMs: 1000
+- tapOn:
+    text: ".*、レジェンド、開封結果を見る"
+    waitToSettleTimeoutMs: 1000
+- assertVisible: "開封結果"

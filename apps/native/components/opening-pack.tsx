@@ -8,6 +8,7 @@ import Svg, {
   Ellipse,
   RadialGradient,
   LinearGradient,
+  Mask,
   Path,
   Pattern,
   Rect,
@@ -44,7 +45,15 @@ const foilPalettes = {
   },
 };
 
-export function OpeningPack({ width, slug }: { width: number; slug: string }) {
+export function OpeningPack({
+  width,
+  slug,
+  reflection = false,
+}: {
+  width: number;
+  slug: string;
+  reflection?: boolean;
+}) {
   const foil =
     slug === "legend-guaranteed"
       ? foilPalettes.gold
@@ -56,6 +65,21 @@ export function OpeningPack({ width, slug }: { width: number; slug: string }) {
     <View style={{ width, height: width * OPENING_PACK_RATIO }}>
       <Svg width="100%" height="100%" viewBox="0 0 250 430">
         <Defs>
+          <LinearGradient id={`${id}reflectionFade`} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="white" stopOpacity="0.85" />
+            <Stop offset="0.25" stopColor="white" stopOpacity="0.35" />
+            <Stop offset="0.54" stopColor="white" stopOpacity="0" />
+          </LinearGradient>
+          <Mask
+            id={`${id}reflectionMask`}
+            x="0"
+            y="0"
+            width="250"
+            height="430"
+            maskUnits="userSpaceOnUse"
+          >
+            <Rect width="250" height="430" fill={`url(#${id}reflectionFade)`} />
+          </Mask>
           <LinearGradient id={`${id}ink`} x1="0" y1="0" x2="1" y2="0">
             <Stop offset="0" stopColor="#292c32" />
             <Stop offset="0.32" stopColor="#4b4f57" />
@@ -149,119 +173,133 @@ export function OpeningPack({ width, slug }: { width: number; slug: string }) {
             <Path d="M3 18 Q125 26 247 18 L245 411 Q125 418 5 411 Z" />
           </ClipPath>
         </Defs>
-        <G clipPath={`url(#${id}clip)`}>
-          <Rect x="3" y="16" width="244" height="400" fill={`url(#${id}body)`} />
-          <Path d="M6 268 246 320 246 404 4 404Z" fill={`url(#${id}print)`} />
-          <Rect x="3" y="23" width="244" height="384" fill={`url(#${id}creases)`} />
-          <Rect x="3" y="23" width="244" height="377" fill={`url(#${id}facet)`} />
-          <Ellipse cx="140" cy="27" rx="160" ry="52" fill={`url(#${id}seamLight)`} />
-          <Path
-            d="M18 35 45 44 32 80 65 57 M208 42 228 32 218 95 201 112 M13 136 35 153 43 133 M185 150 211 132 221 97 M35 224 21 246 35 270 M198 240 217 222 230 250 M22 320 13 357 20 391 M231 333 224 372 235 400"
-            fill="none"
-            stroke="#9098a5"
-            strokeOpacity="0.055"
-            strokeWidth="2.2"
-          />
-          <Path
-            d="M52 78 69 56 M202 114 215 99 M43 132 51 147 M211 223 220 210 M41 233 26 249 M37 98 43 124 M173 268 204 242"
-            fill="none"
-            stroke="#000"
-            strokeOpacity="0.12"
-            strokeWidth="2"
-          />
-          <Rect x="3" y="20" width="244" height="392" fill={`url(#${id}rim)`} />
-          <Path d="M6 268 246 320 246 404 4 404Z" fill={`url(#${id}print)`} opacity="0.62" />
-          <G transform="translate(0 18)">
-            <Path
-              d="M116 49 120 62 125 52 130 62 134 49 M118 49 122 49 125 57 128 49 132 49"
-              fill="none"
-              stroke={foil.foil}
-              strokeWidth="1.7"
-            />
-            <Path d="M85 73 169 73 162 86 78 86Z" fill={foil.foil} />
-            <Text
-              x="124"
-              y="82"
-              textAnchor="middle"
-              fill={foil.glint}
-              fontSize="7"
-              fontWeight="800"
-              letterSpacing="1.3"
-            >
-              COLLECTION
-            </Text>
+        <G mask={reflection ? `url(#${id}reflectionMask)` : undefined}>
+          <G transform={reflection ? "translate(0 430) scale(1 -1)" : undefined}>
+            <G clipPath={`url(#${id}clip)`}>
+              <Rect x="3" y="16" width="244" height="400" fill={`url(#${id}body)`} />
+              <Path d="M6 268 246 320 246 404 4 404Z" fill={`url(#${id}print)`} />
+              <Rect x="3" y="23" width="244" height="384" fill={`url(#${id}creases)`} />
+              <Rect x="3" y="23" width="244" height="377" fill={`url(#${id}facet)`} />
+              <Ellipse cx="140" cy="27" rx="160" ry="52" fill={`url(#${id}seamLight)`} />
+              <Path
+                d="M18 35 45 44 32 80 65 57 M208 42 228 32 218 95 201 112 M13 136 35 153 43 133 M185 150 211 132 221 97 M35 224 21 246 35 270 M198 240 217 222 230 250 M22 320 13 357 20 391 M231 333 224 372 235 400"
+                fill="none"
+                stroke="#9098a5"
+                strokeOpacity="0.055"
+                strokeWidth="2.2"
+              />
+              <Path
+                d="M52 78 69 56 M202 114 215 99 M43 132 51 147 M211 223 220 210 M41 233 26 249 M37 98 43 124 M173 268 204 242"
+                fill="none"
+                stroke="#000"
+                strokeOpacity="0.12"
+                strokeWidth="2"
+              />
+              <Rect x="3" y="20" width="244" height="392" fill={`url(#${id}rim)`} />
+              <Path d="M6 268 246 320 246 404 4 404Z" fill={`url(#${id}print)`} opacity="0.62" />
+              <G transform="translate(0 18)">
+                <Path
+                  d="M116 49 120 62 125 52 130 62 134 49 M118 49 122 49 125 57 128 49 132 49"
+                  fill="none"
+                  stroke={foil.foil}
+                  strokeWidth="1.7"
+                />
+                <Path d="M85 73 169 73 162 86 78 86Z" fill={foil.foil} />
+                <Text
+                  x="124"
+                  y="82"
+                  textAnchor="middle"
+                  fill={foil.glint}
+                  fontSize="7"
+                  fontWeight="800"
+                  letterSpacing="1.3"
+                >
+                  COLLECTION
+                </Text>
+              </G>
+              <Text
+                x="125"
+                y="213"
+                textAnchor="middle"
+                fontFamily="Helvetica Neue"
+                fill={`url(#${id}ink)`}
+                fontSize="20"
+                fontWeight="800"
+                letterSpacing="3.1"
+              >
+                WIKI COLLECTION
+              </Text>
+              <G transform="translate(127 291) scale(1.05) translate(-125 -302)">
+                <Circle
+                  cx="125"
+                  cy="302"
+                  r="45"
+                  fill="#171b23"
+                  stroke="#c4c6c9"
+                  strokeWidth="2.4"
+                />
+                <Path
+                  d="M81 302 A44 44 0 0 1 169 302 L169 310 81 292Z"
+                  fill={`url(#${id}emblem)`}
+                />
+                <Circle
+                  cx="125"
+                  cy="302"
+                  r="43.2"
+                  fill="none"
+                  stroke={foil.glint}
+                  strokeOpacity="0.38"
+                />
+                <Circle cx="125" cy="302" r="20" fill="#171b23" stroke="#dce0e6" strokeWidth="2" />
+                <Path
+                  d="M125 292 Q118 287 112 291 L112 311 Q119 307 125 312 Q131 307 138 311 L138 291 Q132 287 125 292 V312"
+                  fill="#d6dce5"
+                  stroke="#171b23"
+                  strokeWidth="1.5"
+                />
+              </G>
+              <Text
+                x="125"
+                y="376"
+                textAnchor="middle"
+                fontFamily="Helvetica Neue"
+                fill={foil.shadow}
+                fontSize="10.3"
+                fontWeight="900"
+                letterSpacing="3.7"
+              >
+                STARTER PACK
+              </Text>
+            </G>
+            <Rect x="6" y="385" width="239" height="18" fill={`url(#${id}crimpShadow)`} />
+            {[
+              { y: 1, h: 30, top: true },
+              { y: 397, h: 30, top: false },
+            ].map(({ y, h, top }) => (
+              <G key={y}>
+                <Path
+                  d={`M2 ${y + 2} Q125 ${y - 2} 248 ${y + 2} L247 ${y + h} Q125 ${y + h + 4} 3 ${y + h}Z`}
+                  fill={`url(#${id}${top ? "seal" : "bottomSeal"})`}
+                />
+                <Rect
+                  x="4"
+                  y={y + 2}
+                  width="242"
+                  height={h - 2}
+                  opacity={top ? 1 : 0.48}
+                  fill={`url(#${id}ribs)`}
+                />
+                <Path
+                  d={`M4 ${y + h} Q125 ${y + h + 4} 246 ${y + h}`}
+                  stroke={top ? foil.shine : foil.mid}
+                  strokeWidth="1.3"
+                  fill="none"
+                />
+              </G>
+            ))}
+            <Ellipse cx="155" cy="32" rx="71" ry="16" fill={`url(#${id}heat)`} />
           </G>
-          <Text
-            x="125"
-            y="213"
-            textAnchor="middle"
-            fontFamily="Helvetica Neue"
-            fill={`url(#${id}ink)`}
-            fontSize="20"
-            fontWeight="800"
-            letterSpacing="3.1"
-          >
-            WIKI COLLECTION
-          </Text>
-          <G transform="translate(127 291) scale(1.05) translate(-125 -302)">
-            <Circle cx="125" cy="302" r="45" fill="#171b23" stroke="#c4c6c9" strokeWidth="2.4" />
-            <Path d="M81 302 A44 44 0 0 1 169 302 L169 310 81 292Z" fill={`url(#${id}emblem)`} />
-            <Circle
-              cx="125"
-              cy="302"
-              r="43.2"
-              fill="none"
-              stroke={foil.glint}
-              strokeOpacity="0.38"
-            />
-            <Circle cx="125" cy="302" r="20" fill="#171b23" stroke="#dce0e6" strokeWidth="2" />
-            <Path
-              d="M125 292 Q118 287 112 291 L112 311 Q119 307 125 312 Q131 307 138 311 L138 291 Q132 287 125 292 V312"
-              fill="#d6dce5"
-              stroke="#171b23"
-              strokeWidth="1.5"
-            />
-          </G>
-          <Text
-            x="125"
-            y="376"
-            textAnchor="middle"
-            fontFamily="Helvetica Neue"
-            fill={foil.shadow}
-            fontSize="10.3"
-            fontWeight="900"
-            letterSpacing="3.7"
-          >
-            STARTER PACK
-          </Text>
         </G>
-        <Rect x="6" y="385" width="239" height="18" fill={`url(#${id}crimpShadow)`} />
-        {[
-          { y: 1, h: 30, top: true },
-          { y: 397, h: 30, top: false },
-        ].map(({ y, h, top }) => (
-          <G key={y}>
-            <Path
-              d={`M2 ${y + 2} Q125 ${y - 2} 248 ${y + 2} L247 ${y + h} Q125 ${y + h + 4} 3 ${y + h}Z`}
-              fill={`url(#${id}${top ? "seal" : "bottomSeal"})`}
-            />
-            <Rect
-              x="4"
-              y={y + 2}
-              width="242"
-              height={h - 2}
-              opacity={top ? 1 : 0.48}
-              fill={`url(#${id}ribs)`}
-            />
-            <Path
-              d={`M4 ${y + h} Q125 ${y + h + 4} 246 ${y + h}`}
-              stroke={top ? foil.shine : foil.mid}
-              strokeWidth="1.3"
-              fill="none"
-            />
-          </G>
-        ))}
-        <Ellipse cx="155" cy="32" rx="71" ry="16" fill={`url(#${id}heat)`} />
       </Svg>
     </View>
   );

@@ -2,6 +2,7 @@ import { useTranslation, locale } from "@/lib/i18n";
 import { rarityLabels } from "@/lib/rarity";
 import type { Rarity } from "@wiki-collection/db/enums";
 import { useEffect } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Pressable, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
@@ -42,6 +43,7 @@ export function OpeningInspection({
   close,
 }: InspectionProps) {
   const t = useTranslation();
+  const insets = useSafeAreaInsets();
   const zoom = useSharedValue(0);
   const cardWidth = Math.min(width * 0.656, height * 0.43);
   useEffect(() => {
@@ -61,14 +63,14 @@ export function OpeningInspection({
       style={[StyleSheet.absoluteFill, { zIndex: 20 }]}
     >
       <Animated.View style={[StyleSheet.absoluteFill, backdrop]}>
-        <LinearGradient colors={["#25282d", "#191a1c"]} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={["#e5f1fa", "#b7d0e4"]} style={StyleSheet.absoluteFill} />
       </Animated.View>
       <Pressable accessible={false} onPress={close} style={StyleSheet.absoluteFill} />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t("closeCard")}
         onPress={close}
-        style={[styles.back, { top: height * 0.05 }]}
+        style={[styles.back, { top: insets.top + 8 }]}
       >
         <Text style={styles.arrow}>‹</Text>
       </Pressable>
@@ -80,7 +82,7 @@ export function OpeningInspection({
             left: (width - cardWidth) / 2,
             top: height * 0.38 - cardWidth / 2,
             width: cardWidth,
-            boxShadow: "0 10px 22px #0008",
+            boxShadow: "0 10px 22px #315c7833",
           },
           cardStyle,
         ]}
@@ -154,23 +156,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 2,
   },
-  arrow: { color: "#d9dadc", fontSize: 24 },
+  arrow: { color: "#294b64", fontSize: 24 },
   pager: { flexDirection: "row", alignItems: "center" },
-  count: { color: "#b8bbc0", fontSize: 12 },
+  count: { color: "#425f76", fontSize: 12 },
   nav: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   title: {
-    color: "#f3f4f8",
+    color: "#203e56",
     fontSize: 16,
     fontWeight: "800",
     paddingHorizontal: 24,
     textAlign: "center",
   },
   caption: {
-    color: "#b8bbc0",
+    color: "#425f76",
     fontSize: 12,
     textAlign: "center",
     paddingHorizontal: 24,
     marginTop: 4,
   },
-  newLabel: { color: "#ffc677", fontSize: 10, letterSpacing: 2, marginTop: 4 },
+  newLabel: { color: "#8d4910", fontSize: 10, letterSpacing: 2, marginTop: 4 },
 });

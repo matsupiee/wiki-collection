@@ -1,0 +1,32 @@
+appId: com.matsupiee.wikicollection
+---
+# Run with Reduce Motion disabled and pass the guest fixture OPENING_PREFIX.
+- stopApp
+- openLink: "wiki-collection://openings/${typeof OPENING_PREFIX === 'undefined' ? 'opening-juice' : OPENING_PREFIX}-trace"
+- assertVisible: パックを選ぶ
+- swipe:
+    start: 50%,47%
+    end: 75%,47%
+    duration: 200
+    waitToSettleTimeoutMs: 0
+- takeScreenshot: test-results/ios/opening-first-flick
+- assertVisible: パックを選ぶ
+- swipe:
+    start: 60%,47%
+    end: 35%,47%
+    duration: 200
+    waitToSettleTimeoutMs: 0
+- assertVisible: パックを選ぶ
+- takeScreenshot: test-results/ios/opening-carousel-settled
+- tapOn:
+    point: 95%,50%
+    waitToSettleTimeoutMs: 1000
+- assertVisible: 封を切る
+- takeScreenshot: test-results/ios/opening-right-picked
+- openLink: "wiki-collection://openings/${typeof OPENING_PREFIX === 'undefined' ? 'opening-juice' : OPENING_PREFIX}-reference"
+- assertVisible: パックを選ぶ
+- tapOn:
+    point: 5%,50%
+    waitToSettleTimeoutMs: 1000
+- assertVisible: 封を切る
+- takeScreenshot: test-results/ios/opening-left-picked

@@ -181,14 +181,11 @@ test("2人でオークション出品・入札・ポイント購入", async ({ b
   await expect(
     seller.getByRole("button", { name: "入札があるため取り下げられません", exact: true }),
   ).toBeDisabled();
-  await buyer.goto("http://localhost:8082/point");
+  await buyer.getByRole("button", { name: "ポイント購入", exact: true }).click();
+  await expect(buyer).toHaveURL(/\/point$/);
+  // 法定表記はマイページに集約し、購入画面には重複して置かない。
   for (const label of ["特定商取引法に基づく表記", "資金決済法に基づく表示"]) {
-    const popupPromise = buyer.waitForEvent("popup");
-    await buyer.getByRole("button", { name: label, exact: true }).click();
-    const popup = await popupPromise;
-    await expect(popup.getByRole("heading", { name: label, exact: true })).toBeVisible();
-    await popup.close();
-    await expect(buyer).toHaveURL(/\/point$/);
+    await expect(buyer.getByRole("button", { name: label, exact: true })).toHaveCount(0);
   }
   const product = buyer.getByRole("button", { name: /500pt/ }).first();
   await expect(product).toBeEnabled();

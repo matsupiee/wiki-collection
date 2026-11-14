@@ -40,10 +40,16 @@ export default function Layout() {
         <AppUpdateGate>
           <Providers>
             <SafeAreaView
-              style={{ flex: 1, backgroundColor: opening ? "#030405" : "white" }}
-              edges={nativeTabs || segments.at(-1) === "point" ? ["top"] : ["top", "bottom"]}
+              style={{ flex: 1, backgroundColor: opening ? "#c8def1" : "white" }}
+              edges={
+                opening
+                  ? []
+                  : nativeTabs || segments.at(-1) === "point"
+                    ? ["top"]
+                    : ["top", "bottom"]
+              }
             >
-              <StatusBar style={opening ? "light" : "dark"} />
+              <StatusBar style="dark" />
               <Stack screenOptions={{ headerShown: false }} />
             </SafeAreaView>
           </Providers>

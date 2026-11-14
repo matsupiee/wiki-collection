@@ -1,7 +1,7 @@
 import { interpolate } from "react-native-reanimated";
 import { OPENING_PACK_RATIO } from "./opening-pack";
 
-export const carouselPitch = 0.61;
+export const carouselPitch = 0.56;
 export const restingPackCenter = 0.5;
 export const selectedWidth = 0.74;
 export const seamHeight = 0.56;
@@ -21,7 +21,7 @@ export function wrapperPosition(ms: number, width: number, height: number) {
 
 // Five identical wrappers pass to the right, before the selected one settles.
 // Each slot wraps only after it is well outside both edges of the viewport.
-export function carouselOffset(ms: number, side = 0) {
+export function carouselOffset(ms: number, side = 0, drag = 0) {
   "worklet";
   const p = carouselPitch;
   const shift =
@@ -57,7 +57,8 @@ export function carouselOffset(ms: number, side = 0) {
       ],
       "clamp",
     ) +
-    side * p;
+    side * p +
+    drag;
   return shift - Math.round(shift / (5 * p)) * 5 * p;
 }
 export function carouselScale(ms: number) {

@@ -9,6 +9,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
+  withSpring,
   type SharedValue,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
@@ -71,7 +72,8 @@ export function OpeningPhoto({
         turn(Math.sign(Math.abs(e.velocityX) > 650 ? e.velocityX : e.translationX));
     })
     .onFinalize(() => {
-      if (!turning.get()) offset.set(withTiming(0, { duration: reduced ? 0 : 180 }));
+      if (!turning.get())
+        offset.set(reduced ? 0 : withSpring(0, { duration: 400, dampingRatio: 0.8 }));
     });
   const placement = useAnimatedStyle(() => {
     const p = Math.min(Math.abs(offset.get()) / size, 1);

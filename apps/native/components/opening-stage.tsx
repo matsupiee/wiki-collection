@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { LinearGradient as BackgroundGradient } from "expo-linear-gradient";
 import { StyleSheet } from "react-native";
 import Animated, { interpolate, useAnimatedStyle, type SharedValue } from "react-native-reanimated";
 import Svg, {
@@ -15,65 +16,44 @@ import { OpeningStars } from "./opening-effects";
 type SceneProps = { width: number; height: number; time: SharedValue<number>; reduced: boolean };
 export function OpeningAtmosphere({ width, height, time, reduced }: SceneProps) {
   const id = useId().replace(/:/g, "");
-  const warm = useAnimatedStyle(() => ({
-    opacity: interpolate(time.get(), [0, 350, 600, 850, 1250], [0.5, 0.3, 0.09, 0.4, 0], "clamp"),
-    transform: [
-      {
-        translateY: reduced
-          ? 0
-          : wrapperPosition(time.get(), width, height).mouth -
-            wrapperPosition(0, width, height).mouth,
-      },
-    ],
-  }));
-  const dust = useAnimatedStyle(() => ({
-    opacity: reduced
-      ? 0
-      : interpolate(
-          time.get(),
-          [790, 970, 1170, 1650, 2300, 2900],
-          [0, 0.45, 1, 0.95, 0.65, 0],
-          "clamp",
-        ),
-    transform: [{ scale: interpolate(time.get(), [850, 2200], [0.65, 1.32], "clamp") }],
+  const revealedSky = useAnimatedStyle(() => ({
+    opacity: interpolate(time.get(), [1050, 1750], [0, 1], "clamp"),
   }));
   return (
     <>
-      <OpeningStars reduced={reduced} />
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, warm]}>
-        <Svg width={width} height={height} viewBox="0 0 100 200" preserveAspectRatio="none">
-          <Defs>
-            <RadialGradient id={id}>
-              <Stop offset="0" stopColor="#ff7800" stopOpacity="0.82" />
-              <Stop offset="0.46" stopColor="#a32c07" stopOpacity="0.5" />
-              <Stop offset="1" stopColor="#2d0014" stopOpacity="0" />
-            </RadialGradient>
-          </Defs>
-          <Ellipse cx="50" cy="67" rx="65" ry="29" fill={`url(#${id})`} />
-        </Svg>
-      </Animated.View>
-      <Animated.View
+      <BackgroundGradient
         pointerEvents="none"
-        style={[
-          {
-            position: "absolute",
-            width: width * 1.2,
-            height: width * 1.55,
-            left: -width * 0.1,
-            top: height * 0.49 - width * 0.775,
-          },
-          dust,
-        ]}
-      >
-        <Animated.Image
-          source={require("../assets/opening/prism-dust.png")}
-          resizeMode="stretch"
-          style={{ width: "100%", height: "100%" }}
+        colors={["#c8def1", "#eefaff", "#ffffff", "#cdeaf2"]}
+        locations={[0, 0.43, 0.7, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, revealedSky]}>
+        <BackgroundGradient
+          colors={["#dce6fb", "#b7cfea", "#7fabc9"]}
+          style={StyleSheet.absoluteFill}
         />
       </Animated.View>
+      <Svg
+        pointerEvents="none"
+        width={width}
+        height={height}
+        style={StyleSheet.absoluteFill}
+        viewBox="0 0 100 200"
+        preserveAspectRatio="none"
+      >
+        <Defs>
+          <RadialGradient id={id}>
+            <Stop offset="0" stopColor="#ffffff" stopOpacity="0.7" />
+            <Stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+        <Ellipse cx="50" cy="85" rx="65" ry="70" fill={`url(#${id})`} />
+      </Svg>
+      <OpeningStars reduced={reduced} />
     </>
   );
 }
+
 export function SealGlint() {
   const id = useId().replace(/:/g, "");
   return (
@@ -208,56 +188,25 @@ export function OpeningBeam({
     </>
   );
 }
-export function OpeningRainbow({ width, height, time, reduced }: SceneProps) {
+// A soft light behind the emerging cards, never a full-screen flash.
+export function OpeningRevealGlow({ width, height, time, reduced }: SceneProps) {
   const id = useId().replace(/:/g, "");
   const style = useAnimatedStyle(() => ({
     opacity: reduced
       ? 0
-      : interpolate(time.get(), [1280, 1470, 1730, 2070, 2490], [0, 0.84, 1, 0.82, 0], "clamp"),
-    transform: [
-      {
-        translateY: interpolate(time.get(), [1280, 2490], [height * 0.15, -height * 0.18], "clamp"),
-      },
-    ],
+      : interpolate(time.get(), [1100, 1450, 1850, 2200], [0, 0.65, 0.35, 0], "clamp"),
   }));
   return (
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, style]}>
-      <Svg width={width} height={height} viewBox="0 0 300 600" preserveAspectRatio="none">
+      <Svg width={width} height={height} viewBox="0 0 100 200" preserveAspectRatio="none">
         <Defs>
-          <RadialGradient id={`${id}wash`}>
-            <Stop offset="0" stopColor="#ac36bb" stopOpacity="0.8" />
-            <Stop offset="0.48" stopColor="#501777" stopOpacity="0.7" />
-            <Stop offset="1" stopColor="#0b103d" stopOpacity="0" />
-          </RadialGradient>
-          <RadialGradient id={`${id}cloud`}>
-            <Stop offset="0" stopColor="#00bf9d" stopOpacity="0.64" />
-            <Stop offset="0.65" stopColor="#3045d9" stopOpacity="0.5" />
-            <Stop offset="1" stopColor="#3045d9" stopOpacity="0" />
-          </RadialGradient>
-          <RadialGradient
-            id={`${id}arc`}
-            gradientUnits="userSpaceOnUse"
-            cx="340"
-            cy="610"
-            rx="510"
-            ry="465"
-            fx="340"
-            fy="610"
-          >
-            <Stop offset="0.59" stopColor="#513ce6" stopOpacity="0" />
-            <Stop offset="0.66" stopColor="#4024d3" stopOpacity="0.8" />
-            <Stop offset="0.70" stopColor="#176aee" />
-            <Stop offset="0.74" stopColor="#29d7cc" />
-            <Stop offset="0.78" stopColor="#9bf623" />
-            <Stop offset="0.81" stopColor="#ffe632" />
-            <Stop offset="0.85" stopColor="#f88839" />
-            <Stop offset="0.88" stopColor="#f555b8" stopOpacity="0.8" />
-            <Stop offset="0.96" stopColor="#de35b8" stopOpacity="0" />
+          <RadialGradient id={id}>
+            <Stop offset="0" stopColor="white" />
+            <Stop offset="0.5" stopColor="#d0ffff" stopOpacity="0.5" />
+            <Stop offset="1" stopColor="#d0ffff" stopOpacity="0" />
           </RadialGradient>
         </Defs>
-        <Ellipse cx="233" cy="277" rx="240" ry="213" fill={`url(#${id}wash)`} />
-        <Ellipse cx="18" cy="338" rx="192" ry="201" fill={`url(#${id}cloud)`} />
-        <Rect width="300" height="600" fill={`url(#${id}arc)`} />
+        <Ellipse cx="50" cy="100" rx="65" ry="55" fill={`url(#${id})`} />
       </Svg>
     </Animated.View>
   );

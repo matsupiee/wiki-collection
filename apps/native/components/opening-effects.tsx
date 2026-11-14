@@ -21,7 +21,7 @@ export function OpeningStars({ reduced }: { reduced: boolean }) {
   }, [reduced, clock]);
   return (
     <View pointerEvents="none" accessible={false} style={StyleSheet.absoluteFill}>
-      {Array.from({ length: 38 }, (_, i) => (
+      {Array.from({ length: 22 }, (_, i) => (
         <Star key={i} index={i} clock={clock} reduced={reduced} />
       ))}
     </View>
@@ -52,7 +52,7 @@ function Star({
           top: `${10 + ((index * 37.7) % 85)}%`,
           width: index % 5 === 0 ? 3 : 1.5,
           height: index % 5 === 0 ? 3 : 1.5,
-          backgroundColor: index % 4 === 0 ? "#ffbc77" : "#e8f3ff",
+          backgroundColor: index % 4 === 0 ? "#ffffff" : "#e8ffff",
           boxShadow: index % 5 === 0 ? "0 0 7px 1px #e8f3ff66" : undefined,
         },
         style,

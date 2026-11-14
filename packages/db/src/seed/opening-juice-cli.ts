@@ -1,5 +1,5 @@
 import { recordSeedGrants } from "./record-seed-grants";
-// Local-only fixture: preserve real draws and existing users; create a dedicated account.
+// Local-only fixture: append deterministic openings without rewriting existing draws.
 import { eq } from "drizzle-orm";
 import { card, pack, packOpening, packOpeningCard, user, userCard } from "../schema";
 import { createUser } from "./create-user";
@@ -7,8 +7,19 @@ import { openLocalDb } from "./local-db";
 
 const { db, dispose } = await openLocalDb();
 try {
-  const [owner] = await db.select().from(user).where(eq(user.email, "opening-juice1@example.com"));
-  const userId = owner?.id ?? (await createUser(db, "開封確認", "opening-juice1@example.com"));
+  const guestName = process.argv[2];
+  const owners = await db
+    .select()
+    .from(user)
+    .where(guestName ? eq(user.name, guestName) : eq(user.email, "opening-juice1@example.com"))
+    .limit(2);
+  if (guestName && (owners.length !== 1 || !owners[0]!.email.endsWith("@guest.invalid")))
+    throw new Error("iOSのマイページに表示される一意のゲスト名を指定してください。");
+  const userId = owners[0]?.id ?? (await createUser(db, "開封確認", "opening-juice1@example.com"));
+  const prefix = guestName ? `opening-juice-${userId}` : "opening-juice";
+  console.log(
+    `対象: ローカルD1 / ${guestName ?? "opening-juice1@example.com"} / 最大8開封・40枚を追加（既存結果は変更しません）`,
+  );
   const [source] = await db.select().from(pack).where(eq(pack.type, "free_basic"));
   if (!source) throw new Error("既存マスターと無料パックが必要です。");
   const candidates = await db.select().from(card);
@@ -40,34 +51,57 @@ try {
     sr: [common, sr, rare, rare, rare],
   };
   for (const [variant, order] of Object.entries(openings)) {
-    const id = `opening-juice-${variant}`;
+    const id = `${prefix}-${variant}`;
+    const savedOpening = await db.select().from(packOpening).where(eq(packOpening.id, id)).get();
+    if (savedOpening && savedOpening.userId !== userId)
+      throw new Error(`確認データの利用者が一致しません: ${id}`);
     await db
       .insert(packOpening)
       .values({ id, userId, packId: source.id, payment: "free_daily" })
-      .onConflictDoUpdate({ target: packOpening.id, set: { payment: "free_daily" } });
+      .onConflictDoNothing();
     for (const [slot, c] of order.entries()) {
+      const existing = await db
+        .select()
+        .from(packOpeningCard)
+        .where(eq(packOpeningCard.userCardId, `${id}-${slot}`))
+        .get();
+      if (existing) {
+        if (existing.packOpeningId !== id || existing.slot !== slot + 1)
+          throw new Error(`確認データの関連が一致しません: ${id}-${slot}`);
+        continue;
+      }
+      const savedCard = await db
+        .select()
+        .from(userCard)
+        .where(eq(userCard.id, `${id}-${slot}`))
+        .get();
+      if (savedCard && savedCard.ownerId !== userId)
+        throw new Error(`未完了の確認データの所有者が一致しません: ${id}-${slot}`);
+      const cardId = savedCard?.cardId ?? c.id;
       await db
         .insert(userCard)
         .values({
           id: `${id}-${slot}`,
           ownerId: userId,
-          cardId: c.id,
+          cardId,
         })
-        .onConflictDoUpdate({ target: userCard.id, set: { cardId: c.id } });
+        .onConflictDoNothing();
       await db
         .insert(packOpeningCard)
         .values({
           id: `${id}-${slot}`,
           packOpeningId: id,
           userCardId: `${id}-${slot}`,
-          cardId: c.id,
+          cardId,
           slot: slot + 1,
         })
-        .onConflictDoUpdate({ target: packOpeningCard.id, set: { cardId: c.id } });
+        .onConflictDoNothing();
     }
     console.log(`wiki-collection://openings/${id}`);
   }
-  console.log("opening-juice1@example.com / password1234（確認専用、抽選・残数は変更しません）");
+  console.log(`Maestro: -e OPENING_PREFIX=${prefix}`);
+  if (!guestName)
+    console.log("opening-juice1@example.com / password1234（旧メール認証の確認専用）");
   await recordSeedGrants(db);
 } finally {
   await dispose();
