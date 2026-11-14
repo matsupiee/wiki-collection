@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { createHash } from "node:crypto";
 import { cp, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -13,9 +14,17 @@ import {
 import { createTestDb } from "./create-test-db";
 import { createCard, createGenre, createPack, createUserContext } from "./fixtures";
 import { handler as getCard } from "../routers/consumer/card/get/handler";
+import { normalizeOwnershipReasons } from "@wiki-collection/db/seed/normalize-ownership-reasons";
 
 const migrationFolder = path.resolve(import.meta.dirname, "../../../db/src/migrations");
 const current = "20261114043302_card_ownership_history";
+test("本番適用済みの所有権履歴マイグレーションを書き換えない", async () => {
+  const sql = await Bun.file(path.join(migrationFolder, current, "migration.sql")).text();
+  // 2026-11-14、本番 __alchemy_migrations から読み取った適用済みハッシュ。
+  expect(createHash("sha256").update(sql).digest("hex")).toBe(
+    "8a640601475ffdbe26b3f7af3eb8813472c9ba187e8d221534cee6d5a72eb4a4",
+  );
+});
 test("旧DBの開封・売買・旧獲得記録を失わず移行し、再実行で増えない", async () => {
   const oldFolder = await mkdtemp(path.join(tmpdir(), "wiki-history-migration-"));
   let dispose: (() => Promise<void>) | undefined;
@@ -61,7 +70,7 @@ test("旧DBの開封・売買・旧獲得記録を失わず移行し、再実行
       toUserId: buyer.session.user.id,
     });
     expect(transfers.find((t) => t.toUserId === former.session.user.id)).toMatchObject({
-      reason: "pack_open",
+      reason: "legacy_acquisition",
       userCardId: null,
       fromUserId: null,
       toUserId: former.session.user.id,
@@ -77,6 +86,16 @@ test("旧DBの開封・売買・旧獲得記録を失わず移行し、再実行
     expect(columns.map((c) => c.name)).not.toContain("user_id");
     await migrate(db, { migrationsFolder: migrationFolder });
     expect(await db.select().from(userCardOwnershipTransfers)).toEqual(transfers);
+    // reasonの統一は履歴を書き換えず、明示的な独立処理で実行する。
+    expect(await normalizeOwnershipReasons(db)).toBe(1);
+    expect(await normalizeOwnershipReasons(db)).toBe(0);
+    await migrate(db, { migrationsFolder: migrationFolder });
+    expect(await db.select().from(userCardOwnershipTransfers)).toEqual(
+      transfers.map((transfer) => ({
+        ...transfer,
+        reason: transfer.toUserId === former.session.user.id ? "pack_open" : transfer.reason,
+      })),
+    );
   } finally {
     await dispose?.();
     await rm(oldFolder, { recursive: true, force: true });

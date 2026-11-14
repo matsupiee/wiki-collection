@@ -31,10 +31,10 @@
 - `user_card.owner_id` は現在の所有者を保持する。
 - `user_card_ownership_transfers` は初回獲得と移転元・移転先を記録する。
   - 初回付与は移転元がnull。売却後も履歴は残す。
-  - 旧獲得記録で相手や個体を特定できない場合は、`pack_open` として記録し、不明な列をnullにする。seedの初回付与も `pack_open` を使う。
+  - 旧獲得記録で相手や個体を特定できない場合は、不明な列をnullにする。適用済みマイグレーションの `legacy_acquisition` は独立コマンドで `pack_open` に統一する。統一前も閲覧権限は保持する。seedの初回付与は `pack_open` を使う。
 
 ## 対応するテスト
 
 - `packages/api/src/test/card-ownership.integration.test.ts`: 開封結果の保持、所有者変更、閲覧権限、並行落札、失敗時のロールバック、seedと旧reasonの `pack_open` 統一・再実行。
-- `packages/api/src/test/card-ownership-migration.integration.test.ts`: 既存データの移行、旧獲得記録の保持、外部キー整合性、移行の再実行。
+- `packages/api/src/test/card-ownership-migration.integration.test.ts`: 既存データの移行、旧獲得記録の保持と閲覧権限、外部キー整合性、移行の再実行、適用済みハッシュの維持、独立したreason統一後の再移行。
 - `packages/api/src/routers/consumer/pack/open/handler.integration.test.ts`: 重複・同時開封時のNEW判定。
