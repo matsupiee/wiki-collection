@@ -1,0 +1,82 @@
+appId: com.matsupiee.wikicollection
+---
+# iPhone 17・縦向き。選択中タブはラベルの下端でなくアイコンをタップする。
+- launchApp
+- openLink: wiki-collection://me
+- assertVisible: "クエスト"
+- assertVisible: "出品・入札の管理"
+- assertVisible: "pt の履歴"
+- assertVisible: "開封履歴"
+- assertVisible: "言語切り替え"
+- assertVisible: "お問い合わせ"
+- assertVisible: "利用規約"
+- assertVisible: "プライバシーポリシー"
+- assertVisible: "特定商取引法に基づく表記"
+- assertVisible: "資金決済法に基づく表示"
+# メニュー一覧で再タップしても一覧を維持する。
+- tapOn:
+    point: "83%,93%"
+- assertVisible: "出品・入札の管理"
+- tapOn: "クエスト"
+- assertVisible: "もどる"
+- tapOn:
+    point: "83%,93%"
+- assertVisible: "出品・入札の管理"
+- assertNotVisible: "もどる"
+- tapOn: "出品・入札の管理"
+- assertVisible: "もどる"
+- tapOn:
+    point: "83%,93%"
+- assertVisible: "出品・入札の管理"
+- assertNotVisible: "もどる"
+- tapOn: "pt の履歴"
+- assertVisible: "もどる"
+- tapOn:
+    point: "83%,93%"
+- assertVisible: "出品・入札の管理"
+- assertNotVisible: "もどる"
+- tapOn: "開封履歴"
+- assertVisible: "もどる"
+- tapOn:
+    point: "83%,93%"
+- assertVisible: "出品・入札の管理"
+- assertNotVisible: "もどる"
+- tapOn: "言語切り替え"
+- assertVisible: "もどる"
+- tapOn:
+    point: "83%,93%"
+- assertVisible: "出品・入札の管理"
+- assertNotVisible: "もどる"
+- tapOn: "お問い合わせ"
+- assertVisible: "もどる"
+- tapOn:
+    point: "83%,93%"
+- assertVisible: "出品・入札の管理"
+- assertNotVisible: "もどる"
+- tapOn:
+    id: notification-bell
+- assertVisible: "通知"
+- assertVisible: "もどる"
+- tapOn:
+    point: "83%,93%"
+- assertVisible: "出品・入札の管理"
+- assertNotVisible: "もどる"
+# 別タブからの初回選択では、開いていた画面を維持する。
+- tapOn: "言語切り替え"
+- assertVisible: "もどる"
+- tapOn: "パック"
+- assertVisible: "無料で開封する"
+- tapOn:
+    point: "83%,93%"
+- assertVisible: "もどる"
+- tapOn:
+    point: "83%,93%"
+- assertVisible: "出品・入札の管理"
+- assertNotVisible: "もどる"
+# 詳細への直接リンクからも一覧へ戻れる。
+- openLink: wiki-collection://me/wallet
+- assertVisible: "もどる"
+- tapOn:
+    point: "83%,93%"
+- assertVisible: "出品・入札の管理"
+- assertNotVisible: "もどる"

@@ -1,6 +1,7 @@
 import { locale, useTranslation } from "@/lib/i18n";
 import { useGameSound } from "@/lib/game-sounds";
 import { DynamicColorIOS } from "react-native";
+import { router } from "expo-router";
 import { NativeTabs } from "expo-router/native-tabs";
 import { tabs } from "./bottom-nav";
 
@@ -18,12 +19,26 @@ export default function MainTabs() {
   return (
     <NativeTabs
       key={locale}
-      screenListeners={{ tabPress: () => playSound("tab") }}
+      screenListeners={({ navigation, route }) => ({
+        tabPress: (event) => {
+          if (event.data.isPrevented) return;
+          playSound("tab");
+          if (route.name === "(me)" && navigation.isFocused()) {
+            router.dismissTo("/me");
+          }
+        },
+      })}
       tintColor={DynamicColorIOS({ light: "#0369a1", dark: "#7dd3fc" })}
       labelStyle={{ color: DynamicColorIOS({ light: "#475569", dark: "#cbd5e1" }) }}
     >
       {tabs.map(([name, title]) => (
-        <NativeTabs.Trigger key={name} name={`(${name})`} disableAutomaticContentInsets>
+        <NativeTabs.Trigger
+          key={name}
+          name={`(${name})`}
+          // マイページは再選択時に上のリスナーでメニューへ戻す。
+          disablePopToTop={name === "me"}
+          disableAutomaticContentInsets
+        >
           <NativeTabs.Trigger.Icon sf={icons[name]} />
           <NativeTabs.Trigger.Label>{t(title)}</NativeTabs.Trigger.Label>
         </NativeTabs.Trigger>

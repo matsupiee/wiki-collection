@@ -116,3 +116,18 @@ APIテストでは新基準のカードを用意し、レアリティ更新を�
 - iPhone 17 / iOS 27.0シミュレーターで `tests/ios/profile-menu.yaml` が成功。画面画像で3つの枠と余白を確認し、クエスト、取引管理、pt履歴、開封履歴、言語設定、お問い合わせへの遷移と復帰、ヘッダーから通知を開く操作を確認した。
 
 APIと保存データの変更はない。既存のseedコマンドを共用する。法定表記のリンク先と本文は変更しておらず、規約類の修正は不要。実機確認と全ストーリーのiOS画面操作は未実施。
+
+## マイページタブの再選択
+
+2026年11月14日、選択中のマイページタブを再度押すと `router.dismissTo("/me")` でメニュー一覧へ戻る処理を追加した。別タブからマイページを選択した場合は、開いていた画面を維持する。ネイティブ側のpopと二重処理にならないよう、マイページだけ `disablePopToTop` を指定する。
+
+[ExpoのNative Tabs](https://docs.expo.dev/router/advanced/native-tabs/) は再選択時のpopを標準機能として案内しているが、今回のiPhone 17 / iOS 27.0シミュレーターでは元の実装でクエストから戻らないことを再現した。[Appleのタブ選択API](https://developer.apple.com/documentation/uikit/uitabbarcontrollerdelegate) と [iOS 27の選択コールバックについての開発者報告](https://developer.apple.com/forums/thread/831295) を照合した。後者はSwiftUIを含む別構成の報告であり、本件の原因とは断定しない。
+
+Maestroで選択中タブの文字列を指定すると再選択イベントが発生しない場合があったため、`tests/ios/profile-tab-reselect.yaml` は縦向きのiPhone 17でタブのアイコン位置を押す。元の実装でも同じ座標でメニューへ戻らないことを確認してから、追加処理を検証した。
+
+- `bun run test`: 全181件成功。全ストーリーに関わる既存の自動テストを実行した。
+- `bun run --cwd apps/native check-types`: 成功。
+
+- iPhone 17 / iOS 27.0シミュレーターのiOSアプリで `tests/ios/profile-tab-reselect.yaml` が成功。7画面からの再タップ、一覧での再タップ、別タブからの復帰、直接リンクからの復帰を確認した。
+
+API・保存データの変更はなく、確認用データは既存の `packages/db/src/seed/native-cli.ts` を共用する。規約類の修正は不要。実機確認と全ストーリーのiOS画面操作は未実施。
