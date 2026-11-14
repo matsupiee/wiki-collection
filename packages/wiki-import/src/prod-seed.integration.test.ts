@@ -17,7 +17,7 @@ test("ローカルJSONLからD1へ一括投入し、再実行時もカードID�
       title: "O'Brien; -- 星",
       summary: "赤い星は宇宙にたくさんあります。\nこの天体は昔からよく観測されています。",
       revisionId: 2,
-      monthlyPageviews: 10000,
+      monthlyPageviews: 1000,
       articleLength: 891,
       metadata: {
         categories: [],
@@ -52,7 +52,7 @@ test("ローカルJSONLからD1へ一括投入し、再実行時もカードID�
       },
     ]);
     expect(await db.select().from(genre)).toHaveLength(1);
-    expect(await db.select().from(rarityThreshold)).toHaveLength(3);
+    expect(await db.select().from(rarityThreshold)).toHaveLength(4);
   } finally {
     await dispose();
     await rm(dir, { force: true, recursive: true });

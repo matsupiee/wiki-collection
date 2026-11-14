@@ -76,7 +76,7 @@ function testWiki(): FakeWiki {
 }
 
 // 閲覧数の多い順。15 は存在しないページ
-const views = [100000, 99999, 50000, 49999, 10000, 9999, 150, 140, 130, 120, 110, 100, 90, 80, 70];
+const views = [100000, 99999, 10000, 9999, 1000, 999, 150, 140, 130, 120, 110, 100, 90, 80, 70];
 const topPages = views.map((monthlyPageviews, i) => ({ pageId: i + 1, monthlyPageviews }));
 
 const readLines = async (file: string) =>
@@ -99,8 +99,9 @@ describe("importCards", () => {
 
     expect(result.createdThresholds).toEqual({
       legendary: 100000,
-      super_rare: 50000,
-      rare: 10000,
+      super_rare: 10000,
+      rare: 1000,
+      uncommon: 100,
     });
     expect(
       JSON.parse(await readFile(path.join(dataDir, "rarity-thresholds.json"), "utf8")),
@@ -111,10 +112,10 @@ describe("importCards", () => {
     expect(cards.map((c) => [c.title, c.genre, c.rarity, c.monthlyPageviews])).toEqual([
       ["太陽", "Q523", "legendary", 100000],
       ["月", "Q634", "super_rare", 99999],
-      ["火星", "Q634", "super_rare", 50000],
-      ["土星", "Q634", "rare", 49999],
-      ["金星", "Q99999", "rare", 10000],
-      ["木星", "Q634", "common", 9999],
+      ["火星", "Q634", "super_rare", 10000],
+      ["土星", "Q634", "rare", 9999],
+      ["金星", "Q99999", "rare", 1000],
+      ["木星", "Q634", "uncommon", 999],
     ]);
     expect(cards[0]).toEqual({
       articleLength: 10000,
@@ -183,7 +184,7 @@ describe("importCards", () => {
 
     expect(result.createdThresholds).toBeNull();
     expect(result.inserted).toEqual([
-      { title: "彗星", genre: "彗星", rarity: "common", monthlyPageviews: 900 },
+      { title: "彗星", genre: "彗星", rarity: "uncommon", monthlyPageviews: 900 },
     ]);
     expect(result.excluded).toEqual([]);
     // カードにした記事も、除外した記事も取り直さない
@@ -209,8 +210,9 @@ describe("importCards", () => {
     expect(store.genres.map((g) => g.slug)).toEqual(["Q523", "Q634", "Q3559", "Q99999"]);
     expect(store.thresholds).toEqual({
       legendary: 100000,
-      super_rare: 50000,
-      rare: 10000,
+      super_rare: 10000,
+      rare: 1000,
+      uncommon: 100,
     });
   });
 });

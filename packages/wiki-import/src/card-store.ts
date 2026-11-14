@@ -30,7 +30,7 @@ export const cardRecordSchema = z
     summary: z.string(),
     imageUrl: z.string().nullable(),
     imageCredit: z.string().nullable(),
-    rarity: z.enum([...rarities, "uncommon", "double_rare"]),
+    rarity: z.enum([...rarities, "double_rare"]),
     articleLength: z.number().int().nonnegative().nullable().optional(),
     monthlyPageviews: z.number().int(),
     pageviewsMeasuredAt: date,
@@ -58,6 +58,7 @@ const thresholdsSchema = z
   .object({
     legendary: z.number().int(),
     super_rare: z.number().int(),
+    uncommon: z.number().int().default(100),
     rare: z.number().int(),
   })
   .or(
@@ -167,6 +168,7 @@ export async function writeThresholds(dir: string, thresholds: RarityThresholds)
     legendary: thresholds.legendary,
     super_rare: thresholds.super_rare,
     rare: thresholds.rare,
+    uncommon: thresholds.uncommon,
   };
   await writeFile(path.join(dir, THRESHOLDS_FILE), `${JSON.stringify(ordered, null, 2)}\n`);
 }

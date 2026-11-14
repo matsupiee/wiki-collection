@@ -55,7 +55,7 @@ export default function Inquiries() {
     await cache.invalidateQueries({ queryKey: trpc.inquiry.pathKey() });
   }
   return (
-    <Screen title={t("inquiries")} back>
+    <Screen showNotifications={false} title={t("inquiries")} back>
       {mine.data?.canAnswer && (
         <Button
           variant="outline"

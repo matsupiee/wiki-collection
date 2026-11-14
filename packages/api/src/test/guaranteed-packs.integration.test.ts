@@ -1,5 +1,6 @@
+import { handler as getOpening } from "../routers/consumer/opening/get/handler";
 import { expect, test } from "bun:test";
-import { card, packOpening, userCard } from "@wiki-collection/db/schema/index";
+import { card, packOpening, packOpeningCard } from "@wiki-collection/db/schema/index";
 import { syncGuaranteedPacks } from "@wiki-collection/db/seed/packs";
 import { eq } from "drizzle-orm";
 
@@ -38,7 +39,7 @@ test("ジャンルパックを終了し、確定ガチャは1枚の保証と価�
     );
     for (const [slug, price, random, fourth, guaranteed] of [
       ["double-rare-guaranteed", 100, 0, common.id, superRare.id],
-      ["double-rare-guaranteed", 100, 0.99999, legend.id, superRare.id],
+      ["double-rare-guaranteed", 100, 0.99999, common.id, superRare.id],
       ["legend-guaranteed", 500, 0, common.id, legend.id],
     ] as const) {
       const selected = catalog.packs.find((p) => p.slug === slug)!;
@@ -46,12 +47,13 @@ test("ジャンルパックを終了し、確定ガチャは1枚の保証と価�
       const opened = await open({ ctx, input: { packId: selected.id }, random: () => random });
       const drawn = await db
         .select()
-        .from(userCard)
-        .where(eq(userCard.packOpeningId, opened.openingId));
+        .from(packOpeningCard)
+        .where(eq(packOpeningCard.packOpeningId, opened.openingId));
       expect(drawn.map((c) => c.cardId).sort()).toEqual(
         [common.id, common.id, common.id, fourth, guaranteed].sort(),
       );
-      expect((await getCoinBalance(db, userId)).total).toBe(before.total - price);
+      const reward = (await getOpening({ ctx, input: { openingId: opened.openingId } })).questRewards.reduce((sum,r)=>sum+r.amount,0);
+      expect((await getCoinBalance(db, userId)).total).toBe(before.total - price + reward);
     }
     await db.update(card).set({ isActive: false }).where(eq(card.id, legend.id));
     await db.update(card).set({ isActive: false }).where(eq(card.id, superRare.id));

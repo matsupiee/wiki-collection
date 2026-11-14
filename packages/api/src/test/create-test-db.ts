@@ -9,9 +9,11 @@ const migrationsFolder = path.resolve(import.meta.dirname, "../../../db/src/migr
 
 // Miniflare のメモリ上の D1 を作り、マイグレーションを当てた Database を返す。
 // 本番と同じ D1 の挙動（batch のトランザクション、制約違反）でテストするため、SQLite のモックではなく Miniflare を使う
-export async function createTestDb(): Promise<{ db: Database; dispose: () => Promise<void> }> {
+export async function createTestDb(
+  folder = migrationsFolder,
+): Promise<{ db: Database; dispose: () => Promise<void> }> {
   const proxy = await getPlatformProxy<{ DB: D1Database }>({ configPath, persist: false });
   const db = createDb({ DB: proxy.env.DB });
-  await migrate(db, { migrationsFolder });
+  await migrate(db, { migrationsFolder: folder });
   return { db, dispose: () => proxy.dispose() };
 }

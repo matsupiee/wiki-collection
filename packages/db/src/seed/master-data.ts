@@ -169,13 +169,14 @@ export const cards: [GenreSlug, string, number, string][] = [
   ["sample-city", "大阪市", 51000, "西日本の経済の中心都市。食い倒れの街とも呼ばれる。"],
 ];
 
-const commonOnly = { common: 10000, rare: 0, super_rare: 0, legendary: 0 };
+const firstSlots = { common: 8000, uncommon: 2000, rare: 0, super_rare: 0, legendary: 0 };
+const middleSlots = { common: 6000, uncommon: 3000, rare: 1000, super_rare: 0, legendary: 0 };
 export const basicRates: Record<Rarity, number>[] = [
-  commonOnly,
-  commonOnly,
-  commonOnly,
-  { common: 9500, rare: 350, super_rare: 100, legendary: 50 },
-  { common: 8600, rare: 1000, super_rare: 300, legendary: 100 },
+  firstSlots,
+  firstSlots,
+  middleSlots,
+  middleSlots,
+  { common: 4800, uncommon: 3000, rare: 2000, super_rare: 150, legendary: 50 },
 ];
 
 export const coinProducts = [

@@ -1,3 +1,4 @@
+import { questHistoryLabel } from "@/lib/quest-text";
 import { useTranslation } from "@/lib/i18n";
 import { Text } from "@/components/typography";
 import { View } from "react-native";
@@ -14,6 +15,7 @@ const panel = {
 export default function Wallet() {
   const t = useTranslation();
   const labels: Record<string, string> = {
+    quest_reward: t("questReward"),
     purchase: t("purchaseSource"),
     market_sale: t("saleSource"),
     bid_refund: t("bidRefund"),
@@ -27,7 +29,7 @@ export default function Wallet() {
   const q = useQuery(trpc.coin.listHistory.queryOptions());
   const b = useQuery(trpc.coin.getBalance.queryOptions());
   return (
-    <Screen title={t("pointHistory")} back>
+    <Screen showNotifications={false} title={t("pointHistory")} back>
       {!b.data || !q.data ? (
         <Loading
           error={b.error ?? q.error}
@@ -77,7 +79,9 @@ export default function Wallet() {
                     <Text
                       style={{ fontSize: 14, lineHeight: 20, fontWeight: "700", color: "#1e293b" }}
                     >
-                      {labels[e.kind === "deposit" ? e.source : e.purpose]}
+                      {e.kind === "deposit" && e.questKey
+                        ? questHistoryLabel(e.questKey)
+                        : labels[e.kind === "deposit" ? e.source : e.purpose]}
                     </Text>
                     <Text style={{ fontSize: 11, lineHeight: 16.5, color: "#94a3b8" }}>
                       {formatDateTime(e.createdAt)}

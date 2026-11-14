@@ -12,7 +12,7 @@ export default function Openings() {
   const trpc = useTRPC();
   const q = useQuery(trpc.opening.list.queryOptions());
   return (
-    <Screen title={t("openingHistory")} back contentStyle={{ gap: 8 }}>
+    <Screen showNotifications={false} title={t("openingHistory")} back contentStyle={{ gap: 8 }}>
       {!q.data ? (
         <Loading error={q.error} retry={q.refetch} />
       ) : !q.data.openings.length ? (

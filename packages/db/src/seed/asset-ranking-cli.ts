@@ -1,5 +1,6 @@
+import { recordSeedGrants } from "./record-seed-grants";
 import { hashPassword } from "better-auth/crypto";
-import { account, card, cardDiscovery, genre, user, userCard } from "../schema";
+import { account, card, genre, user, userCard } from "../schema";
 import { openLocalDb } from "./local-db";
 
 const { db, dispose } = await openLocalDb();
@@ -47,15 +48,12 @@ try {
     for (let i = 0; i < copies; i++) {
       await db
         .insert(userCard)
-        .values({ id: `${id}-${i}`, userId: id, cardId: fixture })
+        .values({ id: `${id}-${i}`, ownerId: id, cardId: fixture })
         .onConflictDoNothing();
     }
-    await db
-      .insert(cardDiscovery)
-      .values({ userId: id, cardId: fixture, firstAcquiredAt: new Date() })
-      .onConflictDoNothing();
     console.log(`${email} / password1234（初期資産 ${copies * 337}点）`);
   }
+  await recordSeedGrants(db);
 } finally {
   await dispose();
 }

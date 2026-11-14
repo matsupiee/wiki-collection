@@ -3,6 +3,7 @@ import { rarities, type Rarity } from "@wiki-collection/db/enums";
 
 export const rarityLabels = {
   common: "C",
+  uncommon: "UC",
   rare: "R",
   super_rare: "SR",
   get legendary() { return t("legendary"); },

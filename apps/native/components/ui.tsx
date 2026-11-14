@@ -183,14 +183,22 @@ export function Screen({
   title = "Wiki Collection",
   back = false,
   hideBrand = false,
+  showGift = false,
+  showPoints = false,
+  showNotifications = true,
   contentStyle,
   scroll = true,
+  automaticallyAdjustKeyboardInsets = false,
 }: PropsWithChildren<{
   title?: string;
   back?: boolean;
   hideBrand?: boolean;
+  showGift?: boolean;
+  showPoints?: boolean;
+  showNotifications?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
   scroll?: boolean;
+  automaticallyAdjustKeyboardInsets?: boolean;
 }>) {
   const t = useTranslation();
   const trpc = useTRPC();
@@ -205,13 +213,18 @@ export function Screen({
   );
   useFocusEffect(useCallback(() => () => setShowFreePackInfo(false), []));
   const focused = useIsFocused();
-  const unread = useQuery(trpc.notification.hasUnread.queryOptions(undefined, {
-    enabled: focused,
-    refetchInterval: 60_000,
-  }));
-  const balance = useQuery(trpc.coin.getBalance.queryOptions());
+  const unread = useQuery(
+    trpc.notification.hasUnread.queryOptions(undefined, {
+      enabled: focused && showNotifications,
+      refetchInterval: 60_000,
+    }),
+  );
+  const balance = useQuery(
+    trpc.coin.getBalance.queryOptions(undefined, { enabled: focused && showPoints }),
+  );
   const packs = useQuery(
     trpc.pack.list.queryOptions(undefined, {
+      enabled: focused && showGift,
       refetchInterval: (query) => {
         const next = query.state.data?.freePack.nextRefillAt;
         return next ? Math.max(1000, Date.parse(next) - Date.now()) : false;
@@ -223,7 +236,10 @@ export function Screen({
   return (
     <View collapsable={false} style={styles.screen}>
       <AppBackground />
-      <SafeAreaView edges={{ bottom: nativeTabs }} style={{ flex: 1 }}>
+      <SafeAreaView
+        edges={{ bottom: nativeTabs || segments.at(-1) === "point" }}
+        style={{ flex: 1 }}
+      >
         <View style={styles.header}>
           <View style={styles.headerInner}>
             <View
@@ -247,71 +263,83 @@ export function Screen({
                 <Brand />
               ) : null}
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                packs.data
-                  ? t("freeRemaining", { count: packs.data.freePack.remaining })
-                  : t("freePack")
-              }
-              accessibilityHint={t("freePackHint")}
-              accessibilityState={{ expanded: showFreePackInfo }}
-              onLayout={({ nativeEvent: { layout } }) => setGiftCenter(layout.x + layout.width / 2)}
-              onPress={() => setShowFreePackInfo((open) => !open)}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                minWidth: 44,
-                minHeight: 44,
-                gap: 4,
-                marginHorizontal: 6,
-              }}
-            >
-              <Gift size={20} color="#475569" />
-              <Text style={{ fontSize: 14, fontWeight: "800", color: "#334155" }}>
-                {packs.data?.freePack.remaining ?? "…"}
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("buyPoints")}
-              onPress={() => router.push("/point")}
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                borderRadius: 999,
-                paddingVertical: 4,
-                paddingLeft: 4,
-                paddingRight: 12,
-                backgroundColor: "rgba(255,255,255,.9)",
-                borderWidth: 1,
-                borderColor: "#e2e8f0",
-                boxShadow: "0 1px 2px #0000000d",
-              }}
-            >
-              <CoinIcon />
-              <Text style={{ fontSize: 14, lineHeight: 20, fontWeight: "800", color: "#334155" }}>
-                {balance.data ? `${balance.data.total.toLocaleString(locale)}pt` : "…"}
-              </Text>
-            </Pressable>
-            <Pressable
-              testID="notification-bell"
-              accessibilityRole="button"
-              accessibilityLabel={unread.data ? t("notificationsUnread") : t("notifications")}
-              onPress={() => router.navigate("/me/notifications")}
-              style={styles.notificationBell}
-            >
-              <View>
-                <Bell size={22} color="#475569" />
-                {unread.data && <View style={styles.unreadDot} />}
-              </View>
-            </Pressable>
+            {showGift && (
+              <Pressable
+                testID="header-gift"
+                accessibilityRole="button"
+                accessibilityLabel={
+                  packs.data
+                    ? t("freeRemaining", { count: packs.data.freePack.remaining })
+                    : t("freePack")
+                }
+                accessibilityHint={t("freePackHint")}
+                accessibilityState={{ expanded: showFreePackInfo }}
+                onLayout={({ nativeEvent: { layout } }) =>
+                  setGiftCenter(layout.x + layout.width / 2)
+                }
+                onPress={() => setShowFreePackInfo((open) => !open)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 44,
+                  minHeight: 44,
+                  gap: 4,
+                  marginHorizontal: 6,
+                }}
+              >
+                <Gift size={20} color="#475569" />
+                <Text style={{ fontSize: 14, fontWeight: "800", color: "#334155" }}>
+                  {packs.data?.freePack.remaining ?? "…"}
+                </Text>
+              </Pressable>
+            )}
+            {showPoints && (
+              <Pressable
+                testID="header-points"
+                accessibilityRole="button"
+                accessibilityLabel={t("buyPoints")}
+                disabled={segments.at(-1) === "point"}
+                onPress={() => router.push("/point")}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  borderRadius: 999,
+                  paddingVertical: 4,
+                  paddingLeft: 4,
+                  paddingRight: 12,
+                  backgroundColor: "rgba(255,255,255,.9)",
+                  borderWidth: 1,
+                  borderColor: "#e2e8f0",
+                  boxShadow: "0 1px 2px #0000000d",
+                }}
+              >
+                <CoinIcon />
+                <Text style={{ fontSize: 14, lineHeight: 20, fontWeight: "800", color: "#334155" }}>
+                  {balance.data ? `${balance.data.total.toLocaleString(locale)}pt` : "…"}
+                </Text>
+              </Pressable>
+            )}
+            {showNotifications && (
+              <Pressable
+                testID="notification-bell"
+                accessibilityRole="button"
+                accessibilityLabel={unread.data ? t("notificationsUnread") : t("notifications")}
+                onPress={() => router.navigate("/me/notifications")}
+                style={styles.notificationBell}
+              >
+                <View>
+                  <Bell size={22} color="#475569" />
+                  {unread.data && <View style={styles.unreadDot} />}
+                </View>
+              </Pressable>
+            )}
           </View>
         </View>
         {scroll ? (
           <ScrollView
+            automaticallyAdjustKeyboardInsets={automaticallyAdjustKeyboardInsets}
             contentContainerStyle={[styles.content, contentStyle]}
             keyboardShouldPersistTaps="handled"
           >
@@ -320,7 +348,7 @@ export function Screen({
         ) : (
           <View style={[styles.content, { flex: 1 }, contentStyle]}>{children}</View>
         )}
-        {showFreePackInfo && (
+        {showGift && showFreePackInfo && (
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
             <Pressable
               accessibilityRole="button"

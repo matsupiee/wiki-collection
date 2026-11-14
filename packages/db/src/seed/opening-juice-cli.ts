@@ -1,6 +1,7 @@
+import { recordSeedGrants } from "./record-seed-grants";
 // Local-only fixture: preserve real draws and existing users; create a dedicated account.
 import { eq } from "drizzle-orm";
-import { card, cardDiscovery, pack, packOpening, user, userCard } from "../schema";
+import { card, pack, packOpening, packOpeningCard, user, userCard } from "../schema";
 import { createUser } from "./create-user";
 import { openLocalDb } from "./local-db";
 
@@ -46,22 +47,28 @@ try {
       .onConflictDoUpdate({ target: packOpening.id, set: { payment: "free_daily" } });
     for (const [slot, c] of order.entries()) {
       await db
-        .insert(cardDiscovery)
-        .values({ userId, cardId: c.id, firstAcquiredAt: new Date() })
-        .onConflictDoNothing();
-      await db
         .insert(userCard)
         .values({
           id: `${id}-${slot}`,
-          userId,
+          ownerId: userId,
           cardId: c.id,
-          packOpeningId: id,
         })
         .onConflictDoUpdate({ target: userCard.id, set: { cardId: c.id } });
+      await db
+        .insert(packOpeningCard)
+        .values({
+          id: `${id}-${slot}`,
+          packOpeningId: id,
+          userCardId: `${id}-${slot}`,
+          cardId: c.id,
+          slot: slot + 1,
+        })
+        .onConflictDoUpdate({ target: packOpeningCard.id, set: { cardId: c.id } });
     }
     console.log(`wiki-collection://openings/${id}`);
   }
   console.log("opening-juice1@example.com / password1234（確認専用、抽選・残数は変更しません）");
+  await recordSeedGrants(db);
 } finally {
   await dispose();
 }

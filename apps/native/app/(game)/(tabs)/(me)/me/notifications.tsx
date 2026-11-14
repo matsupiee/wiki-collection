@@ -28,7 +28,7 @@ export default function Notifications() {
   );
 
   return (
-    <Screen title={t("notifications")} back>
+    <Screen showNotifications={false} title={t("notifications")} back>
       {!query.data ? (
         <Loading error={query.error} retry={query.refetch} />
       ) : query.data.length === 0 ? (

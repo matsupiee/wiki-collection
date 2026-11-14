@@ -52,6 +52,7 @@ export async function handler({ ctx }: { ctx: ProtectedContext }): Promise<CoinL
       id: d.id,
       createdAt: d.createdAt.toISOString(),
       source: d.source,
+      questKey: d.source === "quest_reward" ? d.note : null,
       isPaid: d.isPaid,
       amount: d.amount,
     })),

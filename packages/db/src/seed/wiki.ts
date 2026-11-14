@@ -15,7 +15,7 @@ import { reset } from "./reset";
 
 export function selectWikiCards(store: CardStore) {
   const known = new Set(store.genres.map((g) => g.slug));
-  const quotas = { common: 325, rare: 100, super_rare: 50, legendary: 25 };
+  const quotas = { common: 18, uncommon: 107, rare: 200, super_rare: 150, legendary: 25 };
   const seen = new Set<number>();
   const selected = store.cards.filter((c) => {
     if (!c.isActive || !known.has(c.genre) || !quotas[c.rarity] || seen.has(c.wikiPageId))
@@ -41,7 +41,7 @@ export async function seedWiki(input: {
   const selected = selectWikiCards(store);
   const sizes = new Map<string, ImageDimensions>();
   const result = await mirrorImages({
-    cards: selected.filter((c) => c.rarity !== "common"),
+    cards: selected.filter((c) => c.rarity !== "common" && c.rarity !== "uncommon"),
     storage: measuredImageStorage(
       async (key) => {
         const object = await images.get(key);

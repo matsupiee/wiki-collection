@@ -1,0 +1,13 @@
+appId: com.matsupiee.wikicollection
+---
+# pack-rates-cli.tsで新しい率と5段階の候補を用意し、無料枠1つと600pt以上のあるローカル利用者で実行する。
+# 厳密な排出率と境界値はpack-slot-rates.integration.test.tsで検証する。
+- openLink: wiki-collection://packs
+- tapOn: "基本パックへ"
+- tapOn: "無料で開封する"
+- extendedWaitUntil:
+    visible: "スキップ"
+    timeout: 15000
+- tapOn: "スキップ"
+- assertVisible: "開封結果"
+- runFlow: open-premium-pack.yaml

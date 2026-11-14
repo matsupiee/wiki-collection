@@ -1,6 +1,6 @@
 import {
   card,
-  cardDiscovery,
+  userCardOwnershipTransfers,
   genre,
   marketListing,
   userCard,
@@ -33,14 +33,24 @@ export async function handler({
         status: userCard.status,
       })
       .from(userCard)
-      .where(and(eq(userCard.userId, userId), eq(userCard.cardId, found.card.id)))
+      .where(and(eq(userCard.ownerId, userId), eq(userCard.cardId, found.card.id)))
       .orderBy(asc(userCard.createdAt)),
     ctx.db
-      .select({ id: cardDiscovery.id })
-      .from(cardDiscovery)
-      .where(and(eq(cardDiscovery.userId, userId), eq(cardDiscovery.cardId, found.card.id))),
+      .select({ id: userCardOwnershipTransfers.id })
+      .from(userCardOwnershipTransfers)
+      .where(
+        and(
+          eq(userCardOwnershipTransfers.toUserId, userId),
+          eq(userCardOwnershipTransfers.cardId, found.card.id),
+        ),
+      )
+      .limit(1),
     ctx.db
-      .select({ price: sql<number | null>`min(coalesce(${marketListing.currentPrice}, ${marketListing.startPrice}))` })
+      .select({
+        price: sql<
+          number | null
+        >`min(coalesce(${marketListing.currentPrice}, ${marketListing.startPrice}))`,
+      })
       .from(marketListing)
       .where(
         and(

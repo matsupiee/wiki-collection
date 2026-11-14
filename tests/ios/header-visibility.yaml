@@ -1,0 +1,133 @@
+appId: com.matsupiee.wikicollection
+---
+- launchApp
+- openLink: wiki-collection://packs
+- tapOn:
+    text: "開く"
+    optional: true
+- tapOn:
+    text: "もどる"
+    optional: true
+- tapOn: "パック"
+- assertVisible:
+    id: header-gift
+- assertVisible:
+    id: header-points
+- assertVisible:
+    id: notification-bell
+- tapOn:
+    id: header-gift
+- assertVisible: "10分ごとに無料パックが1つ引けるようになる"
+- tapOn:
+    id: header-gift
+- tapOn:
+    id: header-points
+- assertNotVisible:
+    id: header-gift
+- assertVisible:
+    id: header-points
+- assertVisible:
+    id: notification-bell
+- tapOn: "もどる"
+- tapOn: "コレクション"
+- assertNotVisible:
+    id: header-gift
+- assertNotVisible:
+    id: header-points
+- assertVisible:
+    id: notification-bell
+- tapOn: "マーケット"
+- assertNotVisible:
+    id: header-gift
+- assertVisible:
+    id: header-points
+- assertVisible:
+    id: notification-bell
+- tapOn:
+    text: ".+ 残り .+ [0-9,]+pt"
+    index: 0
+- assertNotVisible:
+    id: header-gift
+- assertVisible:
+    id: header-points
+- assertVisible:
+    id: notification-bell
+- openLink: wiki-collection://me
+- assertNotVisible:
+    id: header-gift
+- assertNotVisible:
+    id: header-points
+- assertVisible:
+    id: notification-bell
+- openLink: wiki-collection://me/quests
+- assertNotVisible:
+    id: header-gift
+- assertNotVisible:
+    id: header-points
+- assertNotVisible:
+    id: notification-bell
+- openLink: wiki-collection://me/inquiries
+- assertNotVisible:
+    id: header-gift
+- assertNotVisible:
+    id: header-points
+- assertNotVisible:
+    id: notification-bell
+- openLink: wiki-collection://me/notifications
+- assertNotVisible:
+    id: header-gift
+- assertNotVisible:
+    id: header-points
+- assertNotVisible:
+    id: notification-bell
+- openLink: wiki-collection://me/trades
+- assertNotVisible:
+    id: header-gift
+- assertNotVisible:
+    id: header-points
+- assertNotVisible:
+    id: notification-bell
+- openLink: wiki-collection://me/wallet
+- assertNotVisible:
+    id: header-gift
+- assertNotVisible:
+    id: header-points
+- assertNotVisible:
+    id: notification-bell
+- openLink: wiki-collection://me/openings
+- assertNotVisible:
+    id: header-gift
+- assertNotVisible:
+    id: header-points
+- assertNotVisible:
+    id: notification-bell
+- openLink: wiki-collection://me/language
+- assertNotVisible:
+    id: header-gift
+- assertNotVisible:
+    id: header-points
+- assertNotVisible:
+    id: notification-bell
+- openLink: wiki-collection://packs
+- assertVisible:
+    id: header-gift
+- assertVisible:
+    id: header-points
+- assertVisible:
+    id: notification-bell
+- openLink: wiki-collection://asset-ranking
+- assertVisible: "総合資産ランキング"
+- assertNotVisible:
+    id: header-gift
+- assertNotVisible:
+    id: header-points
+- assertVisible:
+    id: notification-bell
+- openLink: wiki-collection://cards/seed-collection-sort-3
+- assertVisible: "もどる"
+- assertNotVisible:
+    id: header-gift
+- assertNotVisible:
+    id: header-points
+- assertVisible:
+    id: notification-bell

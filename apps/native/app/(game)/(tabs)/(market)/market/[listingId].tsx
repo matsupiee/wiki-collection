@@ -2,7 +2,7 @@ import { auctionRefreshInterval } from "@/lib/auction";
 import { useTranslation } from "@/lib/i18n";
 import { Text, TextInput } from "@/components/typography";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { Keyboard, View } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTRPC } from "@/lib/client";
@@ -46,7 +46,13 @@ export default function Listing() {
   const amount = Number(input || d?.minNextBid || 0);
   const active = d?.listing.status === "active";
   return (
-    <Screen back contentStyle={{ gap: 0, paddingTop: 24 }}>
+    <Screen
+      showPoints
+      back
+      hideBrand
+      automaticallyAdjustKeyboardInsets
+      contentStyle={{ gap: 0, paddingTop: 24 }}
+    >
       {!d ? (
         <Loading error={q.error} retry={q.refetch} />
       ) : (
@@ -162,6 +168,7 @@ export default function Listing() {
                       amount > 10_000_000
                     }
                     onPress={() => {
+                      Keyboard.dismiss();
                       setInput(String(amount));
                       action.clearError();
                       setConfirm(d.balance < amount ? "purchase" : "bid");

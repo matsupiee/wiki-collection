@@ -1,6 +1,7 @@
+import { userQuestCompletion } from "./user-quest-completion";
 import { createId } from "@paralleldrive/cuid2";
 import { sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 import { coinDepositSources } from "../enums";
 import { user } from "./auth";
@@ -33,6 +34,7 @@ export const coinDeposit = sqliteTable(
     marketListingId: text("market_listing_id").references(() => marketListing.id),
     auctionBidId: text("auction_bid_id").references(() => auctionBid.id),
     note: text("note"),
+    questCompletionId: text("quest_completion_id").references(() => userQuestCompletion.id),
   },
-  (table) => [index("coin_deposit_user_created_idx").on(table.userId, table.createdAt)],
+  (table) => [index("coin_deposit_user_created_idx").on(table.userId, table.createdAt), uniqueIndex("coin_deposit_quest_uidx").on(table.questCompletionId)],
 );

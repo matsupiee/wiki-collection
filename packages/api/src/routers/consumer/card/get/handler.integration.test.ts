@@ -2,8 +2,6 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { appRouter } from "../../../index";
 import type { Database } from "@wiki-collection/db";
 
-import { cardDiscovery } from "@wiki-collection/db/schema/index";
-
 import { createTestDb } from "../../../../test/create-test-db";
 import { createCard, createGenre, createUserContext, giveCard } from "../../../../test/fixtures";
 import { handler as createListingHandler } from "../../market/create-listing/handler";
@@ -25,9 +23,6 @@ describe("card/get", () => {
       wikiRevisionId: 123456,
     });
     const mine = await giveCard(db, ctx.session.user.id, c.id);
-    await db
-      .insert(cardDiscovery)
-      .values({ userId: ctx.session.user.id, cardId: c.id, firstAcquiredAt: new Date() });
     for (const price of [120, 80]) {
       const copy = await giveCard(db, seller.session.user.id, c.id);
       await createListingHandler({

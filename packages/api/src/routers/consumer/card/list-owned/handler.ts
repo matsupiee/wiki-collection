@@ -29,7 +29,7 @@ export async function handler({
     .innerJoin(genre, eq(genre.id, card.genreId))
     .where(
       and(
-        eq(userCard.userId, ctx.session.user.id),
+        eq(userCard.ownerId, ctx.session.user.id),
         inArray(userCard.status, ["owned", "listed"]),
         input.genreId ? eq(card.genreId, input.genreId) : undefined,
         input.rarity ? eq(card.rarity, input.rarity) : undefined,

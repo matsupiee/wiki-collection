@@ -1,6 +1,7 @@
+import { recordSeedGrants } from "./record-seed-grants";
 // Add a recognizable history entry and a tradable card to an existing local guest.
 import { eq } from "drizzle-orm";
-import { card, cardDiscovery, coinDeposit, user, userCard } from "../schema";
+import { card, coinDeposit, user, userCard } from "../schema";
 import { openLocalDb } from "./local-db";
 
 const player = process.argv[2];
@@ -25,13 +26,10 @@ try {
       .onConflictDoNothing(),
     db
       .insert(userCard)
-      .values({ id: "guest-card-" + userId, userId, cardId: item.id })
-      .onConflictDoNothing(),
-    db
-      .insert(cardDiscovery)
-      .values({ userId, cardId: item.id, firstAcquiredAt: new Date() })
+      .values({ id: "guest-card-" + userId, ownerId: userId, cardId: item.id })
       .onConflictDoNothing(),
   ]);
+  await recordSeedGrants(db);
 } finally {
   await dispose();
 }

@@ -10,7 +10,7 @@ export default function Language() {
   const preference = useLanguagePreference();
   const [failed, setFailed] = useState(false);
   return (
-    <Screen title={t("language")} back>
+    <Screen showNotifications={false} title={t("language")} back>
       <Panel style={{ padding: 0, gap: 0 }}>
         <View accessibilityRole="radiogroup" accessibilityLabel={t("language")}>
           {(["system", "ja", "en"] as const).map((value) => {

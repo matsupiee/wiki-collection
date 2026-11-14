@@ -1,6 +1,13 @@
-import { cardDiscovery, pack, packOpening, userCard } from "@wiki-collection/db/schema/index";
+import { prepareQuestRewards } from "@wiki-collection/db/quests/rewards";
+import {
+  packOpeningCard,
+  userCardOwnershipTransfers,
+  pack,
+  packOpening,
+  userCard,
+} from "@wiki-collection/db/schema/index";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 
 import type { ProtectedContext } from "../../../../context";
@@ -49,12 +56,7 @@ export async function handler({
       .returning({ id: packOpening.id });
     openingId = opening!.id;
 
-    const rows = drawn.map(({ cardId }) => ({ userId, cardId, packOpeningId: opening!.id }));
-    const discoveries = [...new Set(drawn.map((d) => d.cardId))].map((cardId) => ({
-      userId,
-      cardId,
-      firstAcquiredAt: now,
-    }));
+    const rows = drawn.map(({ cardId }) => ({ id: crypto.randomUUID(), ownerId: userId, cardId }));
     const payments: BatchItem<"sqlite">[] = [];
     if (price > 0) {
       payments.push(
@@ -66,20 +68,49 @@ export async function handler({
         })),
       );
     }
-    const [acquired, discovered] = await runBatch(ctx.db, [
-      ctx.db.insert(userCard).values(rows).returning({ id: userCard.id, cardId: userCard.cardId }),
+    // 同じ batch の先頭で既獲得を読む。並行開封でも後の batch は先の獲得履歴を見る。
+    const [previous] = await runBatch(ctx.db, [
       ctx.db
-        .insert(cardDiscovery)
-        .values(discoveries)
-        .onConflictDoNothing()
-        .returning({ cardId: cardDiscovery.cardId }),
+        .selectDistinct({ cardId: userCardOwnershipTransfers.cardId })
+        .from(userCardOwnershipTransfers)
+        .where(
+          and(
+            eq(userCardOwnershipTransfers.toUserId, userId),
+            inArray(
+              userCardOwnershipTransfers.cardId,
+              rows.map((r) => r.cardId),
+            ),
+          ),
+        ),
+      ctx.db.insert(userCard).values(rows),
+      ctx.db.insert(packOpeningCard).values(
+        rows.map((r, slot) => ({
+          packOpeningId: opening!.id,
+          userCardId: r.id,
+          cardId: r.cardId,
+          slot: slot + 1,
+        })),
+      ),
+      ctx.db.insert(userCardOwnershipTransfers).values(
+        rows.map((r) => ({
+          userCardId: r.id,
+          cardId: r.cardId,
+          toUserId: userId,
+          reason: "pack_open" as const,
+          createdAt: now,
+        })),
+      ),
       ...payments,
+      ...prepareQuestRewards(ctx.db, userId, openingId),
     ]);
-    const newCards = new Set(discovered.map((row) => row.cardId));
-    // 開封詳細と同じ ID 昇順で、重複カードの先頭だけに NEW を付ける。
-    newUserCardIds = acquired
-      .sort((a, b) => (a.id < b.id ? -1 : 1))
-      .filter((row) => newCards.delete(row.cardId))
+    const seen = new Set(previous.map((row) => row.cardId));
+    newUserCardIds = rows
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .filter((row) => {
+        if (seen.has(row.cardId)) return false;
+        seen.add(row.cardId);
+        return true;
+      })
       .map((row) => row.id);
   } catch (error) {
     if (openingId) await ctx.db.delete(packOpening).where(eq(packOpening.id, openingId));
@@ -87,7 +118,11 @@ export async function handler({
     throw error;
   }
 
-  const commonIds = [...new Set(drawn.filter((c) => c.rarity === "common").map((c) => c.cardId))];
+  const commonIds = [
+    ...new Set(
+      drawn.filter((c) => c.rarity === "common" || c.rarity === "uncommon").map((c) => c.cardId),
+    ),
+  ];
   if (commonIds.length) ctx.cacheCommonImages?.(commonIds);
   return { openingId, newUserCardIds };
 }

@@ -5,7 +5,6 @@ import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { userCardStatuses } from "../enums";
 import { user } from "./auth";
 import { card } from "./card";
-import { packOpening } from "./pack-opening";
 
 // ユーザーが持っている1枚1枚のカード。1枚単位で出品するため枚数ではなく1枚ごとに行を持つ
 export const userCard = sqliteTable(
@@ -22,17 +21,15 @@ export const userCard = sqliteTable(
       .$onUpdate(() => new Date())
       .notNull(),
     // いまの持ち主。マーケットで売れたら買い手に書き換える
-    userId: text("user_id")
+    ownerId: text("owner_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     cardId: text("card_id")
       .notNull()
       .references(() => card.id),
     status: text("status", { enum: userCardStatuses }).notNull().default("owned"),
-    packOpeningId: text("pack_opening_id").references(() => packOpening.id),
   },
   (table) => [
-    index("user_card_user_status_card_idx").on(table.userId, table.status, table.cardId),
-    index("user_card_opening_idx").on(table.packOpeningId),
+    index("user_card_owner_status_card_idx").on(table.ownerId, table.status, table.cardId),
   ],
 );

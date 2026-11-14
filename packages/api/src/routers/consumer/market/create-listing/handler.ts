@@ -20,7 +20,7 @@ export async function handler({
     .where(
       and(
         eq(userCard.id, input.userCardId),
-        eq(userCard.userId, userId),
+        eq(userCard.ownerId, userId),
         eq(userCard.status, "owned"),
       ),
     )

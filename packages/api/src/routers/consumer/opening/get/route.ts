@@ -7,6 +7,7 @@ import { handler } from "./handler";
 export const openingGetInputSchema = z.object({ openingId: z.string() });
 
 export const openingGetOutputSchema = z.object({
+  questRewards: z.array(z.object({ questKey: z.string(), amount: z.number() })),
   opening: z.object({
     id: z.string(),
     createdAt: z.string(),

@@ -28,10 +28,10 @@ test("各コピーを四捨五入し、出品・譲渡後も現在の所持分�
   const [listed] = await db
     .insert(userCard)
     .values([
-      { userId: a.session.user.id, cardId: c.id, status: "listed" },
-      { userId: a.session.user.id, cardId: c.id },
-      { userId: a.session.user.id, cardId: c.id, status: "archived" },
-      { userId: b.session.user.id, cardId: c.id },
+      { ownerId: a.session.user.id, cardId: c.id, status: "listed" },
+      { ownerId: a.session.user.id, cardId: c.id },
+      { ownerId: a.session.user.id, cardId: c.id, status: "archived" },
+      { ownerId: b.session.user.id, cardId: c.id },
     ])
     .returning();
   expect(await api.assetRanking()).toEqual({
@@ -43,7 +43,7 @@ test("各コピーを四捨五入し、出品・譲渡後も現在の所持分�
   });
   await db
     .update(userCard)
-    .set({ userId: b.session.user.id, status: "owned" })
+    .set({ ownerId: b.session.user.id, status: "owned" })
     .where(eq(userCard.id, listed!.id));
   expect((await api.assetRanking()).mine).toEqual({ rank: 2, total: 337 });
   await db.update(card).set({ monthlyPageviews: 60, articleLength: null }).where(eq(card.id, c.id));
@@ -63,9 +63,9 @@ test("同点の50人と圏外の本人の順位を取得できる", async () => 
     await db.insert(user).values(u);
     await db
       .insert(userCard)
-      .values(Array.from({ length: 2 }, () => ({ userId: u.id, cardId: c.id })));
+      .values(Array.from({ length: 2 }, () => ({ ownerId: u.id, cardId: c.id })));
   }
-  await db.insert(userCard).values({ userId: ctx.session.user.id, cardId: c.id });
+  await db.insert(userCard).values({ ownerId: ctx.session.user.id, cardId: c.id });
   const result = await appRouter.createCaller(ctx).card.assetRanking();
   expect(result.leaders).toHaveLength(50);
   expect(result.leaders.every((row) => row.rank === 1 && !row.mine)).toBe(true);

@@ -70,6 +70,17 @@ export default function Result() {
             >
               {packText(q.data.pack.slug, "name", q.data.pack.name)}
             </Text>
+            {q.data.questRewards.length > 0 && (
+              <Text
+                accessibilityRole="text"
+                style={{ textAlign: "center", color: "#047857", marginTop: 16, fontWeight: "700" }}
+              >
+                {t("questResult", {
+                  count: q.data.questRewards.length,
+                  amount: q.data.questRewards.reduce((sum, r) => sum + r.amount, 0),
+                })}
+              </Text>
+            )}
             <View style={{ marginTop: 24, gap: 16, alignItems: "center" }}>
               {[q.data.cards.slice(0, 3), q.data.cards.slice(3)].map((row, i) => (
                 <View

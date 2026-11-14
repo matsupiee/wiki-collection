@@ -3,7 +3,7 @@ import Svg, { Defs, LinearGradient, Stop, Text, Circle } from "react-native-svg"
 export function Brand() {
   const id = useId().replaceAll(":", "");
   return (
-    <Svg width={150} height={28} accessibilityLabel="Wiki Collection">
+    <Svg testID="brand-logo" width={150} height={28} accessibilityLabel="Wiki Collection">
       <Defs>
         <LinearGradient id={id} x1="0" y1="0" x2="1" y2="0">
           <Stop offset="0" stopColor="#7c3aed" />

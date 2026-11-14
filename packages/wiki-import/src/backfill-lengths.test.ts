@@ -17,7 +17,7 @@ test("保存済みの版のサイズだけを補完し、測定済みカード�
       summary: "短い要約",
       imageUrl: null,
       imageCredit: null,
-      rarity: "common",
+      rarity: "uncommon",
       monthlyPageviews: 100,
       pageviewsMeasuredAt: new Date(),
       isActive: true,

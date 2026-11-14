@@ -6,7 +6,7 @@ import { packPayments } from "../enums";
 import { user } from "./auth";
 import { pack } from "./pack";
 
-// パックを1回開けた記録。抽選結果は user_card に残る
+// パックを1回開けた記録。抽選結果は pack_opening_card に残る
 export const packOpening = sqliteTable(
   "pack_opening",
   {

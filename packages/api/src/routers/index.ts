@@ -1,3 +1,4 @@
+import { questRouter } from "./consumer/quest/route";
 import { inquiryRouter } from "./consumer/inquiry/route";
 import { appUpdate } from "./app-update";
 
@@ -27,6 +28,7 @@ import { shopPurchaseRoute } from "./consumer/shop/purchase/route";
 
 export const appRouter = router({
   appUpdate,
+  quest: questRouter,
   inquiry: inquiryRouter,
   healthCheck: publicProcedure.query(() => {
     return "OK";

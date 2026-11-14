@@ -54,7 +54,7 @@ import {
 } from "../../../../components/opening-stage";
 
 function playCardFeedback(rarity: Rarity | undefined) {
-  if (!rarity || rarity === "common") return;
+  if (!rarity || rarity === "common" || rarity === "uncommon") return;
   const feedback =
     rarity === "legendary"
       ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
@@ -192,7 +192,9 @@ function OpeningScene({ openingId, newIds }: { openingId: string; newIds: string
       legendary: Haptics.ImpactFeedbackStyle.Heavy,
     };
     const feedback =
-      rarity === "common" ? Haptics.selectionAsync() : Haptics.impactAsync(impactStyles[rarity]);
+      rarity === "common" || rarity === "uncommon"
+        ? Haptics.selectionAsync()
+        : Haptics.impactAsync(impactStyles[rarity]);
     void feedback.catch(() => {});
     if (reduce) {
       time.set(end);

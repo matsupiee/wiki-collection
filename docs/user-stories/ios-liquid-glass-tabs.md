@@ -30,4 +30,4 @@ iOSアプリの利用者として、OSに馴染むLiquid Glassのタブで、パ
 
 - `tests/native/app.spec.ts`: ブラウザーでのタブ遷移と既存の主要操作。
 - `bun run test`: 全既存ストーリーに対応するAPI・画面ロジックの回帰テスト。
-- `tests/ios/liquid-glass-tabs.yaml`: iOSアプリの開封履歴とポイント購入でOS標準タブの表示と画面切り替えを確認する。
+- `tests/ios/liquid-glass-tabs.yaml`: iOSアプリの開封履歴ではタブを表示し、ポイント購入ではタブが隠れ、戻ると再表示されることを確認する。

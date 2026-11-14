@@ -5,11 +5,10 @@ import { auth, useTRPC } from "@/lib/client";
 import { Text } from "@/components/typography";
 import { useState } from "react";
 import { View, Pressable } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { openLegalPage } from "@/lib/legal-browser";
+import { router } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAction } from "@/lib/mutation";
-import { Confirm, Loading, Screen } from "@/components/ui";
+import { Button, Confirm, Loading, Screen } from "@/components/ui";
 import { formatPt } from "@/lib/format";
 const note = { fontSize: 11, lineHeight: 17.875, color: "#64748b" };
 export default function Point() {
@@ -33,39 +32,21 @@ export default function Point() {
         ? t("testPurchase")
         : undefined;
   const [message, setMessage] = useState("");
-  const b = useQuery(trpc.coin.getBalance.queryOptions());
   const purchase = useMutation(trpc.shop.purchase.mutationOptions());
   const action = useAction();
   const [selected, setSelected] = useState("");
   const p = q.data?.products.find((p) => p.id === selected);
   return (
-    <Screen title={t("buyPoints")}>
-      {!q.data || !b.data ? (
-        <Loading
-          error={q.error ?? b.error}
-          retry={() => {
-            void q.refetch();
-            void b.refetch();
-          }}
-        />
+    <Screen showPoints back title={t("pointsTitle")}>
+      {!q.data ? (
+        <Loading error={q.error} retry={q.refetch} />
       ) : (
         <>
-          <LinearGradient
-            colors={["#fef3c7", "#ffffff"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 24, padding: 20, boxShadow: "0 1px 2px #0000000d" }}
-          >
-            <Text style={{ fontSize: 12, lineHeight: 16, fontWeight: "700", color: "#64748b" }}>
-              {t("pointBalance")}
+          <View style={{ gap: 6 }}>
+            <Text style={{ fontSize: 20, fontWeight: "800", color: "#1e293b" }}>
+              {t("purchasePointsHeading")}
             </Text>
-            <Text style={{ fontSize: 30, lineHeight: 36, fontWeight: "900", color: "#1e293b" }}>
-              {formatPt(b.data.total)}
-            </Text>
-            <Text style={{ fontSize: 12, lineHeight: 16, color: "#64748b" }}>
-              {t("paidAndFree", { paid: formatPt(b.data.paid), free: formatPt(b.data.free) })}
-            </Text>
-          </LinearGradient>
+          </View>
           <View style={{ gap: 8 }}>
             {q.data.products.map((p) => (
               <Pressable
@@ -141,27 +122,26 @@ export default function Point() {
                 </Pressable>
               )}
             {!!message && <Text accessibilityRole="alert">{message}</Text>}
-            <Text style={note}>{t("purchaseTerms")}</Text>
-            <Text style={note}>{t("spendFreeFirst")}</Text>
-            <View style={{ flexDirection: "row", gap: 12, paddingTop: 8 }}>
-              {(
-                [
-                  ["/legal/tokushoho", t("commercialDisclosure")],
-                  ["/legal/payment-services", t("paymentDisclosure")],
-                ] as const
-              ).map(([url, label]) => (
-                <Pressable
-                  key={url}
-                  accessibilityRole="button"
-                  onPress={() => void action.run(() => openLegalPage(url))}
-                >
-                  <Text style={[note, { fontWeight: "700", color: "#0284c7" }]}>{label}</Text>
-                </Pressable>
-              ))}
-            </View>
           </View>
         </>
       )}
+      <View
+        style={{
+          gap: 12,
+          marginTop: 20,
+          paddingTop: 24,
+          borderTopWidth: 1,
+          borderColor: "#e2e8f0",
+        }}
+      >
+        <Text style={{ fontSize: 20, fontWeight: "800", color: "#1e293b" }}>
+          {t("earnQuestPoints")}
+        </Text>
+        <Text style={{ fontSize: 13, lineHeight: 21, color: "#64748b" }}>
+          {t("earnQuestPointsGuide")}
+        </Text>
+        <Button title={t("viewQuests")} secondary onPress={() => router.push("/me/quests")} />
+      </View>
       {!!action.error && !p && <Text accessibilityRole="alert">{action.error}</Text>}
       {p && (
         <Confirm
@@ -200,6 +180,7 @@ export default function Point() {
               ? t("buyFor", { points: formatPt(p.coins), price: price(p) ?? t("unavailable") })
               : formatPt(p.coins)}
           </Text>
+          <Text style={note}>{t("purchaseTerms")}</Text>
           {ios && apple.data !== true && <Text style={note}>{t("guestWarning")}</Text>}
           {!!action.error && <Text accessibilityRole="alert">{action.error}</Text>}
         </Confirm>

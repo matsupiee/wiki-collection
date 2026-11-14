@@ -20,7 +20,7 @@ export async function cacheCommonImages(
       height: card.imageHeight,
     })
     .from(card)
-    .where(and(eq(card.rarity, "common"), inArray(card.id, ids)));
+    .where(and(inArray(card.rarity, ["common", "uncommon"]), inArray(card.id, ids)));
   const sources = new Set<string>();
   for (const row of rows) {
     const url = row.url && commonsImageUrl(row.url);

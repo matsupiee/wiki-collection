@@ -8,7 +8,8 @@ export * from "./coin-product";
 export * from "./pack-opening";
 export * from "./free-pack-allowance";
 export * from "./user-card";
-export * from "./card-discovery";
+export * from "./pack-opening-card";
+export * from "./user-card-ownership-transfers";
 export * from "./coin-purchase";
 export * from "./market-listing";
 export * from "./auction-bid";
@@ -19,3 +20,5 @@ export * from "./app-update-policy";
 export * from "./notification";
 export * from "./notification-user";
 export * from "./inquiry";
+
+export * from "./user-quest-completion";

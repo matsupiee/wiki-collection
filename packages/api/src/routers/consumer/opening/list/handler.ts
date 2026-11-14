@@ -1,4 +1,4 @@
-import { card, pack, packOpening, userCard } from "@wiki-collection/db/schema/index";
+import { card, pack, packOpening, packOpeningCard } from "@wiki-collection/db/schema/index";
 import { asc, desc, eq, inArray } from "drizzle-orm";
 
 import { compareRarity } from "../../../../shared/card/compare-rarity";
@@ -25,20 +25,20 @@ export async function handler({ ctx }: { ctx: ProtectedContext }): Promise<Openi
 
   const cards = await ctx.db
     .select({
-      openingId: userCard.packOpeningId,
+      openingId: packOpeningCard.packOpeningId,
       cardId: card.id,
       title: card.title,
       rarity: card.rarity,
     })
-    .from(userCard)
-    .innerJoin(card, eq(card.id, userCard.cardId))
+    .from(packOpeningCard)
+    .innerJoin(card, eq(card.id, packOpeningCard.cardId))
     .where(
       inArray(
-        userCard.packOpeningId,
+        packOpeningCard.packOpeningId,
         openings.map((o) => o.id),
       ),
     )
-    .orderBy(asc(userCard.id));
+    .orderBy(asc(packOpeningCard.userCardId));
 
   return {
     openings: openings.map((o) => ({

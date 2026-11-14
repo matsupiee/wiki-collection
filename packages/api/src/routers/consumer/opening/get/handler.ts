@@ -1,4 +1,4 @@
-import { card, genre, pack, packOpening, userCard } from "@wiki-collection/db/schema/index";
+import { card, genre, pack, packOpening, packOpeningCard, userQuestCompletion } from "@wiki-collection/db/schema/index";
 import { TRPCError } from "@trpc/server";
 import { and, asc, eq } from "drizzle-orm";
 
@@ -26,7 +26,7 @@ export async function handler({
   // 売却で持ち主や状態が変わっていても、開封の結果としては表示する
   const cards = await ctx.db
     .select({
-      userCardId: userCard.id,
+      userCardId: packOpeningCard.userCardId,
       card: {
         id: card.id,
         title: card.title,
@@ -38,13 +38,16 @@ export async function handler({
         genreColorHex: genre.colorHex,
       },
     })
-    .from(userCard)
-    .innerJoin(card, eq(card.id, userCard.cardId))
+    .from(packOpeningCard)
+    .innerJoin(card, eq(card.id, packOpeningCard.cardId))
     .innerJoin(genre, eq(genre.id, card.genreId))
-    .where(eq(userCard.packOpeningId, found.opening.id))
-    .orderBy(asc(userCard.id));
+    .where(eq(packOpeningCard.packOpeningId, found.opening.id))
+    .orderBy(asc(packOpeningCard.userCardId));
 
+  const questRewards = await ctx.db.select({ questKey: userQuestCompletion.questKey, amount: userQuestCompletion.reward })
+    .from(userQuestCompletion).where(and(eq(userQuestCompletion.packOpeningId, found.opening.id), eq(userQuestCompletion.userId, ctx.session.user.id)));
   return {
+    questRewards,
     opening: {
       id: found.opening.id,
       createdAt: found.opening.createdAt.toISOString(),

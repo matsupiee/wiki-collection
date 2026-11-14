@@ -24,7 +24,7 @@ export default function Trades() {
     return () => clearInterval(t);
   }, []);
   return (
-    <Screen title={t("manageTrades")} back>
+    <Screen showNotifications={false} title={t("manageTrades")} back>
       {!q.data ? (
         <Loading error={q.error} retry={q.refetch} />
       ) : (

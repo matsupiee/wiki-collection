@@ -1,8 +1,11 @@
+import { recordSeedGrants } from "./record-seed-grants";
+import { parseArgs } from "node:util";
 import { rarityFromPageviews } from "../rarity";
 import { hashPassword } from "better-auth/crypto";
-import { account, card, cardDiscovery, genre, user, userCard } from "../schema";
+import { account, card, genre, user, userCard } from "../schema";
 import { openLocalDb } from "./local-db";
 
+const { values } = parseArgs({ options: { "user-id": { type: "string" } } });
 const { db, dispose } = await openLocalDb();
 const userId = "seed-collection-sort";
 try {
@@ -34,15 +37,16 @@ try {
     { title: "閲覧数トップ", monthlyPageviews: 100000, articleLength: 100 },
     {
       title: "記事サイズトップ",
-      monthlyPageviews: 50000,
+      monthlyPageviews: 10000,
       articleLength: 900,
     },
-    { title: "新しいカード", monthlyPageviews: 10000, articleLength: 500 },
+    { title: "新しいカード", monthlyPageviews: 1000, articleLength: 500 },
     {
       title: "記事サイズ未計測",
-      monthlyPageviews: 9999,
+      monthlyPageviews: 99,
       articleLength: null,
     },
+    { title: "アンコモンのカード", monthlyPageviews: 100, articleLength: 200 },
   ];
   for (const [i, spec] of specs.entries()) {
     const id = `${userId}-${i}`;
@@ -67,15 +71,20 @@ try {
         target: card.id,
         set: { title: spec.title, monthlyPageviews: spec.monthlyPageviews, rarity },
       });
-    await db.insert(userCard).values({ id, userId, cardId: id, createdAt }).onConflictDoNothing();
     await db
-      .insert(cardDiscovery)
-      .values({ userId, cardId: id, firstAcquiredAt: createdAt })
+      .insert(userCard)
+      .values({
+        id: values["user-id"] ? `${id}-${values["user-id"]}` : id,
+        ownerId: values["user-id"] ?? userId,
+        cardId: id,
+        createdAt,
+      })
       .onConflictDoNothing();
   }
   console.log(
     "並び替え確認: collection-sort@example.com / password1234（既存データは削除しません）",
   );
+  await recordSeedGrants(db);
 } finally {
   await dispose();
 }

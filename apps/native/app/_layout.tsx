@@ -41,7 +41,7 @@ export default function Layout() {
           <Providers>
             <SafeAreaView
               style={{ flex: 1, backgroundColor: opening ? "#030405" : "white" }}
-              edges={nativeTabs ? ["top"] : ["top", "bottom"]}
+              edges={nativeTabs || segments.at(-1) === "point" ? ["top"] : ["top", "bottom"]}
             >
               <StatusBar style={opening ? "light" : "dark"} />
               <Stack screenOptions={{ headerShown: false }} />

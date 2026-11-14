@@ -169,7 +169,9 @@ test("2人でオークション出品・入札・ポイント購入", async ({ b
   await buyer.getByRole("button", { name: /500pt/ }).first().click();
   await buyer.getByRole("button", { name: "購入する", exact: true }).click();
   await expect(buyer.getByText("pt を購入します", { exact: true })).not.toBeVisible();
-  await buyer.goto(seller.url());
+  await buyer.getByRole("button", { name: "もどる", exact: true }).click();
+  await expect(buyer).toHaveURL(seller.url());
+  await expect(buyer.getByRole("textbox", { name: /入札額/ })).toHaveValue("150");
   await expect(buyer.getByText("まだ入札はありません")).toBeVisible();
   await buyer.getByRole("textbox", { name: /入札額/ }).fill("100");
   await buyer.getByRole("button", { name: "入札", exact: true }).click();

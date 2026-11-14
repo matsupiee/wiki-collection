@@ -12,3 +12,6 @@ appId: com.matsupiee.wikicollection
     text: ".+ 残り .+ [0-9,]+pt"
     index: 0
 - assertVisible: ".*出品者.*"
+- assertVisible: "もどる"
+- assertNotVisible:
+    id: "brand-logo"

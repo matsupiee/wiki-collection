@@ -1,4 +1,4 @@
-export const rarities = ["common", "rare", "super_rare", "legendary"] as const;
+export const rarities = ["common", "uncommon", "rare", "super_rare", "legendary"] as const;
 export type Rarity = (typeof rarities)[number];
 
 export const packTypes = ["free_basic", "premium"] as const;
@@ -22,7 +22,7 @@ export type ListingStatus = (typeof listingStatuses)[number];
 export const bidStatuses = ["leading", "outbid", "won"] as const;
 export type BidStatus = (typeof bidStatuses)[number];
 
-export const coinDepositSources = ["purchase", "market_sale", "bid_refund", "admin_grant"] as const;
+export const coinDepositSources = ["purchase", "market_sale", "bid_refund", "admin_grant", "quest_reward"] as const;
 export type CoinDepositSource = (typeof coinDepositSources)[number];
 
 export const coinWithdrawPurposes = [

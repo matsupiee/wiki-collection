@@ -53,16 +53,18 @@ test("wiki seed resets existing data, creates 500 cards and preloads higher-rari
       const rows = await db.select().from(card);
       expect(rows).toHaveLength(500);
       expect(new Set(rows.map((row) => row.rarity))).toEqual(
-        new Set(["common", "rare", "super_rare", "legendary"]),
+        new Set(["common", "uncommon", "rare", "super_rare", "legendary"]),
       );
       expect(rows.filter((c) => c.rarity === "legendary")).toHaveLength(25);
-      expect(rows.filter((c) => c.rarity === "super_rare")).toHaveLength(50);
+      expect(rows.filter((c) => c.rarity === "super_rare")).toHaveLength(150);
       for (const row of rows.filter((c) => c.imageUrl)) {
         expect(row.imageCredit).toBeTruthy();
         const image = await proxy.env.CARD_IMAGES.head(await cardImageKey(row.imageUrl!));
         if (
-          row.rarity === "common" &&
-          !rows.some((c) => c.rarity !== "common" && c.imageUrl === row.imageUrl)
+          (row.rarity === "common" || row.rarity === "uncommon") &&
+          !rows.some(
+            (c) => c.rarity !== "common" && c.rarity !== "uncommon" && c.imageUrl === row.imageUrl,
+          )
         ) {
           expect(image).toBeNull();
           expect([row.imageWidth, row.imageHeight]).toEqual([null, null]);
@@ -74,7 +76,7 @@ test("wiki seed resets existing data, creates 500 cards and preloads higher-rari
       }
     }
     const common = (await db.select().from(card)).find(
-      (c) => c.rarity === "common" && c.imageCredit && c.imageUrl,
+      (c) => c.rarity === "uncommon" && c.imageCredit && c.imageUrl,
     )!;
     const key = await cardImageKey(common.imageUrl!);
     await proxy.env.CARD_IMAGES.delete(key);
@@ -103,14 +105,15 @@ test("wiki seed resets existing data, creates 500 cards and preloads higher-rari
     const ctx = await createUserContext(db);
     const basic = await getPack({ input: { slug: "basic" }, ctx });
     expect(
-      basic.slotRates
-        .slice(3)
-        .map(({ rates }) =>
-          Object.fromEntries(rates.map(({ rarity, percent }) => [rarity, percent])),
-        ),
+      basic.slotRates.map(({ rates }) =>
+        Object.fromEntries(rates.map(({ rarity, percent }) => [rarity, percent])),
+      ),
     ).toEqual([
-      { common: 95, rare: 3.5, super_rare: 1, legendary: 0.5 },
-      { common: 86, rare: 10, super_rare: 3, legendary: 1 },
+      { common: 80, uncommon: 20 },
+      { common: 80, uncommon: 20 },
+      { common: 60, uncommon: 30, rare: 10 },
+      { common: 60, uncommon: 30, rare: 10 },
+      { common: 48, uncommon: 30, rare: 20, super_rare: 1.5, legendary: 0.5 },
     ]);
     await expect(
       seedWiki({ db, images: proxy.env.CARD_IMAGES, store: { ...store, cards: [] } }),

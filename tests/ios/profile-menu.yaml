@@ -1,0 +1,38 @@
+appId: com.matsupiee.wikicollection
+---
+- launchApp
+- openLink: wiki-collection://me
+- assertVisible: "クエスト"
+- assertVisible: "出品・入札の管理"
+- assertVisible: "pt の履歴"
+- assertVisible: "開封履歴"
+- assertVisible: "言語切り替え"
+- assertVisible: "お問い合わせ"
+- assertVisible: "利用規約"
+- assertVisible: "プライバシーポリシー"
+- assertVisible: "特定商取引法に基づく表記"
+- assertVisible: "資金決済法に基づく表示"
+- takeScreenshot: profile-menu
+- tapOn: "クエスト"
+- assertVisible: "もどる"
+- tapOn: "もどる"
+- tapOn: "出品・入札の管理"
+- assertVisible: "もどる"
+- tapOn: "もどる"
+- tapOn: "pt の履歴"
+- assertVisible: "もどる"
+- tapOn: "もどる"
+- tapOn: "開封履歴"
+- assertVisible: "もどる"
+- tapOn: "もどる"
+- tapOn: "言語切り替え"
+- assertVisible: "もどる"
+- tapOn: "もどる"
+- tapOn: "お問い合わせ"
+- assertVisible: "もどる"
+- tapOn: "もどる"
+- tapOn:
+    id: notification-bell
+- assertVisible: "通知"
+- assertVisible: "もどる"
+- tapOn: "もどる"

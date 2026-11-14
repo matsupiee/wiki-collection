@@ -1,7 +1,12 @@
 import { afterAll, beforeAll, expect, test } from "bun:test";
 import { createAuth } from "@wiki-collection/auth";
 import { createPack, createGenre, createCard } from "./fixtures";
-import { coinDeposit, packOpening, userCard } from "@wiki-collection/db/schema/index";
+import {
+  coinDeposit,
+  packOpening,
+  userCard,
+  packOpeningCard,
+} from "@wiki-collection/db/schema/index";
 import { appRouter } from "../routers";
 import { createTestDb } from "./create-test-db";
 
@@ -72,9 +77,13 @@ test("ゲストの再ログイン・再インストール・Apple連携と履歴
       revealedAt: new Date(),
     })
     .returning();
-  await store.db
+  const [copy] = await store.db
     .insert(userCard)
-    .values({ userId: id, cardId: card.id, packOpeningId: opening!.id });
+    .values({ ownerId: id, cardId: card.id })
+    .returning();
+  await store.db
+    .insert(packOpeningCard)
+    .values({ packOpeningId: opening!.id, userCardId: copy!.id, cardId: card.id, slot: 1 });
   const history = await appRouter
     .createCaller({ db: store.db, session: first.session })
     .opening.list();

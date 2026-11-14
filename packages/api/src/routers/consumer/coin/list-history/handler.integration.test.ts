@@ -31,8 +31,9 @@ describe("coin/list-history", () => {
 
     const { entries } = await handler({ ctx });
 
-    expect(entries).toHaveLength(3);
-    expect(entries[0]).toMatchObject({
+    expect(entries).toHaveLength(4);
+    expect(entries.find((e) => e.kind === "deposit" && e.source === "quest_reward")).toMatchObject({ amount: 10, isPaid: false, questKey: "first_pack" });
+    expect(entries.find((e) => e.kind === "withdraw")).toMatchObject({
       kind: "withdraw",
       purpose: "pack_open",
       amount: 150,

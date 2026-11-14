@@ -9,6 +9,7 @@ import {
   packSlotRate,
   user,
   userCard,
+  userCardOwnershipTransfers,
 } from "@wiki-collection/db/schema/index";
 
 import type { ProtectedContext } from "../context";
@@ -123,7 +124,10 @@ export async function grantCoins(db: Database, userId: string, amount: number, i
 }
 
 export async function giveCard(db: Database, userId: string, cardId: string) {
-  const [created] = await db.insert(userCard).values({ userId, cardId }).returning();
+  const [created] = await db.insert(userCard).values({ ownerId: userId, cardId }).returning();
+  await db
+    .insert(userCardOwnershipTransfers)
+    .values({ userCardId: created!.id, cardId, toUserId: userId, reason: "pack_open" });
   return created!;
 }
 

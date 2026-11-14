@@ -1,11 +1,11 @@
 import { afterAll, afterEach, beforeAll, describe, expect, setSystemTime, test } from "bun:test";
 import type { Database } from "@wiki-collection/db";
 import {
-  cardDiscovery,
+  userCardOwnershipTransfers,
   freePackAllowance,
   coinWithdraw,
   packOpening,
-  userCard,
+  packOpeningCard,
 } from "@wiki-collection/db/schema/index";
 import { and, eq } from "drizzle-orm";
 
@@ -66,9 +66,9 @@ describe("pack/open", () => {
     ]);
     const discoveries = await db
       .select()
-      .from(cardDiscovery)
-      .where(eq(cardDiscovery.userId, ctx.session.user.id));
-    expect(discoveries).toHaveLength(2);
+      .from(userCardOwnershipTransfers)
+      .where(eq(userCardOwnershipTransfers.toUserId, ctx.session.user.id));
+    expect(discoveries).toHaveLength(5);
 
     const second = await handler({ input: { packId: p.id }, ctx });
     expect(second.newUserCardIds).toEqual([]);
@@ -93,7 +93,10 @@ describe("pack/open", () => {
     const ids = new Set<string>();
     for (const point of [0.49999, 0.5]) {
       const { openingId } = await handler({ ctx, input: { packId: p.id }, random: () => point });
-      const drawn = await db.select().from(userCard).where(eq(userCard.packOpeningId, openingId));
+      const drawn = await db
+        .select()
+        .from(packOpeningCard)
+        .where(eq(packOpeningCard.packOpeningId, openingId));
       expect(drawn).toHaveLength(5);
       const id = drawn[0]!.cardId;
       expect(drawn.every((c) => c.cardId === id)).toBe(true);
@@ -111,7 +114,10 @@ describe("pack/open", () => {
     await createCard(db, { genreId: history.id, rarity: "common" });
     const p = await createPack(db, { genreId: space.id });
     const { openingId } = await handler({ input: { packId: p.id }, ctx });
-    const cards = await db.select().from(userCard).where(eq(userCard.packOpeningId, openingId));
+    const cards = await db
+      .select()
+      .from(packOpeningCard)
+      .where(eq(packOpeningCard.packOpeningId, openingId));
     expect(new Set(cards.map((c) => c.cardId))).toEqual(new Set([spaceCard.id]));
   });
 
@@ -196,7 +202,7 @@ describe("pack/open", () => {
 
     const { openingId } = await handler({ input: { packId: p.id }, ctx });
 
-    expect(await getCoinBalance(db, userId)).toEqual({ total: 950, paid: 950, free: 0 });
+    expect(await getCoinBalance(db, userId)).toEqual({ total: 960, paid: 950, free: 10 });
     const [withdraw] = await db
       .select()
       .from(coinWithdraw)
@@ -238,7 +244,7 @@ describe("pack/open", () => {
     ]);
 
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
-    expect((await getCoinBalance(db, userId)).total).toBe(50);
+    expect((await getCoinBalance(db, userId)).total).toBe(60);
     const openings = await db.select().from(packOpening).where(eq(packOpening.userId, userId));
     expect(openings).toHaveLength(1);
   });

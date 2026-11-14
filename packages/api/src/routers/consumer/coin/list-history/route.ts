@@ -14,6 +14,7 @@ export const coinListHistoryOutputSchema = z.object({
         id: z.string(),
         createdAt: z.string(),
         source: z.enum(coinDepositSources),
+        questKey: z.string().nullable(),
         isPaid: z.boolean(),
         amount: z.number(),
       }),

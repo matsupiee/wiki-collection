@@ -1,3 +1,4 @@
+import { recordSeedGrants } from "./record-seed-grants";
 // ローカル D1 を作り直し、ユーザーストーリー確認用のデータを入れる。
 // 使い方: bun run db:seed（ルート） または packages/db で bun run seed
 // 作るユーザー（パスワードはすべて password1234）
@@ -6,13 +7,13 @@
 // - jiro@example.com: hanako のオークションに入札している
 // - shiro@example.com: 無料枠を使い切った
 import { createUser } from "./create-user";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { asc, eq, sql } from "drizzle-orm";
 
 import type { Database } from "../index";
 import {
   auctionBid,
   card,
-  cardDiscovery,
+  packOpeningCard,
   coinDeposit,
   coinDepositWithdraw,
   coinProduct,
@@ -174,27 +175,27 @@ async function openPack(
       revealedAt: options.revealed ? new Date() : null,
     })
     .returning();
-  const rarityOrder = ["common", "rare", "super_rare", "legendary"];
+  const rarityOrder = ["common", "uncommon", "rare", "super_rare", "legendary"];
   const sorted = titles
     .map((t) => cardByTitle.get(t)!)
     .sort((a, b) => rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity));
   const rows = [];
   for (const c of sorted) {
-    const [existing] = await db
-      .select()
-      .from(cardDiscovery)
-      .where(and(eq(cardDiscovery.userId, userId), eq(cardDiscovery.cardId, c.id)));
-    if (!existing) {
-      await db.insert(cardDiscovery).values({ userId, cardId: c.id, firstAcquiredAt: new Date() });
-    }
     const [row] = await db
       .insert(userCard)
       .values({
-        userId,
+        ownerId: userId,
         cardId: c.id,
-        packOpeningId: opening!.id,
       })
       .returning();
+    await db
+      .insert(packOpeningCard)
+      .values({
+        packOpeningId: opening!.id,
+        userCardId: row!.id,
+        cardId: c.id,
+        slot: rows.length + 1,
+      });
     rows.push(row!);
   }
   return { opening: opening!, userCards: rows };
@@ -315,7 +316,7 @@ async function main() {
       const cardId = cardByTitle.get(title)!.id;
       const [copy] = await db
         .insert(userCard)
-        .values({ userId: hanako, cardId, status: "listed" })
+        .values({ ownerId: hanako, cardId, status: "listed" })
         .returning();
       const price = (index + 1) * 100;
       await db.insert(marketListing).values({
@@ -358,13 +359,12 @@ async function main() {
 
     // shiro: 10 パックを使い切った
     const shiro = await createUser(db, "しろう", "shiro@example.com");
-    await db
-      .insert(freePackAllowance)
-      .values({ userId: shiro, fullAt: Date.now() + 100 * 60_000 });
+    await db.insert(freePackAllowance).values({ userId: shiro, fullAt: Date.now() + 100 * 60_000 });
 
     console.log(
       `seed: カード ${cardByTitle.size} 枚、パック ${packBySlug.size} 種類、ユーザー 4 人を作りました`,
     );
+    await recordSeedGrants(db);
   } finally {
     await dispose();
   }

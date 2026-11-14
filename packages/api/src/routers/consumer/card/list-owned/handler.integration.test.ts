@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import { card, userCard, cardDiscovery } from "@wiki-collection/db/schema/index";
+import { card, userCard } from "@wiki-collection/db/schema/index";
 import { appRouter } from "../../../index";
 import type { Database } from "@wiki-collection/db";
 
@@ -21,7 +21,7 @@ describe("card/list-owned", () => {
     const g = await createGenre(db);
     const common = await createCard(db, { genreId: g.id, rarity: "common" });
     const rare = await createCard(db, { genreId: g.id, rarity: "rare" });
-    await db.insert(userCard).values({ userId, cardId: common.id, status: "archived" });
+    await db.insert(userCard).values({ ownerId: userId, cardId: common.id, status: "archived" });
     const c2 = await giveCard(db, userId, common.id);
     await giveCard(db, userId, common.id);
     await giveCard(db, userId, rare.id);
@@ -58,18 +58,23 @@ describe("card/list-owned", () => {
         .where(eq(card.id, c.id));
       await db
         .insert(userCard)
-        .values({ userId: ctx.session.user.id, cardId: c.id, createdAt: new Date(spec.time) });
+        .values({ ownerId: ctx.session.user.id, cardId: c.id, createdAt: new Date(spec.time) });
     }
     // 他人のコピー・履歴用のコピーは取得順に影響しない。
     await db.insert(userCard).values([
-      { userId: other.session.user.id, cardId: ids[0]!, createdAt: new Date(9000) },
+      { ownerId: other.session.user.id, cardId: ids[0]!, createdAt: new Date(9000) },
       {
-        userId: ctx.session.user.id,
+        ownerId: ctx.session.user.id,
         cardId: ids[0]!,
         status: "archived",
         createdAt: new Date(9000),
       },
-      { userId: ctx.session.user.id, cardId: ids[1]!, status: "listed", createdAt: new Date(5000) },
+      {
+        ownerId: ctx.session.user.id,
+        cardId: ids[1]!,
+        status: "listed",
+        createdAt: new Date(5000),
+      },
     ]);
     const api = appRouter.createCaller(ctx).card;
     const acquired = await api.listOwned({});
@@ -104,7 +109,7 @@ describe("card/list-owned", () => {
       ids.push(c.id);
       await db
         .insert(userCard)
-        .values({ userId: ctx.session.user.id, cardId: c.id, createdAt: new Date(1000) });
+        .values({ ownerId: ctx.session.user.id, cardId: c.id, createdAt: new Date(1000) });
     }
     for (const sort of ["acquired", "monthlyPageviews", "articleLength"] as const) {
       expect((await handler({ ctx, input: { sort } })).cards.map((c) => c.id)).toEqual(
@@ -120,11 +125,12 @@ describe("card/list-owned", () => {
     const released = await createCard(db, { genreId: g.id, rarity: "common" });
     await createCard(db, { genreId: g.id, rarity: "common" });
     await giveCard(db, ctx.session.user.id, owned.id);
-    await db.insert(cardDiscovery).values({
-      userId: ctx.session.user.id,
-      cardId: released.id,
-      firstAcquiredAt: new Date(),
-    });
+    const oldCopy = await giveCard(db, ctx.session.user.id, released.id);
+    const nextOwner = await createUserContext(db);
+    await db
+      .update(userCard)
+      .set({ ownerId: nextOwner.session.user.id })
+      .where(eq(userCard.id, oldCopy.id));
     const result = await appRouter.createCaller(ctx).card.listOwned({});
     expect(result.cards.map((c) => c.id)).toEqual([owned.id]);
   });

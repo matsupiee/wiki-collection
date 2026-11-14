@@ -10,7 +10,7 @@
 
 1. `bun packages/db/src/seed/index.ts` 後に `hanako@example.com` でログインし、SR1枚確定ガチャを選ぶ。
    - 選択画面と開封画面で、帯と圧着部が銀色に見える。
-   - 1〜4枠は基本パックと同じ確率で抽選し、5枠目はSRが確定する。消費する100ptと現在の残高が表示される。
+   - 1〜2枠はC80%・UC20%、3〜4枠はC60%・UC30%・R10%で抽選し、5枠目はSRが確定する。消費する100ptと現在の残高が表示される。
 2. 「100pt で開封する」を押し、開封結果を見る。
    - 5枚のうち少なくとも1枚がSRで、残高が100pt減る。
 3. パック選択に戻り、レジェンド1枚確定ガチャを選んで開ける。
@@ -28,6 +28,8 @@
 - 対象レアリティに有効なカードがなければ開封を中止し、残高と開封履歴を維持する。
 
 ## 対応するテスト
+
+- `bun packages/db/src/seed/pack-rates-cli.ts` で既存ローカルDBに新しい排出率を適用し、5段階の排出候補を追加できる。`tests/ios/pack-slot-rates.yaml` は無料枠1つと600pt以上のある利用者で基本パック・SR確定・レジェンド確定を順に開封する。
 
 - `packages/api/src/test/guaranteed-packs.integration.test.ts` で販売切り替え、各5枚のレアリティ、消費額、候補不足時の処理を確認する。
 - `packages/api/src/routers/consumer/pack/open/handler.integration.test.ts` で無償ptの優先消費、残高不足、同時開封を確認する。

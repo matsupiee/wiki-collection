@@ -28,7 +28,7 @@ export async function uploadImages(
       const part = await importChunk(client, { pages, genres: new Map(), now: new Date() });
       const sizes = new Map<string, ImageDimensions>();
       const images = await mirrorImages({
-        cards: part.cards.filter((card) => card.rarity !== "common"),
+        cards: part.cards.filter((card) => card.rarity !== "common" && card.rarity !== "uncommon"),
         storage: measuredImageStorage(storage.read, storage.put, sizes),
         onUnavailable: (url) => console.log(`対象外の画像: ${url}`),
         log: console.log,

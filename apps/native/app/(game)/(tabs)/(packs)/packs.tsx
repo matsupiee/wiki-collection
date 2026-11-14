@@ -144,7 +144,11 @@ export default function Packs() {
     setIndex(next);
   }
   return (
-    <Screen contentStyle={{ flexGrow: 1, gap: 0, paddingTop: 72, paddingBottom: 32 }}>
+    <Screen
+      showPoints
+      showGift
+      contentStyle={{ flexGrow: 1, gap: 0, paddingTop: 72, paddingBottom: 32 }}
+    >
       {!packs.data ? (
         <Loading error={packs.error} retry={packs.refetch} />
       ) : (

@@ -1,6 +1,7 @@
+import { recordSeedGrants } from "./record-seed-grants";
 // 既存データをリセットせず、ネイティブ/Web共通の確認アカウントを追加する。
 import { eq } from "drizzle-orm";
-import { card, cardDiscovery, coinDeposit, user, userCard } from "../schema";
+import { card, coinDeposit, user, userCard } from "../schema";
 import { createUser } from "./create-user";
 import { openLocalDb } from "./local-db";
 const { db, dispose } = await openLocalDb();
@@ -15,10 +16,7 @@ try {
     const userId = existing?.id ?? (await createUser(db, name, email));
     if (!existing) {
       for (const c of cards) {
-        await db.insert(userCard).values({ userId, cardId: c.id });
-        await db
-          .insert(cardDiscovery)
-          .values({ userId, cardId: c.id, firstAcquiredAt: new Date() });
+        await db.insert(userCard).values({ ownerId: userId, cardId: c.id });
       }
     }
     const id = `native-seed-credit-${userId}`;
@@ -33,6 +31,7 @@ try {
   console.log(
     `${prefix}1@example.com / ${prefix}2@example.com / ${bidderEmail}（初期残高0pt）、password1234。既存の利用者・所持品は変更しません。`,
   );
+  await recordSeedGrants(db);
 } finally {
   await dispose();
 }

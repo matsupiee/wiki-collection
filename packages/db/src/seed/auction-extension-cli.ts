@@ -1,3 +1,4 @@
+import { recordSeedGrants } from "./record-seed-grants";
 // ローカルの専用出品で、締切直前の入札を繰り返し確認する。
 import { and, eq } from "drizzle-orm";
 import { card, marketListing, user, userCard } from "../schema";
@@ -33,21 +34,20 @@ try {
     await db.batch([
       db
         .insert(userCard)
-        .values({ id: copyId, userId: sellerId, cardId: item.id, status: "listed" }),
-      db
-        .insert(marketListing)
-        .values({
-          id,
-          sellerId,
-          userCardId: copyId,
-          cardId: item.id,
-          format: "auction",
-          startPrice: 10,
-          endsAt: new Date(Date.now() + 3_600_000),
-        }),
+        .values({ id: copyId, ownerId: sellerId, cardId: item.id, status: "listed" }),
+      db.insert(marketListing).values({
+        id,
+        sellerId,
+        userCardId: copyId,
+        cardId: item.id,
+        format: "auction",
+        startPrice: 10,
+        endsAt: new Date(Date.now() + 3_600_000),
+      }),
     ]);
     console.log(id);
   }
+  await recordSeedGrants(db);
 } finally {
   await dispose();
 }

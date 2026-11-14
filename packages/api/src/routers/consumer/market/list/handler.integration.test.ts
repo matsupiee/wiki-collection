@@ -108,9 +108,9 @@ describe("market/list", () => {
       .where(eq(marketListing.id, unsoldListing.listingId));
     expect(unsoldAfter?.status).toBe("expired");
     const [soldCard] = await db.select().from(userCard).where(eq(userCard.id, sold.id));
-    expect(soldCard).toMatchObject({ userId: bidder.session.user.id, status: "owned" });
+    expect(soldCard).toMatchObject({ ownerId: bidder.session.user.id, status: "owned" });
     const [unsoldCard] = await db.select().from(userCard).where(eq(userCard.id, unsold.id));
-    expect(unsoldCard).toMatchObject({ userId: seller.session.user.id, status: "owned" });
+    expect(unsoldCard).toMatchObject({ ownerId: seller.session.user.id, status: "owned" });
     expect(await getCoinBalance(db, seller.session.user.id)).toMatchObject({
       free: 200,
       total: 200,

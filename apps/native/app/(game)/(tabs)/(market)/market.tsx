@@ -48,7 +48,7 @@ export default function Market() {
     ),
   );
   return (
-    <Screen title={t("auction")} contentStyle={{ gap: 12, paddingBottom: 24 }}>
+    <Screen showPoints title={t("auction")} contentStyle={{ gap: 12, paddingBottom: 24 }}>
       <View
         style={{
           flexDirection: "row",

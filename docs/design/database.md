@@ -16,7 +16,7 @@ erDiagram
   user ||--o{ coin_purchase : "課金"
   user ||--o{ pack_opening : "開封"
   user ||--o{ user_card : "所持"
-  user ||--o{ card_discovery : "初獲得の記録"
+  user ||--o{ user_card_ownership_transfers : "所有権の移転"
   user ||--o{ market_listing : "出品"
   user ||--o{ notification_user : "通知の配信先"
   notification ||--o{ notification_user : "通知の内容"
@@ -28,11 +28,14 @@ erDiagram
   genre ||--o{ card : ""
   genre ||--o{ pack : "ジャンルパック"
   card ||--o{ user_card : ""
-  card ||--o{ card_discovery : ""
+  card ||--o{ pack_opening_card : "抽選結果"
+  card ||--o{ user_card_ownership_transfers : ""
 
   pack ||--o{ pack_slot_rate : "排出率"
   pack ||--o{ pack_opening : ""
-  pack_opening ||--o{ user_card : "5枚"
+  pack_opening ||--o{ pack_opening_card : "5枚"
+  user_card ||--o| pack_opening_card : "開封元"
+  user_card ||--o{ user_card_ownership_transfers : "移転履歴"
 
   user_card ||--o{ market_listing : ""
   market_listing ||--o{ auction_bid : ""
@@ -44,7 +47,7 @@ erDiagram
 テーブルは役割ごとに5つに分かれる。
 
 - マスタ（運営が作る）: `genre`、`card`、`rarity_threshold`、`pack`、`pack_slot_rate`、`coin_product`
-- 所持と開封: `user_card`、`card_discovery`、`pack_opening`、`free_pack_allowance`
+- 所持と開封: `user_card`、`user_card_ownership_transfers`、`pack_opening_card`、`pack_opening`、`free_pack_allowance`
 - 通貨: `coin_deposit`、`coin_withdraw`、`coin_deposit_withdraw`、`coin_purchase`
 - 通知: `notification` はタイトルと本文、`notification_user` は宛先と既読状態を保持する。同じ通知・利用者の組み合わせは1件に限る。
 - マーケット: `market_listing`、`auction_bid`
@@ -55,14 +58,14 @@ erDiagram
 
 | enum                  | 値                                                           | 使う列                                 |
 | --------------------- | ------------------------------------------------------------ | -------------------------------------- |
-| rarity                | `common` / `rare` / `super_rare` / `legendary` | `card.rarity`、`pack_slot_rate.rarity` |
+| rarity                | `common` / `uncommon` / `rare` / `super_rare` / `legendary` | `card.rarity`、`pack_slot_rate.rarity` |
 | pack_type             | `free_basic` / `premium`                                     | `pack.type`                            |
 | pack_payment          | `free_initial` / `free_daily` / `coin`                       | `pack_opening.payment`                 |
 | user_card_status      | `owned` / `listed` / `fused`                                 | `user_card.status`                     |
 | listing_format        | `fixed_price` / `auction`                                    | `market_listing.format`                |
 | listing_status        | `active` / `sold` / `cancelled` / `expired`                  | `market_listing.status`                |
 | bid_status            | `leading` / `outbid` / `won`                                 | `auction_bid.status`                   |
-| coin_deposit_source   | `purchase` / `market_sale` / `bid_refund` / `admin_grant`    | `coin_deposit.source`                  |
+| coin_deposit_source   | `purchase` / `market_sale` / `bid_refund` / `admin_grant` / `quest_reward`    | `coin_deposit.source`                  |
 | coin_withdraw_purpose | `pack_open` / `market_buy` / `auction_bid` / `admin_revoke`  | `coin_withdraw.purpose`                |
 | purchase_provider     | `mock` / `stripe` / `app_store` / `google_play`              | `coin_purchase.provider`               |
 | purchase_status       | `pending` / `completed` / `failed` / `refunded`              | `coin_purchase.status`                 |
@@ -112,16 +115,16 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 
 ### rarity_threshold
 
-レアリティごとの月間閲覧数の下限。言語版ごとに、C以外の3行を持つ。
+レアリティごとの月間閲覧数の下限。言語版ごとに、C以外の4行を持つ。
 
 | 列                  | 型      | 説明                                   |
 | ------------------- | ------- | -------------------------------------- |
 | wikiLang            | text    | 言語版                                 |
-| rarity              | rarity  | `rare` 以上。Cは下限がない    |
+| rarity              | rarity  | `uncommon` 以上。Cは下限がない    |
 | minMonthlyPageviews | integer | このレアリティになる月平均閲覧数の下限 |
 
 - `(wikiLang, rarity)` に unique 制約をつける。
-- 下限はレジェンド10万回、SR5万回、R1万回とする。
+- 下限はレジェンド10万回、SR1万回、R1,000回、UC100回とする。
 - 下限を変えても、すでにあるカードのレアリティは変わらない。
 - 計算は `packages/db/src/rarity.ts` に置く。seed も同じ計算で下限を入れる。
 
@@ -160,15 +163,15 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 
 初期値（重みは10000分率）。seed（`packages/db/src/seed/master-data.ts`、`packages/db/src/seed/packs.ts`）もこの値で作る。
 
-| パック | 枠 | C | R | SR | レジェンド |
-| --- | --- | --- | --- | --- | --- |
-| 基本パック | 1〜3 | 10000 | 0 | 0 | 0 |
-| 基本パック | 4 | 9500 | 350 | 100 | 50 |
-| 基本パック | 5 | 8600 | 1000 | 300 | 100 |
-| 両確定ガチャ | 1〜3 | 10000 | 0 | 0 | 0 |
-| 両確定ガチャ | 4 | 9500 | 350 | 100 | 50 |
-| SR1枚確定ガチャ | 5 | 0 | 0 | 10000 | 0 |
-| レジェンド1枚確定ガチャ | 5 | 0 | 0 | 0 | 10000 |
+| パック | 枠 | C | UC | R | SR | レジェンド |
+| --- | --- | --- | --- | --- | --- | --- |
+| 基本パック | 1〜2 | 8000 | 2000 | 0 | 0 | 0 |
+| 基本パック | 3〜4 | 6000 | 3000 | 1000 | 0 | 0 |
+| 基本パック | 5 | 4800 | 3000 | 2000 | 150 | 50 |
+| 両確定ガチャ | 1〜2 | 8000 | 2000 | 0 | 0 | 0 |
+| 両確定ガチャ | 3〜4 | 6000 | 3000 | 1000 | 0 | 0 |
+| SR1枚確定ガチャ | 5 | 0 | 0 | 0 | 10000 | 0 |
+| レジェンド1枚確定ガチャ | 5 | 0 | 0 | 0 | 0 | 10000 |
 
 ### coin_product
 
@@ -186,7 +189,7 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 
 ### pack_opening
 
-パックを1回開けた記録。抽選結果はここに紐づく `user_card` として残る。
+パックを1回開けた記録。抽選結果は `pack_opening_card` に残り、現在の所有者とは独立して保持する。
 
 | 列         | 型             | 説明                                             |
 | ---------- | -------------- | ------------------------------------------------ |
@@ -212,33 +215,70 @@ Wikipedia の記事1ページに対応するカード。所持品ではなく、
 - 満杯までの残り時間を10分単位で切り上げた数が、消費済みの枠数になる。
 - 同時に開封されても残数を超えないよう、1回分以上残っている場合だけ更新する。
 
+### pack_opening_card
+
+パック開封時に当たったカードを1枠1行で保存する。売買しても変更しない。
+
+| 列 | 型 | 説明 |
+| --- | --- | --- |
+| id | text | 抽選結果のID |
+| packOpeningId | text → pack_opening | 開封1回の履歴 |
+| userCardId | text → user_card | 発行したカード個体 |
+| cardId | text → card | 当たったカードの種類 |
+| slot | integer | 1から始まる枠番号 |
+
+- `(packOpeningId, slot)` と `userCardId` にそれぞれunique制約を設ける。
+- 過去データには枠順が保存されていないため、移行時だけ従来のカード個体ID順を使う。
+
 ### user_card
 
-ユーザーが持っている1枚1枚のカード。同じカードを3枚持っていれば3行ある。
-マーケットに1枚単位で出品するため、枚数のカウンターではなく1枚ごとに行を持つ。
+現在の所有者を保持するカード個体。同じ種類を3枚持っていれば3行ある。
 
-| 列             | 型                       | 説明                                                         |
-| -------------- | ------------------------ | ------------------------------------------------------------ |
-| userId         | text → user              | いまの持ち主。マーケットで売れたら買った人に書き換える       |
-| cardId         | text → card              |                                                              |
-| status         | user_card_status         | `owned` 所持中、`listed` 出品中、`archived` 履歴のみ         |
-| packOpeningId  | text null → pack_opening | どの開封で出たか                                             |
+| 列 | 型 | 説明 |
+| --- | --- | --- |
+| ownerId | text → user | 現在の所有者。売買成立時に買い手へ変更する |
+| cardId | text → card | カードの種類 |
+| status | user_card_status | `owned` 所持中、`listed` 出品中、`archived` 旧データの履歴のみ |
 
-- `(userId, status, cardId)` に index をつける。コレクション画面で所持中のカードをまとめて数えるため。
+- `(ownerId, status, cardId)` にindexを設ける。
+- 開封元は `pack_opening_card` を参照する。
 
-### card_discovery
+### user_card_ownership_transfers
 
-ユーザーが一度でも手に入れたカード。NEW 判定とカード詳細の閲覧可否の判定に使う。
+カードの初回付与・所有権の移転を追記する。売却後も消さず、NEW判定とカード詳細の閲覧可否にも使う。
 
-| 列              | 型          | 説明 |
-| --------------- | ----------- | ---- |
-| userId          | text → user |      |
-| cardId          | text → card |      |
-| firstAcquiredAt | timestamp   |      |
+| 列 | 型 | 説明 |
+| --- | --- | --- |
+| userCardId | text null → user_card | 移転したカード個体。旧獲得記録で特定できない場合だけnull |
+| cardId | text → card | カードの種類 |
+| fromUserId | text null → user | 移転元。初回付与または旧記録で不明な場合はnull |
+| toUserId | text → user | 獲得したユーザー |
+| reason | text | `pack_open`、`market_sale` |
+| marketListingId | text null → market_listing | 売買元の出品。一意制約で重複記録を防ぐ |
+| createdAt | timestamp | 獲得・移転日時 |
 
-- `(userId, cardId)` に unique 制約をつける。
-- 売却で手放しても消さない。再取得したカードを初獲得として扱わないため。
-- 手に入れたことのないカードは、カード詳細を開けない。
+- `(toUserId, cardId)` と `(userCardId, createdAt)`、`fromUserId` にindexを設ける。
+- seedによる付与と移行前の獲得・所有記録も `pack_open` として保存する。不明な相手や個体はnullのまま保持する。
+- 開封結果・カード個体・初回付与は同じbatchで保存する。NEW判定の履歴読み取りもそのbatch内で行う。
+- 落札時は出品状態・所有者・移転履歴・売上入金を同じbatchで更新する。
+- `card_discovery` は移行後に削除する。`user_pack_card_discovery` は作らない。パック由来の獲得は `pack_opening` と `pack_opening_card` から取得できる。
+
+## クエスト
+
+条件・報酬はサーバーの `quests/definitions.ts` に定義し、進捗は開封結果から集計する。
+
+### user_quest_completion
+
+| 列 | 型 | 説明 |
+| --- | --- | --- |
+| userId | text → user | 達成した利用者 |
+| questKey | text | コードで定義した段階の固定ID |
+| reward | integer | 達成時に付与したpt |
+| packOpeningId | text null → pack_opening | 達成を確定した開封。独立コマンドによる過去分付与はnull |
+
+- id・createdAt・updatedAtを保持し、`(userId, questKey)` にunique制約を設ける。
+- `coin_deposit.questCompletionId` で入金と紐付ける。入金側もuniqueとし、同じ達成に複数の入金を作らない。
+- `quest_reward` は無償pt。達成と入金を開封結果と同じbatchで確定する。
 
 ## 通貨
 
@@ -347,7 +387,7 @@ pt を消費した記録。
 - `userCardId` に `status = 'active'` の部分 unique index をつける。同じカードを二重に出品させないため。
 - `(status, format, cardId)`、`(status, endsAt)`、`(sellerId, createdAt)` に index をつける。
 - 出品すると `user_card.status = listed` にし、取り下げや期限切れで `owned` に戻す。
-- 売れたら `user_card.userId` を買い手に書き換えて `owned` に戻し、買い手に `card_discovery` を足す。
+- 売れたら `user_card.ownerId` を買い手に書き換えて `owned` に戻し、`user_card_ownership_transfers` に売り手から買い手への移転を記録する。
 - 入札のあるオークションは取り下げられない。
 
 ### auction_bid
@@ -384,7 +424,7 @@ D1 はアプリから任意のトランザクションを張れないため、�
 2. 抽選: サーバーは各枠のレアリティを `pack_slot_rate` で決め、該当する有効なカードから等確率で1枚ずつ選び、レアリティの低い順に並べる。乱数は `crypto.getRandomValues` を使う。
 3. 無料パックは `free_pack_allowance` を条件付き UPDATE で減らす。
 4. `pack_opening` を作る。
-5. batch で `user_card` 5行、`card_discovery`（新規分）、有料なら `coin_withdraw` と `coin_deposit_withdraw` を書く。
+5. batch 内で過去の獲得履歴を読み、`user_card`・`pack_opening_card`・`user_card_ownership_transfers` を各5行、有料なら `coin_withdraw` と `coin_deposit_withdraw` を書く。
 6. batch が失敗したら、`pack_opening` を消し、無料枠を戻す。
 
 ### オークションの入札
@@ -396,7 +436,7 @@ D1 はアプリから任意のトランザクションを張れないため、�
 
 1. 終了時刻を過ぎた `active` のオークションを探す。
 2. 入札がなければ `expired` にし、カードを `owned` に戻す。
-3. 入札があれば `sold` にし、batch で入札を `won` に、カードを落札者に移し、出品者に無償 `coin_deposit`（`market_sale`）を作る。落札者の pt は入札時に消費済み。
+3. 入札があれば同じbatchで、所有権の移転履歴、出品の `sold`、入札の `won`、カードの所有者変更、出品者への無償 `coin_deposit`（`market_sale`）を確定する。落札者の pt は入札時に消費済み。
 
 ## Wikipedia からのカード作成
 

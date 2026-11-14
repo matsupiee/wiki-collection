@@ -12,7 +12,7 @@ export async function handler({ ctx }: { ctx: ProtectedContext }) {
     mine: number;
   }>(sql`
     WITH totals AS (
-      SELECT ${userCard.userId} AS owner,
+      SELECT ${userCard.ownerId} AS owner,
         CAST(SUM(ROUND(
           170.2 * log2(1 + ${card.monthlyPageviews} / 60.0) +
           29.8 * log2(1 + coalesce(${card.articleLength}, 0) / 5259.0)
@@ -20,7 +20,7 @@ export async function handler({ ctx }: { ctx: ProtectedContext }) {
       FROM ${userCard}
       JOIN ${card} ON ${card.id} = ${userCard.cardId}
       WHERE ${userCard.status} IN ('owned', 'listed')
-      GROUP BY ${userCard.userId}
+      GROUP BY ${userCard.ownerId}
     ), ranked AS (
       SELECT owner, total, rank() OVER (ORDER BY total DESC) AS rank,
         row_number() OVER (ORDER BY total DESC, owner) AS position
